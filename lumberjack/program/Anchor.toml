@@ -1,0 +1,14 @@
+[features]
+seeds = false
+[programs.localnet]
+lumberjack = "37GWtNArLfNGWbabA3wALxHoCEHqWT52gJWYWvK4WNmE"
+
+[registry]
+url = "https://anchor.projectserum.com"
+
+[provider]
+cluster = "devnet"
+wallet = "/Users/jonasmac2/.config/solana/id.json"
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
