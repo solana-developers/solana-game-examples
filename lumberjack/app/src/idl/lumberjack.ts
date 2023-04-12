@@ -38,6 +38,22 @@ export type Lumberjack = {
         }
       ],
       "args": []
+    },
+    {
+      "name": "update",
+      "accounts": [
+        {
+          "name": "player",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "signer",
+          "isMut": true,
+          "isSigner": true
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -59,7 +75,7 @@ export type Lumberjack = {
             "type": "u64"
           },
           {
-            "name": "log",
+            "name": "wood",
             "type": "u64"
           },
           {
@@ -123,6 +139,22 @@ export const IDL: Lumberjack = {
         }
       ],
       "args": []
+    },
+    {
+      "name": "update",
+      "accounts": [
+        {
+          "name": "player",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "signer",
+          "isMut": true,
+          "isSigner": true
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -144,7 +176,7 @@ export const IDL: Lumberjack = {
             "type": "u64"
           },
           {
-            "name": "log",
+            "name": "wood",
             "type": "u64"
           },
           {

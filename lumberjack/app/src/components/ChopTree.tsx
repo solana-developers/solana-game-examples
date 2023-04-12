@@ -158,7 +158,7 @@ export const ChopTree: FC = () => {
       <div className="relative group items-center">
         Dont forget to set your wallet to devnet!
         {(gameState && <div className="flex flex-col items-center">
-            {("wood: " + gameState.wood + " Energy: " + gameState.energy + " Next energy: " + nextEnergyIn )}
+            {("Wood: " + gameState.wood + " Energy: " + gameState.energy + " Next energy: " + nextEnergyIn )}
         </div>)} 
 
         <button
