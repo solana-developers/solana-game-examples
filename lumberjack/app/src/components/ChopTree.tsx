@@ -13,10 +13,10 @@ import { PublicKey, SystemProgram } from "@solana/web3.js";
 export const ChopTree: FC = () => {
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
-  const wallet = useAnchorWallet();
   const [gameState, setGameState] = useState<any>([]);
   const [timePassed, setTimePassed] = useState<any>([]);
   const [nextEnergyIn, setEnergyNextIn] = useState<number>(0);
+  const wallet = useAnchorWallet();
 
   const provider = new AnchorProvider(connection, wallet, {});
   setProvider(provider);
@@ -33,10 +33,14 @@ export const ChopTree: FC = () => {
         publicKey.toBuffer()],
         new PublicKey(LUMBERJACK_PROGRAM_ID)
       );
-    program.account.playerData.fetch(pda).then((data) => {
+    
+      program.account.playerData.fetch(pda).then((data) => {
         setGameState(data);
-    });
-
+      })
+      .catch((error) => {
+        window.alert("No player data found, please init!");
+      });
+  
     connection.onAccountChange(pda, (account) => {
         setGameState(program.coder.accounts.decode("playerData", account.data));
     });
@@ -93,7 +97,7 @@ export const ChopTree: FC = () => {
         .transaction();
 
       const tx = await transaction;
-      const txSig = await sendTransaction(tx, connection);
+      const txSig = await sendTransaction(tx, connection, { skipPreflight: true });
       await connection.confirmTransaction(txSig, "confirmed");
 
       notify({ type: "success", message: "Chopped tree!", txid: txSig });
@@ -152,9 +156,9 @@ export const ChopTree: FC = () => {
   return (
     <div className="flex flex-row justify-center">
       <div className="relative group items-center">
-
+        Dont forget to set your wallet to devnet!
         {(gameState && <div className="flex flex-col items-center">
-            {("Log: " + gameState.log + " Energy: " + gameState.energy + " Next energy: " + nextEnergyIn )}
+            {("wood: " + gameState.wood + " Energy: " + gameState.energy + " Next energy: " + nextEnergyIn )}
         </div>)} 
 
         <button

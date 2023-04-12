@@ -1,7 +1,7 @@
 [features]
 seeds = false
 [programs.localnet]
-lumberjack = "37GWtNArLfNGWbabA3wALxHoCEHqWT52gJWYWvK4WNmE"
+lumberjack = "2udB5teZ2HJK5sUrVoD8xMjzqkf48tpTigaF66mTnnzK"
 
 [registry]
 url = "https://anchor.projectserum.com"

@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("37GWtNArLfNGWbabA3wALxHoCEHqWT52gJWYWvK4WNmE");
+declare_id!("2udB5teZ2HJK5sUrVoD8xMjzqkf48tpTigaF66mTnnzK");
 
 #[error_code]
 pub enum ErrorCode {
@@ -29,19 +29,18 @@ pub mod lumberjack {
             return err!(ErrorCode::NotEnoughEnergy);
         }
 
-        ctx.accounts.player.log = ctx.accounts.player.log + 1;
+        ctx.accounts.player.wood = ctx.accounts.player.wood + 1;
         ctx.accounts.player.energy = ctx.accounts.player.energy - 1;
-        msg!("You chopped a tree and got 1 log. You have {} logs and {} energy left.", ctx.accounts.player.log, ctx.accounts.player.energy);
+        msg!("You chopped a tree and got 1 wood. You have {} wood and {} energy left.", ctx.accounts.player.wood, ctx.accounts.player.energy);
         Ok(())
     }
 
     pub fn update(mut ctx: Context<ChopTree>) -> Result<()> {
         let account = &mut ctx.accounts;
         update_energy(account)?;
-        msg!("Updated energy. You have {} logs and {} energy left.", ctx.accounts.player.log, ctx.accounts.player.energy);
+        msg!("Updated energy. You have {} wood and {} energy left.", ctx.accounts.player.wood, ctx.accounts.player.energy);
         Ok(())
     }
-
 }
 
 pub fn update_energy(ctx: &mut ChopTree) -> Result<()> {
@@ -85,7 +84,7 @@ pub struct PlayerData {
     pub name: String,
     pub level: u8,
     pub xp: u64,
-    pub log: u64,
+    pub wood: u64,
     pub energy: u64,
     pub last_login: i64
 }

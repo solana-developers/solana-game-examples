@@ -5,7 +5,7 @@ const nextConfig = {
     fallback: {
         "fs": false
     },
-}
+  }
 }
 
 module.exports = nextConfig
