@@ -1,11 +1,14 @@
 use anchor_lang::prelude::*;
+use gpl_session::{SessionError, SessionToken, session_auth_or, Session};
 
-declare_id!("2udB5teZ2HJK5sUrVoD8xMjzqkf48tpTigaF66mTnnzK");
+declare_id!("BrnX41TKsyg7etkaDfhzoxsCHpicLDMWB8GvEm3tonNv");
 
 #[error_code]
-pub enum ErrorCode {
+pub enum GameErrorCode {
     #[msg("Not enough energy")]
     NotEnoughEnergy,
+    #[msg("Wrong Authority")]
+    WrongAuthority,
 }
 
 const TIME_TO_REFILL_ENERGY: i64 = 60;
@@ -18,15 +21,20 @@ pub mod lumberjack {
     pub fn init_player(ctx: Context<InitPlayer>) -> Result<()> {
         ctx.accounts.player.energy = MAX_ENERGY;
         ctx.accounts.player.last_login = Clock::get()?.unix_timestamp;
+        ctx.accounts.player.authority = ctx.accounts.signer.key();
         Ok(())
     }
 
+    #[session_auth_or(
+        ctx.accounts.player.authority.key() == ctx.accounts.authority.key(),
+        GameErrorCode::WrongAuthority
+    )]
     pub fn chop_tree(mut ctx: Context<ChopTree>) -> Result<()> {
         let account = &mut ctx.accounts;
         update_energy(account)?;
 
         if ctx.accounts.player.energy == 0 {
-            return err!(ErrorCode::NotEnoughEnergy);
+            return err!(GameErrorCode::NotEnoughEnergy);
         }
 
         ctx.accounts.player.wood = ctx.accounts.player.wood + 1;
@@ -67,10 +75,10 @@ pub fn update_energy(ctx: &mut ChopTree) -> Result<()> {
 #[derive(Accounts)]
 pub struct InitPlayer <'info> {
     #[account( 
-        init, 
+        init,
         payer = signer,
         space = 1000,
-        seeds = [b"player".as_ref(), signer.key().as_ref()],
+        seeds = [b"player2".as_ref(), signer.key().as_ref()],
         bump,
     )]
     pub player: Account<'info, PlayerData>,
@@ -81,6 +89,7 @@ pub struct InitPlayer <'info> {
 
 #[account]
 pub struct PlayerData {
+    pub authority: Pubkey,
     pub name: String,
     pub level: u8,
     pub xp: u64,
@@ -89,14 +98,25 @@ pub struct PlayerData {
     pub last_login: i64
 }
 
-#[derive(Accounts)]
+#[derive(Accounts, Session)]
 pub struct ChopTree <'info> {
+    #[session(
+        // The ephemeral key pair signing the transaction
+        signer = signer,
+        // The authority of the user account which must have created the session
+        authority = authority.key()
+    )]
+    // Session Tokens are passed as optional accounts
+    pub session_token: Option<Account<'info, SessionToken>>,
+
     #[account( 
         mut,
-        seeds = [b"player".as_ref(), signer.key().as_ref()],
+        seeds = [b"player2".as_ref(), authority.key().as_ref()],
         bump,
     )]
     pub player: Account<'info, PlayerData>,
     #[account(mut)]
     pub signer: Signer<'info>,
+    /// CHECK:
+    pub authority: AccountInfo<'info>,
 }

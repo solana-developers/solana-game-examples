@@ -7,16 +7,33 @@ import { FC, useCallback, useEffect, useState } from "react";
 import { notify } from "../utils/notifications";
 import { AnchorProvider, Program, setProvider } from "@coral-xyz/anchor";
 import { IDL } from "../idl/lumberjack";
-import { LUMBERJACK_PROGRAM_ID, MAX_ENERGY, TIME_TO_REFILL_ENERGY } from "utils/anchor";
+import {
+  ENERGY_PER_TICK,
+  LUMBERJACK_PROGRAM_ID,
+  MAX_ENERGY,
+  TIME_TO_REFILL_ENERGY,
+} from "utils/anchor";
 import { PublicKey, SystemProgram } from "@solana/web3.js";
+import { useSessionWallet } from '@gumhq/react-sdk';
+
+type GameDataAccount = {
+  name: String;
+  level: number;
+  xp: number;
+  wood: number;
+  energy: number;
+  lastLogin: number;
+};
 
 export const ChopTree: FC = () => {
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
-  const [gameState, setGameState] = useState<any>([]);
+  const [gameState, setGameState] = useState<GameDataAccount | null>(null);
   const [timePassed, setTimePassed] = useState<any>([]);
   const [nextEnergyIn, setEnergyNextIn] = useState<number>(0);
   const wallet = useAnchorWallet();
+
+  const sessionWallet = useSessionWallet();
 
   const provider = new AnchorProvider(connection, wallet, {});
   setProvider(provider);
@@ -27,44 +44,52 @@ export const ChopTree: FC = () => {
   }, [gameState]);
 
   useEffect(() => {
-    if (!publicKey) {return;}
+    if (!publicKey) {
+      return;
+    }
     const [pda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("player", "utf8"), 
-        publicKey.toBuffer()],
-        new PublicKey(LUMBERJACK_PROGRAM_ID)
-      );
-    
-      program.account.playerData.fetch(pda).then((data) => {
+      [Buffer.from("player2", "utf8"), publicKey.toBuffer()],
+      new PublicKey(LUMBERJACK_PROGRAM_ID)
+    );
+
+    program.account.playerData
+      .fetch(pda)
+      .then((data) => {
         setGameState(data);
       })
       .catch((error) => {
         window.alert("No player data found, please init!");
       });
-  
-    connection.onAccountChange(pda, (account) => {
-        setGameState(program.coder.accounts.decode("playerData", account.data));
-    });
 
+    connection.onAccountChange(pda, (account) => {
+      setGameState(program.coder.accounts.decode("playerData", account.data));
+    });
   }, [publicKey]);
 
   useEffect(() => {
     const interval = setInterval(async () => {
-        if (gameState == null || gameState.lastLogin == undefined || gameState.energy >= 10) {return;}
-        const lastLoginTime=gameState.lastLogin * 1000;
-        let timePassed = ((Date.now() - lastLoginTime) / 1000);
-        while (timePassed > TIME_TO_REFILL_ENERGY && gameState.energy < MAX_ENERGY) {
-            gameState.energy = (parseInt(gameState.energy) + 1);
-            gameState.lastLogin = parseInt(gameState.lastLogin) + TIME_TO_REFILL_ENERGY;
-            timePassed -= TIME_TO_REFILL_ENERGY;
-        }
-        setTimePassed(timePassed);
-        let nextEnergyIn = Math.floor(TIME_TO_REFILL_ENERGY -timePassed);
-        if (nextEnergyIn < TIME_TO_REFILL_ENERGY && nextEnergyIn > 0) {
-            setEnergyNextIn(nextEnergyIn);
-        } else {
-            setEnergyNextIn(0);
-        }
-
+      if (
+        gameState == null ||
+        gameState.lastLogin == undefined || gameState.energy >= 10
+      ) {
+        return;
+      }
+      const lastLoginTime = gameState.lastLogin * 1000;
+      let timePassed = (Date.now() - lastLoginTime) / 1000;
+      while (
+        timePassed > TIME_TO_REFILL_ENERGY && gameState.energy < MAX_ENERGY
+      ) {
+        gameState.energy = +gameState.energy + 1;
+        gameState.lastLogin = gameState.lastLogin + TIME_TO_REFILL_ENERGY;
+        timePassed -= TIME_TO_REFILL_ENERGY;
+      }
+      setTimePassed(timePassed);
+      let nextEnergyIn = Math.floor(TIME_TO_REFILL_ENERGY - timePassed);
+      if (nextEnergyIn < TIME_TO_REFILL_ENERGY && nextEnergyIn > 0) {
+        setEnergyNextIn(nextEnergyIn);
+      } else {
+        setEnergyNextIn(0);
+      }
     }, 1000);
 
     return () => clearInterval(interval);
@@ -82,7 +107,7 @@ export const ChopTree: FC = () => {
     }
 
     const [pda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("player", "utf8"), publicKey.toBuffer()],
+      [Buffer.from("player2", "utf8"), publicKey.toBuffer()],
       new PublicKey(LUMBERJACK_PROGRAM_ID)
     );
 
@@ -97,7 +122,9 @@ export const ChopTree: FC = () => {
         .transaction();
 
       const tx = await transaction;
-      const txSig = await sendTransaction(tx, connection, { skipPreflight: true });
+      const txSig = await sendTransaction(tx, connection, {
+        skipPreflight: true,
+      });
       await connection.confirmTransaction(txSig, "confirmed");
 
       notify({ type: "success", message: "Chopped tree!", txid: txSig });
@@ -125,7 +152,7 @@ export const ChopTree: FC = () => {
 
     try {
       const [pda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("player", "utf8"), publicKey.toBuffer()],
+        [Buffer.from("player2", "utf8"), publicKey.toBuffer()],
         new PublicKey(LUMBERJACK_PROGRAM_ID)
       );
 
@@ -133,15 +160,28 @@ export const ChopTree: FC = () => {
         .chopTree()
         .accounts({
           player: pda,
-          signer: publicKey,
+          signer: sessionWallet.publicKey,
+          authority: publicKey,
+          sessionToken: sessionWallet.sessionToken,
         })
         .transaction();
 
-      const tx = await transaction;
-      const txSig = await sendTransaction(tx, connection);
-      await connection.confirmTransaction(txSig, "confirmed");
+      console.log("sessionWallet.publicKey: " + sessionWallet.publicKey)
+      console.log("sessionToken: " + sessionWallet.sessionToken)
+      console.log("publicKey: " + publicKey)
+      console.log("pda: " + pda)
 
-      notify({ type: "success", message: "Chopped tree!", txid: txSig });
+      const tx = await transaction;
+      const txids = await sessionWallet.signAndSendTransaction(tx);
+
+      if (txids && txids.length > 0) {
+        console.log("Transaction sent:", txids);
+        notify({ type: "success", message: "Chopped tree success!" });
+      } else {
+        console.error("Failed to send transaction");
+        notify({ type: "failed", message: "Chopped tree failed!" });
+      }
+
     } catch (error: any) {
       notify({
         type: "error",
@@ -153,26 +193,70 @@ export const ChopTree: FC = () => {
     }
   }, [publicKey, connection]);
 
+  const handleCreateSession = async () => {
+    const targetProgramPublicKey = program.programId;
+    console.log("targetProgramPublicKey", program.programId.toBase58());
+    const topUp = true; 
+    const expiryInMinutes = 600;
+  
+    const session = await sessionWallet.createSession(targetProgramPublicKey, topUp, expiryInMinutes);
+  
+    if (session) {
+      console.log("Session created:", session);
+    } else {
+      console.error("Failed to create session");
+    }
+  };
+
+  const handleRevokeSession = async () => {
+    await sessionWallet.revokeSession();
+    console.log("Session revoked");
+  };
+
   return (
     <div className="flex flex-row justify-center">
-      <div className="relative group items-center">
-        Dont forget to set your wallet to devnet!
-        {(gameState && <div className="flex flex-col items-center">
-            {("Wood: " + gameState.wood + " Energy: " + gameState.energy + " Next energy: " + nextEnergyIn )}
-        </div>)} 
+      <div>
+      {!publicKey && ("Connect to dev net wallet!")}
 
-        <button
+      <button
           className="px-8 m-2 btn animate-pulse bg-gradient-to-br from-indigo-500 to-fuchsia-500 hover:from-white hover:to-purple-300 text-black"
           onClick={onInitClick}
         >
           <span>Init </span>
         </button>
+
+      {gameState && publicKey && (
+      <div className="relative group items-center">
+        
+          <div className="flex flex-col items-center">
+            {"Wood: " +
+              gameState.wood +
+              " Energy: " +
+              gameState.energy +
+              " Next energy: " +
+              nextEnergyIn}
+          </div>
+        
         <button
           className="px-8 m-2 btn animate-pulse bg-gradient-to-br from-indigo-500 to-fuchsia-500 hover:from-white hover:to-purple-300 text-black"
           onClick={onChopClick}
         >
           <span>Chop tree </span>
         </button>
+        <button
+          className="px-8 m-2 btn animate-pulse bg-gradient-to-br from-indigo-500 to-fuchsia-500 hover:from-white hover:to-purple-300 text-black"
+          onClick={handleCreateSession}
+        >
+          <span>Crete session </span>
+        </button>
+        <button
+          className="px-8 m-2 btn animate-pulse bg-gradient-to-br from-indigo-500 to-fuchsia-500 hover:from-white hover:to-purple-300 text-black"
+          onClick={handleRevokeSession}
+        >
+          <span>Revoke Session </span>
+        </button>
+      </div>
+      )}
       </div>
     </div>
   );

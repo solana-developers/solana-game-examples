@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.27.0",
+    "@gumhq/react-sdk": "^2.0.2",
     "@heroicons/react": "^1.0.5",
     "@noble/ed25519": "^1.7.1",
     "@solana/wallet-adapter-base": "^0.9.22",

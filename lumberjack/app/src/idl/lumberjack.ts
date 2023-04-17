@@ -27,6 +27,12 @@ export type Lumberjack = {
       "name": "chopTree",
       "accounts": [
         {
+          "name": "sessionToken",
+          "isMut": false,
+          "isSigner": false,
+          "isOptional": true
+        },
+        {
           "name": "player",
           "isMut": true,
           "isSigner": false
@@ -35,6 +41,11 @@ export type Lumberjack = {
           "name": "signer",
           "isMut": true,
           "isSigner": true
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": []
@@ -43,6 +54,12 @@ export type Lumberjack = {
       "name": "update",
       "accounts": [
         {
+          "name": "sessionToken",
+          "isMut": false,
+          "isSigner": false,
+          "isOptional": true
+        },
+        {
           "name": "player",
           "isMut": true,
           "isSigner": false
@@ -51,6 +68,11 @@ export type Lumberjack = {
           "name": "signer",
           "isMut": true,
           "isSigner": true
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": []
@@ -62,6 +84,10 @@ export type Lumberjack = {
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "authority",
+            "type": "publicKey"
+          },
           {
             "name": "name",
             "type": "string"
@@ -95,6 +121,11 @@ export type Lumberjack = {
       "code": 6000,
       "name": "NotEnoughEnergy",
       "msg": "Not enough energy"
+    },
+    {
+      "code": 6001,
+      "name": "WrongAuthority",
+      "msg": "Wrong Authority"
     }
   ]
 };
@@ -128,6 +159,12 @@ export const IDL: Lumberjack = {
       "name": "chopTree",
       "accounts": [
         {
+          "name": "sessionToken",
+          "isMut": false,
+          "isSigner": false,
+          "isOptional": true
+        },
+        {
           "name": "player",
           "isMut": true,
           "isSigner": false
@@ -136,6 +173,11 @@ export const IDL: Lumberjack = {
           "name": "signer",
           "isMut": true,
           "isSigner": true
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": []
@@ -144,6 +186,12 @@ export const IDL: Lumberjack = {
       "name": "update",
       "accounts": [
         {
+          "name": "sessionToken",
+          "isMut": false,
+          "isSigner": false,
+          "isOptional": true
+        },
+        {
           "name": "player",
           "isMut": true,
           "isSigner": false
@@ -152,6 +200,11 @@ export const IDL: Lumberjack = {
           "name": "signer",
           "isMut": true,
           "isSigner": true
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": []
@@ -163,6 +216,10 @@ export const IDL: Lumberjack = {
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "authority",
+            "type": "publicKey"
+          },
           {
             "name": "name",
             "type": "string"
@@ -196,6 +253,11 @@ export const IDL: Lumberjack = {
       "code": 6000,
       "name": "NotEnoughEnergy",
       "msg": "Not enough energy"
+    },
+    {
+      "code": 6001,
+      "name": "WrongAuthority",
+      "msg": "Wrong Authority"
     }
   ]
 };
