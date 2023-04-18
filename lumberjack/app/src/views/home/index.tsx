@@ -38,7 +38,7 @@ export const HomeView: FC = ({ }) => {
         </div>
 
         <div className="flex flex-col mt-2">
-          <RequestAirdrop />
+          {(balance == 0 && <RequestAirdrop /> )}
           <ChopTree />
           <h4 className="md:w-full text-2xl text-slate-300 my-2">
           {wallet &&
