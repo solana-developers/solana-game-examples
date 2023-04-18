@@ -191,7 +191,7 @@ export const ChopTree: FC = () => {
       });
       console.log("error", `Chopping failed! ${error?.message}`, "signature");
     }
-  }, [publicKey, connection]);
+  }, [publicKey, connection, sessionWallet]);
 
   const handleCreateSession = async () => {
     const targetProgramPublicKey = program.programId;
