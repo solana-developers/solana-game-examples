@@ -78,16 +78,16 @@ export const ChopTree: FC = () => {
       const lastLoginTime = gameState.lastLogin * 1000
       let timePassed = (Date.now() - lastLoginTime) / 1000
       while (
-        timePassed > TIME_TO_REFILL_ENERGY &&
+        timePassed >= TIME_TO_REFILL_ENERGY &&
         gameState.energy < MAX_ENERGY
       ) {
         gameState.energy = +gameState.energy + 1
-        gameState.lastLogin = gameState.lastLogin + TIME_TO_REFILL_ENERGY
+        gameState.lastLogin = +gameState.lastLogin + TIME_TO_REFILL_ENERGY
         timePassed -= TIME_TO_REFILL_ENERGY
       }
       setTimePassed(timePassed)
       let nextEnergyIn = Math.floor(TIME_TO_REFILL_ENERGY - timePassed)
-      if (nextEnergyIn < TIME_TO_REFILL_ENERGY && nextEnergyIn > 0) {
+      if (nextEnergyIn < TIME_TO_REFILL_ENERGY && nextEnergyIn >= 0) {
         setEnergyNextIn(nextEnergyIn)
       } else {
         setEnergyNextIn(0)
@@ -229,16 +229,33 @@ export const ChopTree: FC = () => {
         >
           <span>Init </span>
         </button>
-
+        {gameState && publicKey && (
+          <>
+            <button
+                  className="px-8 m-2 btn animate-pulse bg-gradient-to-br from-indigo-500 to-fuchsia-500 hover:from-white hover:to-purple-300 text-black"
+                  onClick={handleCreateSession}
+                >
+                  <span>Create session </span>
+                </button>
+                <button
+                  className="px-8 m-2 btn animate-pulse bg-gradient-to-br from-indigo-500 to-fuchsia-500 hover:from-white hover:to-purple-300 text-black"
+                  onClick={handleRevokeSession}
+                >
+                  <span>Revoke Session </span>
+            </button>
+          </>
+        )}
         {gameState && publicKey && (
           <div className="relative group items-center">
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center text-xl">
+              
               {"Wood: " +
                 gameState.wood +
                 " Energy: " +
                 gameState.energy +
                 " Next energy: " +
                 nextEnergyIn}
+                
             </div>
 
             <button
@@ -246,18 +263,6 @@ export const ChopTree: FC = () => {
               onClick={onChopClick}
             >
               <span>Chop tree </span>
-            </button>
-            <button
-              className="px-8 m-2 btn animate-pulse bg-gradient-to-br from-indigo-500 to-fuchsia-500 hover:from-white hover:to-purple-300 text-black"
-              onClick={handleCreateSession}
-            >
-              <span>Create session </span>
-            </button>
-            <button
-              className="px-8 m-2 btn animate-pulse bg-gradient-to-br from-indigo-500 to-fuchsia-500 hover:from-white hover:to-purple-300 text-black"
-              onClick={handleRevokeSession}
-            >
-              <span>Revoke Session </span>
             </button>
           </div>
 
