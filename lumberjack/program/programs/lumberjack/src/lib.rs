@@ -58,7 +58,7 @@ pub fn update_energy(ctx: &mut ChopTree) -> Result<()> {
         ctx.player.energy = ctx.player.energy + 1;
         time_passed -= TIME_TO_REFILL_ENERGY;
         time_spent += TIME_TO_REFILL_ENERGY;
-        if ctx.player.energy == MAX_ENERGY {
+        if ctx.player.energy >= MAX_ENERGY {
             break;
         }
     }

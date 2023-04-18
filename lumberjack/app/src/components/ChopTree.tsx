@@ -93,7 +93,7 @@ export const ChopTree: FC = () => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [gameState, timePassed]);
+  }, [gameState, timePassed, nextEnergyIn]);
 
   const onInitClick = useCallback(async () => {
     if (!publicKey) {
@@ -247,13 +247,13 @@ export const ChopTree: FC = () => {
           className="px-8 m-2 btn animate-pulse bg-gradient-to-br from-indigo-500 to-fuchsia-500 hover:from-white hover:to-purple-300 text-black"
           onClick={handleCreateSession}
         >
-          <span>Crete session </span>
+          <span>Create Session key</span>
         </button>
         <button
           className="px-8 m-2 btn animate-pulse bg-gradient-to-br from-indigo-500 to-fuchsia-500 hover:from-white hover:to-purple-300 text-black"
           onClick={handleRevokeSession}
         >
-          <span>Revoke Session </span>
+          <span>Revoke Session key</span>
         </button>
       </div>
       )}
