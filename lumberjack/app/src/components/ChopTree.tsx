@@ -6,7 +6,7 @@ import {
 import { FC, useCallback, useEffect, useState } from "react";
 import { notify } from "../utils/notifications";
 import { AnchorProvider, Program, setProvider } from "@coral-xyz/anchor";
-import { IDL } from "../idl/lumberjack";
+import { Lumberjack, IDL } from "../idl/lumberjack";
 import {
   ENERGY_PER_TICK,
   LUMBERJACK_PROGRAM_ID,
@@ -39,7 +39,7 @@ export const ChopTree: FC = () => {
 
   const provider = new AnchorProvider(connection, wallet, {});
   setProvider(provider);
-  const program = new Program(IDL, LUMBERJACK_PROGRAM_ID, provider);
+  const program = new Program<Lumberjack>(IDL, LUMBERJACK_PROGRAM_ID, provider);
 
   useEffect(() => {
     console.log("gameState", JSON.stringify(gameState));
@@ -51,7 +51,7 @@ export const ChopTree: FC = () => {
       return;
     }
     const [pda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("player2", "utf8"), publicKey.toBuffer()],
+      [Buffer.from("player", "utf8"), publicKey.toBuffer()],
       new PublicKey(LUMBERJACK_PROGRAM_ID)
     );
 
@@ -112,7 +112,7 @@ export const ChopTree: FC = () => {
     }
 
     const [pda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("player2", "utf8"), publicKey.toBuffer()],
+      [Buffer.from("player", "utf8"), publicKey.toBuffer()],
       new PublicKey(LUMBERJACK_PROGRAM_ID)
     );
 
@@ -157,7 +157,7 @@ export const ChopTree: FC = () => {
 
     try {
       const [pda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("player2", "utf8"), publicKey.toBuffer()],
+        [Buffer.from("player", "utf8"), publicKey.toBuffer()],
         new PublicKey(LUMBERJACK_PROGRAM_ID)
       );
 
@@ -210,7 +210,7 @@ export const ChopTree: FC = () => {
 
     try {
       const [pda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("player2", "utf8"), publicKey.toBuffer()],
+        [Buffer.from("player", "utf8"), publicKey.toBuffer()],
         new PublicKey(LUMBERJACK_PROGRAM_ID)
       );
 

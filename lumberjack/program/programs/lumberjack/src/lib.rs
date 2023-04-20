@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use gpl_session::{SessionError, SessionToken, session_auth_or, Session};
 
-declare_id!("BrnX41TKsyg7etkaDfhzoxsCHpicLDMWB8GvEm3tonNv");
+declare_id!("MkabCfyUD6rBTaYHpgKBBpBo5qzWA2pK2hrGGKMurJt");
 
 #[error_code]
 pub enum GameErrorCode {
@@ -26,7 +26,7 @@ pub mod lumberjack {
     }
 
     #[session_auth_or(
-        ctx.accounts.player.authority.key() == ctx.accounts.authority.key(),
+        ctx.accounts.player.authority.key() == ctx.accounts.signer.key(),
         GameErrorCode::WrongAuthority
     )]
     pub fn chop_tree(mut ctx: Context<ChopTree>) -> Result<()> {
@@ -78,7 +78,7 @@ pub struct InitPlayer <'info> {
         init,
         payer = signer,
         space = 1000,
-        seeds = [b"player2".as_ref(), signer.key().as_ref()],
+        seeds = [b"player".as_ref(), signer.key().as_ref()],
         bump,
     )]
     pub player: Account<'info, PlayerData>,
@@ -104,19 +104,17 @@ pub struct ChopTree <'info> {
         // The ephemeral key pair signing the transaction
         signer = signer,
         // The authority of the user account which must have created the session
-        authority = authority.key()
+        authority = player.authority.key()
     )]
     // Session Tokens are passed as optional accounts
     pub session_token: Option<Account<'info, SessionToken>>,
 
     #[account( 
         mut,
-        seeds = [b"player2".as_ref(), authority.key().as_ref()],
+        seeds = [b"player".as_ref(), player.authority.key().as_ref()],
         bump,
     )]
     pub player: Account<'info, PlayerData>,
     #[account(mut)]
     pub signer: Signer<'info>,
-    /// CHECK:
-    pub authority: AccountInfo<'info>,
 }
