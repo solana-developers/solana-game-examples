@@ -66,7 +66,6 @@ export const Game: FC = () => {
       return;
     }
     console.log("gameData", JSON.stringify(gameState));
-    return;
 
     costs.woodPerTick = gameState.lumberjacks;
     costs.lumberjackCost = 
