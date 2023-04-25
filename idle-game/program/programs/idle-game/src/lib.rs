@@ -149,7 +149,7 @@ pub mod idle_game {
         Ok(())
     }
 
-    pub fn on_thread_tick(ctx: Context<GameAction>) -> Result<()> {
+    pub fn on_thread_tick(ctx: Context<Increment>) -> Result<()> {
         let game_data = &mut ctx.accounts.game_data;
         game_data.wood = game_data.wood.checked_add(game_data.lumberjacks).unwrap();
         game_data.updated_at = Clock::get().unwrap().unix_timestamp;
