@@ -2,162 +2,171 @@ import {
   useAnchorWallet,
   useConnection,
   useWallet,
-} from "@solana/wallet-adapter-react";
-import { FC, useCallback, useEffect, useState } from "react";
-import { notify } from "../utils/notifications";
-import { AnchorProvider, Program, setProvider } from "@coral-xyz/anchor";
-import { IdleGame, IDL } from "../idl/idle_game";
-import { IDLE_GAME_PROGRAM_ID } from "utils/anchor";
-import { PublicKey, SystemProgram } from "@solana/web3.js";
-import Image from "next/image";
-import * as anchor from "@project-serum/anchor";
-import { ClockworkProvider } from "@clockwork-xyz/sdk";
+} from "@solana/wallet-adapter-react"
+import { FC, useCallback, useEffect, useState } from "react"
+import { notify } from "../utils/notifications"
+import { AnchorProvider, Program, setProvider } from "@coral-xyz/anchor"
+import { IdleGame, IDL } from "../idl/idle_game"
+import { IDLE_GAME_PROGRAM_ID } from "utils/anchor"
+import { PublicKey, SystemProgram } from "@solana/web3.js"
+import Image from "next/image"
+import * as anchor from "@project-serum/anchor"
+import { ClockworkProvider } from "@clockwork-xyz/sdk"
 
 type GameData = {
-  wood: number;
-  lumberjacks: number;
-  gold: number;
-  teethUpgrade: number;
-  updatedAt: number;
-};
+  wood: number
+  lumberjacks: number
+  gold: number
+  teethUpgrade: number
+  updatedAt: number
+}
 
 type Costs = {
-  woodPerTick: number;
-  lumberjackCost: number;
-  teethUpgradeCost: number;
-  goldPerWood: number;
-  lumberjackMap: string[];
-};
+  woodPerTick: number
+  lumberjackCost: number
+  teethUpgradeCost: number
+  goldPerWood: number
+  lumberjackMap: string[]
+}
 
-const WOOD_PER_SELL: number = 10;
-const GOLD_PER_WOOD_BASE: number = 5;
-const GOLD_PER_WOOD_TEETH_MULTIPLIER: number = 2;
+const WOOD_PER_SELL: number = 10
+const GOLD_PER_WOOD_BASE: number = 5
+const GOLD_PER_WOOD_TEETH_MULTIPLIER: number = 2
 
 // Upgrade Teeth
-const TEETH_UPGRADE_BASE_COST: number = 50;
-const TEETH_UPGRADE_COST_MULTIPLIER: number = 1;
+const TEETH_UPGRADE_BASE_COST: number = 50
+const TEETH_UPGRADE_COST_MULTIPLIER: number = 1
 
 // Buy Lumberjack
-const LUMBERJACK_BASE_COST: number = 20;
-const LUMBERJACK_COST_MULTIPLIER: number = 5;
+const LUMBERJACK_BASE_COST: number = 20
+const LUMBERJACK_COST_MULTIPLIER: number = 5
 
 export const Game: FC = () => {
-  const { connection } = useConnection();
-  const { publicKey, sendTransaction } = useWallet();
-  const [gameState, setGameState] = useState<GameData | null>(null);
-  const [nextThreadTick, setNextThreadTick] = useState<number>(10);
+  const { connection } = useConnection()
+  const { publicKey, sendTransaction } = useWallet()
+  const [gameState, setGameState] = useState<GameData | null>(null)
+  const [nextThreadTick, setNextThreadTick] = useState<number>(10)
   const [costs, setCosts] = useState<Costs>({
     woodPerTick: 1,
     lumberjackCost: LUMBERJACK_BASE_COST,
     teethUpgradeCost: TEETH_UPGRADE_BASE_COST,
     goldPerWood: GOLD_PER_WOOD_BASE,
     lumberjackMap: ["lumberjack"],
-  });
-  const [gameDataPDA, setGameDataPDA] = useState<PublicKey | null>(null);
-  const wallet = useAnchorWallet();
+  })
+  const [gameDataPDA, setGameDataPDA] = useState<PublicKey | null>(null)
+  const wallet = useAnchorWallet()
 
-  const provider = new AnchorProvider(connection, wallet, {});
-  setProvider(provider);
-  const program = new Program<IdleGame>(IDL, IDLE_GAME_PROGRAM_ID, provider);
-  const clockworkProvider = ClockworkProvider.fromAnchorProvider(provider);
+  const provider = new AnchorProvider(connection, wallet, {})
+  setProvider(provider)
+  const program = new Program<IdleGame>(IDL, IDLE_GAME_PROGRAM_ID, provider)
+  const clockworkProvider = ClockworkProvider.fromAnchorProvider(provider)
 
   useEffect(() => {
     if (gameState === null) {
-      return;
+      return
     }
-    console.log("gameData", JSON.stringify(gameState));
+    // console.log("gameData", JSON.stringify(gameState, null, 2))
 
-    costs.woodPerTick = gameState.lumberjacks;
-    costs.lumberjackCost = 
-      LUMBERJACK_BASE_COST + gameState.lumberjacks * LUMBERJACK_COST_MULTIPLIER;
-    costs.teethUpgradeCost =
-      TEETH_UPGRADE_BASE_COST +
-      gameState.teethUpgrade * TEETH_UPGRADE_COST_MULTIPLIER;
-    costs.goldPerWood =
-      GOLD_PER_WOOD_BASE +
-      gameState.teethUpgrade * GOLD_PER_WOOD_TEETH_MULTIPLIER;
-    costs.lumberjackMap = [];
-    for (let i = 0; i < gameState.lumberjacks; i++) {
-      costs.lumberjackMap.push("lumberjack");
+    const newCosts = {
+      woodPerTick: gameState.lumberjacks,
+      lumberjackCost:
+        LUMBERJACK_BASE_COST +
+        gameState.lumberjacks * LUMBERJACK_COST_MULTIPLIER,
+      teethUpgradeCost:
+        TEETH_UPGRADE_BASE_COST +
+        gameState.teethUpgrade * TEETH_UPGRADE_COST_MULTIPLIER,
+      goldPerWood:
+        GOLD_PER_WOOD_BASE +
+        gameState.teethUpgrade * GOLD_PER_WOOD_TEETH_MULTIPLIER,
+      lumberjackMap: new Array(Number(gameState.lumberjacks)).fill(
+        "lumberjack"
+      ),
     }
-    setCosts(costs);
-  }, [gameState]);
+
+    setCosts(newCosts)
+  }, [gameState])
 
   useEffect(() => {
     const interval = setInterval(async () => {
-      if (
-        gameState == null ||
-        gameState.updatedAt == undefined
-      ) {
-        return;
+      if (gameState == null || gameState.updatedAt == undefined) {
+        return
       }
-      const lastLoginTime = gameState.updatedAt * 1000;
-      let timePassed = (Date.now() - lastLoginTime) / 1000;
+      const lastLoginTime = gameState.updatedAt
+      const slot = await connection.getSlot()
+      const timestamp = await connection.getBlockTime(slot)
+      let timePassed = timestamp - lastLoginTime
 
-      let nextEnergyIn = Math.floor(10 - timePassed);
-      setNextThreadTick(nextEnergyIn);
-    }, 1000);
+      let nextEnergyIn = Math.floor(10 - timePassed)
+      setNextThreadTick(nextEnergyIn)
+    }, 1000)
 
-    return () => clearInterval(interval);
-  }, [gameState, nextThreadTick]);
-
+    return () => clearInterval(interval)
+  }, [gameState, nextThreadTick])
 
   // Update game data PDA every time the public key changes
   useEffect(() => {
     if (publicKey === null) {
-      return;
+      setGameDataPDA(null)
+      return
     }
     const [pda] = PublicKey.findProgramAddressSync(
       [Buffer.from("gameData", "utf8"), publicKey.toBuffer()],
       new PublicKey(IDLE_GAME_PROGRAM_ID)
-    );
-    console.log("gameDataPDA", pda.toBase58());
-    setGameDataPDA(pda);
-  }, [publicKey]);
+    )
+    // console.log("gameDataPDA", pda.toBase58())
+    setGameDataPDA(pda)
+  }, [publicKey])
 
   // Get game data every time the PDA changes
   useEffect(() => {
-    setGameState(null);
-    if (!publicKey) {
-      return;
+    if (!publicKey || !gameDataPDA) {
+      setGameState(null)
+      return
     }
 
     program.account.gameData
       .fetch(gameDataPDA)
       .then((data) => {
-        setGameState(data);
+        setGameState(data)
       })
       .catch((error) => {
-        window.alert("No player data found, please init!");
-        return;
-      });
+        window.alert("No player data found, please init!")
+        return
+      })
 
-    connection.onAccountChange(gameDataPDA, (account) => {
-      setGameState(program.coder.accounts.decode("gameData", account.data));
-    });
-  }, [gameDataPDA]);
+    const subscriptionID = connection.onAccountChange(
+      gameDataPDA,
+      (account) => {
+        setGameState(program.coder.accounts.decode("gameData", account.data))
+      }
+    )
+
+    return () => {
+      connection.removeAccountChangeListener(subscriptionID)
+    }
+  }, [gameDataPDA, publicKey])
 
   const onInitClick = useCallback(async () => {
     if (!publicKey) {
-      return;
+      return
     }
 
-    const threadId = "gameData-" + wallet.publicKey.toBase58().substring(0, 6);
+    const threadId = "gameData-" + wallet.publicKey.toBase58().substring(0, 6)
 
     const [threadAuthority] = PublicKey.findProgramAddressSync(
       [anchor.utils.bytes.utf8.encode("authority"), publicKey.toBuffer()], // 👈 make sure it matches on the prog side
       program.programId
-    );
+    )
     const [threadAddress, threadBump] = clockworkProvider.getThreadPDA(
       threadAuthority,
       threadId
-    );
+    )
 
-console.log("threadAddress", threadAddress.toBase58());
-console.log("threadAuthority", threadAuthority.toBase58());
+    console.log("threadAddress", threadAddress.toBase58())
+    console.log("threadAuthority", threadAuthority.toBase58())
 
     try {
-      const transaction = program.methods
+      const transaction = await program.methods
         .initialize(Buffer.from(threadId))
         .accounts({
           payer: wallet.publicKey,
@@ -167,92 +176,88 @@ console.log("threadAuthority", threadAuthority.toBase58());
           threadAuthority: threadAuthority,
           gameData: gameDataPDA,
         })
-        .transaction();
+        .transaction()
 
-      const tx = await transaction;
-      const txSig = await sendTransaction(tx, connection, {
+      const txSig = await sendTransaction(transaction, connection, {
         skipPreflight: true,
-      });
-      await connection.confirmTransaction(txSig, "confirmed");
+      })
+      await connection.confirmTransaction(txSig, "confirmed")
 
-      notify({ type: "success", message: "Chopped tree!", txid: txSig });
+      notify({ type: "success", message: "Chopped tree!", txid: txSig })
     } catch (error: any) {
-      logError(error?.message);
+      logError(error?.message)
     }
-  }, [gameDataPDA, connection]);
+  }, [gameDataPDA, connection])
 
   const onUpgradeTeethClick = useCallback(async () => {
     if (!publicKey) {
-      return;
+      return
     }
 
     try {
-      const transaction = program.methods
+      const transaction = await program.methods
         .upgradeTeeth()
         .accounts({
           gameData: gameDataPDA,
           signer: publicKey,
         })
-        .transaction();
+        .transaction()
 
-      const tx = await transaction;
-      const txSig = await sendTransaction(tx, connection, {
+      const txSig = await sendTransaction(transaction, connection, {
         skipPreflight: true,
-      });
-      await connection.confirmTransaction(txSig, "confirmed");
+      })
+      await connection.confirmTransaction(txSig, "confirmed")
     } catch (error: any) {
-      logError(error?.message);
+      logError(error?.message)
     }
-  }, [gameDataPDA, connection]);
+  }, [gameDataPDA, connection])
 
   const onBuyLumberjackClick = useCallback(async () => {
     if (!publicKey) {
-      return;
+      return
     }
 
     try {
-      const transaction = program.methods
+      const transaction = await program.methods
         .buyLumberjack()
         .accounts({
           gameData: gameDataPDA,
           signer: publicKey,
         })
-        .transaction();
+        .transaction()
 
-      const tx = await transaction;
-      const txSig = await sendTransaction(tx, connection, {
+      const txSig = await sendTransaction(transaction, connection, {
         skipPreflight: true,
-      });
-      await connection.confirmTransaction(txSig, "confirmed");
+      })
+      await connection.confirmTransaction(txSig, "confirmed")
     } catch (error: any) {
-      console.log(JSON.stringify(error));
-      logError(error?.message);
+      console.log(JSON.stringify(error))
+      logError(error?.message)
     }
-  }, [gameDataPDA, connection]);
+  }, [gameDataPDA, connection])
 
   const onTradeWoodForGoldClick = useCallback(async () => {
     if (!publicKey) {
-      return;
+      return
     }
 
     try {
-      const transaction = program.methods
+      const transaction = await program.methods
         .tradeWoodForGold()
         .accounts({
           gameData: gameDataPDA,
           signer: publicKey,
         })
-        .transaction();
+        .transaction()
 
-      const tx = await transaction;
-      const txSig = await sendTransaction(tx, connection, {
+      const txSig = await sendTransaction(transaction, connection, {
         skipPreflight: true,
-      });
-      await connection.confirmTransaction(txSig, "confirmed");
+      })
+      await connection.confirmTransaction(txSig, "confirmed")
     } catch (error: any) {
-      logError(error?.message);
+      logError(error?.message)
     }
-  }, [gameDataPDA, connection]);
+  }, [gameDataPDA, connection])
 
   function logError(error: string) {
     notify({
@@ -260,8 +265,8 @@ console.log("threadAuthority", threadAuthority.toBase58());
       message: `Error!`,
       description: error,
       txid: "",
-    });
-    console.log("error", `Error! ${error}`, "");
+    })
+    console.log("error", `Error! ${error}`, "")
   }
 
   return (
@@ -270,7 +275,7 @@ console.log("threadAuthority", threadAuthority.toBase58());
         {gameState && costs && publicKey && (
           <>
             <div className="overflow-auto w-3/5 space-x-3 flex items-center">
-            <p className="text-xl">{gameState.gold.toString()}</p>
+              <p className="text-xl">{gameState.gold.toString()}</p>
               <Image
                 src="/coinpile.png"
                 alt="Energy Icon"
@@ -280,8 +285,12 @@ console.log("threadAuthority", threadAuthority.toBase58());
 
               <p className="text-xl">{gameState.wood.toString()}</p>
               <Image src="/Wood.png" alt="Wood Icon" width={64} height={64} />
-              <p className="text-xl">{"Next "+costs.woodPerTick+" wood in: " + nextThreadTick.toString()}</p>
-
+              <p className="text-xl">
+                {"Next " +
+                  costs.woodPerTick +
+                  " wood in: " +
+                  nextThreadTick.toString()}
+              </p>
             </div>
           </>
         )}
@@ -307,7 +316,7 @@ console.log("threadAuthority", threadAuthority.toBase58());
                     width={64}
                     height={64}
                   />
-                );
+                )
               })}
             </div>
             <div className="relative group items-center">
@@ -343,5 +352,5 @@ console.log("threadAuthority", threadAuthority.toBase58());
         )}
       </div>
     </div>
-  );
-};
+  )
+}
