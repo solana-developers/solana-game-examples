@@ -103,13 +103,14 @@ export const Game: FC = () => {
   // Update game data PDA every time the public key changes
   useEffect(() => {
     if (publicKey === null) {
+      setGameDataPDA(null)
       return
     }
     const [pda] = PublicKey.findProgramAddressSync(
       [Buffer.from("gameData", "utf8"), publicKey.toBuffer()],
       new PublicKey(IDLE_GAME_PROGRAM_ID)
     )
-    console.log("gameDataPDA", pda.toBase58())
+    // console.log("gameDataPDA", pda.toBase58())
     setGameDataPDA(pda)
   }, [publicKey])
 
@@ -130,10 +131,17 @@ export const Game: FC = () => {
         return
       })
 
-    connection.onAccountChange(gameDataPDA, (account) => {
-      setGameState(program.coder.accounts.decode("gameData", account.data))
-    })
-  }, [gameDataPDA])
+    const subscriptionID = connection.onAccountChange(
+      gameDataPDA,
+      (account) => {
+        setGameState(program.coder.accounts.decode("gameData", account.data))
+      }
+    )
+
+    return () => {
+      connection.removeAccountChangeListener(subscriptionID)
+    }
+  }, [gameDataPDA, publicKey])
 
   const onInitClick = useCallback(async () => {
     if (!publicKey) {
