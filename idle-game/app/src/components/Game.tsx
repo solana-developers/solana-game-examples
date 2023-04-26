@@ -65,7 +65,7 @@ export const Game: FC = () => {
     if (gameState === null) {
       return
     }
-    // console.log("gameData", JSON.stringify(gameState))
+    // console.log("gameData", JSON.stringify(gameState, null, 2))
 
     const newCosts = {
       woodPerTick: gameState.lumberjacks,
@@ -166,7 +166,7 @@ export const Game: FC = () => {
     console.log("threadAuthority", threadAuthority.toBase58())
 
     try {
-      const transaction = program.methods
+      const transaction = await program.methods
         .initialize(Buffer.from(threadId))
         .accounts({
           payer: wallet.publicKey,
@@ -178,8 +178,7 @@ export const Game: FC = () => {
         })
         .transaction()
 
-      const tx = await transaction
-      const txSig = await sendTransaction(tx, connection, {
+      const txSig = await sendTransaction(transaction, connection, {
         skipPreflight: true,
       })
       await connection.confirmTransaction(txSig, "confirmed")
@@ -196,7 +195,7 @@ export const Game: FC = () => {
     }
 
     try {
-      const transaction = program.methods
+      const transaction = await program.methods
         .upgradeTeeth()
         .accounts({
           gameData: gameDataPDA,
@@ -204,8 +203,7 @@ export const Game: FC = () => {
         })
         .transaction()
 
-      const tx = await transaction
-      const txSig = await sendTransaction(tx, connection, {
+      const txSig = await sendTransaction(transaction, connection, {
         skipPreflight: true,
       })
       await connection.confirmTransaction(txSig, "confirmed")
@@ -220,7 +218,7 @@ export const Game: FC = () => {
     }
 
     try {
-      const transaction = program.methods
+      const transaction = await program.methods
         .buyLumberjack()
         .accounts({
           gameData: gameDataPDA,
@@ -228,8 +226,7 @@ export const Game: FC = () => {
         })
         .transaction()
 
-      const tx = await transaction
-      const txSig = await sendTransaction(tx, connection, {
+      const txSig = await sendTransaction(transaction, connection, {
         skipPreflight: true,
       })
       await connection.confirmTransaction(txSig, "confirmed")
@@ -245,7 +242,7 @@ export const Game: FC = () => {
     }
 
     try {
-      const transaction = program.methods
+      const transaction = await program.methods
         .tradeWoodForGold()
         .accounts({
           gameData: gameDataPDA,
@@ -253,8 +250,7 @@ export const Game: FC = () => {
         })
         .transaction()
 
-      const tx = await transaction
-      const txSig = await sendTransaction(tx, connection, {
+      const txSig = await sendTransaction(transaction, connection, {
         skipPreflight: true,
       })
       await connection.confirmTransaction(txSig, "confirmed")
