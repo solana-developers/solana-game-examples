@@ -65,22 +65,25 @@ export const Game: FC = () => {
     if (gameState === null) {
       return
     }
-    console.log("gameData", JSON.stringify(gameState))
+    // console.log("gameData", JSON.stringify(gameState))
 
-    costs.woodPerTick = gameState.lumberjacks
-    costs.lumberjackCost =
-      LUMBERJACK_BASE_COST + gameState.lumberjacks * LUMBERJACK_COST_MULTIPLIER
-    costs.teethUpgradeCost =
-      TEETH_UPGRADE_BASE_COST +
-      gameState.teethUpgrade * TEETH_UPGRADE_COST_MULTIPLIER
-    costs.goldPerWood =
-      GOLD_PER_WOOD_BASE +
-      gameState.teethUpgrade * GOLD_PER_WOOD_TEETH_MULTIPLIER
-    costs.lumberjackMap = []
-    for (let i = 0; i < gameState.lumberjacks; i++) {
-      costs.lumberjackMap.push("lumberjack")
+    const newCosts = {
+      woodPerTick: gameState.lumberjacks,
+      lumberjackCost:
+        LUMBERJACK_BASE_COST +
+        gameState.lumberjacks * LUMBERJACK_COST_MULTIPLIER,
+      teethUpgradeCost:
+        TEETH_UPGRADE_BASE_COST +
+        gameState.teethUpgrade * TEETH_UPGRADE_COST_MULTIPLIER,
+      goldPerWood:
+        GOLD_PER_WOOD_BASE +
+        gameState.teethUpgrade * GOLD_PER_WOOD_TEETH_MULTIPLIER,
+      lumberjackMap: new Array(Number(gameState.lumberjacks)).fill(
+        "lumberjack"
+      ),
     }
-    setCosts(costs)
+
+    setCosts(newCosts)
   }, [gameState])
 
   useEffect(() => {
@@ -116,8 +119,8 @@ export const Game: FC = () => {
 
   // Get game data every time the PDA changes
   useEffect(() => {
-    setGameState(null)
     if (!publicKey || !gameDataPDA) {
+      setGameState(null)
       return
     }
 
