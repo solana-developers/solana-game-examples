@@ -5,7 +5,7 @@ import {
 } from "@solana/wallet-adapter-react";
 import { FC, useCallback, useEffect, useState } from "react";
 import { notify } from "../utils/notifications";
-import { AnchorProvider, Program, setProvider } from "@coral-xyz/anchor";
+import { AnchorProvider, BN, Program, setProvider } from "@coral-xyz/anchor";
 import { Lumberjack, IDL } from "../idl/lumberjack";
 import {
   ENERGY_PER_TICK,
@@ -15,16 +15,15 @@ import {
 } from "utils/anchor";
 import { PublicKey, SystemProgram } from "@solana/web3.js";
 import { useSessionWallet } from "@gumhq/react-sdk";
-import logo from "./Wood.png";
 import Image from "next/image";
 
 type GameDataAccount = {
   name: String;
   level: number;
-  xp: number;
-  wood: number;
-  energy: number;
-  lastLogin: number;
+  xp: BN;
+  wood: BN;
+  energy: BN;
+  lastLogin: BN;
 };
 
 export const ChopTree: FC = () => {
@@ -70,27 +69,27 @@ export const ChopTree: FC = () => {
   }, [publicKey]);
 
   useEffect(() => {
-    const interval = setInterval(async () => {
+    const interval = setInterval(async () => {    
       if (
         gameState == null ||
         gameState.lastLogin == undefined ||
-        gameState.energy >= 10
+        gameState.energy.toNumber() >= MAX_ENERGY
       ) {
         return;
       }
-      const lastLoginTime = gameState.lastLogin * 1000;
+      const lastLoginTime = gameState.lastLogin.toNumber() * 1000;
       let timePassed = (Date.now() - lastLoginTime) / 1000;
       while (
-        timePassed >= TIME_TO_REFILL_ENERGY &&
-        gameState.energy < MAX_ENERGY
+        timePassed >= TIME_TO_REFILL_ENERGY.toNumber() &&
+        gameState.energy.toNumber() < MAX_ENERGY
       ) {
-        gameState.energy = +gameState.energy + 1;
-        gameState.lastLogin = +gameState.lastLogin + TIME_TO_REFILL_ENERGY;
-        timePassed -= TIME_TO_REFILL_ENERGY;
+        gameState.energy = gameState.energy.add(new BN(1));
+        gameState.lastLogin = gameState.lastLogin.add(TIME_TO_REFILL_ENERGY);
+        timePassed -= TIME_TO_REFILL_ENERGY.toNumber();
       }
       setTimePassed(timePassed);
-      let nextEnergyIn = Math.floor(TIME_TO_REFILL_ENERGY - timePassed);
-      if (nextEnergyIn < TIME_TO_REFILL_ENERGY && nextEnergyIn >= 0) {
+      let nextEnergyIn = Math.floor(TIME_TO_REFILL_ENERGY.toNumber() - timePassed);
+      if (nextEnergyIn < TIME_TO_REFILL_ENERGY.toNumber() && nextEnergyIn >= 0) {
         setEnergyNextIn(nextEnergyIn);
       } else {
         setEnergyNextIn(0);
@@ -166,7 +165,6 @@ export const ChopTree: FC = () => {
         .accounts({
           player: pda,
           signer: sessionWallet.publicKey,
-          authority: publicKey,
           sessionToken: sessionWallet.sessionToken,
         })
         .transaction();
@@ -219,7 +217,6 @@ export const ChopTree: FC = () => {
         .accounts({
           player: pda,
           signer: publicKey,
-          authority: publicKey,
           sessionToken: null,
         })
         .transaction();

@@ -82,7 +82,7 @@ describe("idle-game", () => {
     // Just some cleanup to reset the test to a clean state
     afterEach(async () => {
         try {
-            /*await program.methods
+            await program.methods
                 .reset()
                 .accounts({
                     payer: wallet.publicKey,
@@ -91,7 +91,7 @@ describe("idle-game", () => {
                     thread: threadAddress,
                     threadAuthority: threadAuthority,
                 })
-                .rpc();*/
+                .rpc();
         } catch (e) { }
     })
 });

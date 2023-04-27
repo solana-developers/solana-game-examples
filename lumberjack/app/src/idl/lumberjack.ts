@@ -41,11 +41,6 @@ export type Lumberjack = {
           "name": "signer",
           "isMut": true,
           "isSigner": true
-        },
-        {
-          "name": "authority",
-          "isMut": false,
-          "isSigner": false
         }
       ],
       "args": []
@@ -68,11 +63,6 @@ export type Lumberjack = {
           "name": "signer",
           "isMut": true,
           "isSigner": true
-        },
-        {
-          "name": "authority",
-          "isMut": false,
-          "isSigner": false
         }
       ],
       "args": []
@@ -173,11 +163,6 @@ export const IDL: Lumberjack = {
           "name": "signer",
           "isMut": true,
           "isSigner": true
-        },
-        {
-          "name": "authority",
-          "isMut": false,
-          "isSigner": false
         }
       ],
       "args": []
@@ -200,11 +185,6 @@ export const IDL: Lumberjack = {
           "name": "signer",
           "isMut": true,
           "isSigner": true
-        },
-        {
-          "name": "authority",
-          "isMut": false,
-          "isSigner": false
         }
       ],
       "args": []

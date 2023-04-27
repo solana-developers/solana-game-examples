@@ -40,6 +40,9 @@ const TEETH_UPGRADE_COST_MULTIPLIER: u64 = 1;
 const LUMBERJACK_BASE_COST: u64 = 20;
 const LUMBERJACK_COST_MULTIPLIER: u64 = 5;
 
+// Thread tick config
+const THREAD_TICK_TIME_IN_SECONDS: &str = "10";
+
 /// Seed for thread_authority PDA.
 pub const THREAD_AUTHORITY_SEED: &[u8] = b"authority";
 
@@ -78,7 +81,7 @@ pub mod idle_game {
 
         // 2️⃣ Define a trigger for the thread.
         let trigger = clockwork_sdk::state::Trigger::Cron {
-            schedule: "*/10 * * * * * *".into(),
+            schedule: format!("*/{} * * * * * *",THREAD_TICK_TIME_IN_SECONDS).into(),
             skippable: true,
         };
 
@@ -95,7 +98,7 @@ pub mod idle_game {
                 },
                 &[&[THREAD_AUTHORITY_SEED,payer.key().as_ref() , &[bump]]],
             ),
-            LAMPORTS_PER_SOL / 10, // amount (0.01 sol)
+            LAMPORTS_PER_SOL / 10, // amount (0.1 sol)
             thread_id,              // id
             vec![target_ix.into()], // instructions
             trigger,                // trigger
@@ -177,7 +180,7 @@ pub mod idle_game {
                 close_to: payer.to_account_info(),
                 thread: thread.to_account_info(),
             },
-            &[&[THREAD_AUTHORITY_SEED, &[bump]]],
+            &[&[THREAD_AUTHORITY_SEED,payer.key().as_ref(), &[bump]]],
         ))?;
         Ok(())
     }

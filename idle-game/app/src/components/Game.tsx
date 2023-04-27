@@ -8,7 +8,7 @@ import { notify } from "../utils/notifications"
 import { AnchorProvider, Program, setProvider } from "@coral-xyz/anchor"
 import { IdleGame, IDL } from "../idl/idle_game"
 import { IDLE_GAME_PROGRAM_ID } from "utils/anchor"
-import { PublicKey, SystemProgram } from "@solana/web3.js"
+import { AccountInfo, LAMPORTS_PER_SOL, PublicKey, SystemProgram } from "@solana/web3.js"
 import Image from "next/image"
 import * as anchor from "@project-serum/anchor"
 import { ClockworkProvider } from "@clockwork-xyz/sdk"
@@ -41,11 +41,15 @@ const TEETH_UPGRADE_COST_MULTIPLIER: number = 1
 const LUMBERJACK_BASE_COST: number = 20
 const LUMBERJACK_COST_MULTIPLIER: number = 5
 
+// Thread tick time
+const THREAD_TICK_TIME_IN_SECONDS: number = 10
+
 export const Game: FC = () => {
   const { connection } = useConnection()
   const { publicKey, sendTransaction } = useWallet()
   const [gameState, setGameState] = useState<GameData | null>(null)
-  const [nextThreadTick, setNextThreadTick] = useState<number>(10)
+  const [threadAccountBalance, setThreadAccountBalance] = useState<number | null>(null)
+  const [nextThreadTick, setNextThreadTick] = useState<number>(THREAD_TICK_TIME_IN_SECONDS)
   const [costs, setCosts] = useState<Costs>({
     woodPerTick: 1,
     lumberjackCost: LUMBERJACK_BASE_COST,
@@ -54,6 +58,9 @@ export const Game: FC = () => {
     lumberjackMap: [0],
   })
   const [gameDataPDA, setGameDataPDA] = useState<PublicKey | null>(null)
+  const [threadId, setThreadId] = useState<string | null>(null)
+  const [threadAuthority, setThreadAuthority] = useState<PublicKey>(null)
+  const [threadAddress, setThreadAddress] = useState<PublicKey>(null)
   const wallet = useAnchorWallet()
 
   const provider = new AnchorProvider(connection, wallet, {})
@@ -94,24 +101,40 @@ export const Game: FC = () => {
       const timestamp = await connection.getBlockTime(slot)
       let timePassed = timestamp - lastLoginTime
 
-      let nextEnergyIn = Math.floor(10 - timePassed)
+      let nextEnergyIn = Math.floor(THREAD_TICK_TIME_IN_SECONDS - timePassed)
       setNextThreadTick(nextEnergyIn)
     }, 1000)
 
     return () => clearInterval(interval)
   }, [gameState, nextThreadTick])
 
-  // Update game data PDA every time the public key changes
+  // Update game data PDA and other keys every time the public key changes
   useEffect(() => {
     if (publicKey === null) {
       setGameDataPDA(null)
+      setThreadAuthority(null)
+      setThreadAddress(null)
       return
     }
     const [pda] = PublicKey.findProgramAddressSync(
       [Buffer.from("gameData", "utf8"), publicKey.toBuffer()],
       new PublicKey(IDLE_GAME_PROGRAM_ID)
     )
-    // console.log("gameDataPDA", pda.toBase58())
+
+    let threadId = "gameData-" + wallet.publicKey.toBase58().substring(0, 6);
+    setThreadId(threadId);
+
+    const [threadAuthority, bump] = PublicKey.findProgramAddressSync(
+      [anchor.utils.bytes.utf8.encode("authority"), publicKey.toBuffer()], // 👈 make sure it matches on the prog side
+      program.programId
+    )
+    setThreadAuthority(threadAuthority);
+
+    const [threadAddress, threadBump] = clockworkProvider.getThreadPDA(
+      threadAuthority,
+      threadId
+    )
+    setThreadAddress(threadAddress);
     setGameDataPDA(pda)
   }, [publicKey])
 
@@ -132,6 +155,14 @@ export const Game: FC = () => {
         return
       })
 
+    connection.getAccountInfo(threadAddress).then((data) => {   
+      if (data == null) {
+        setThreadAccountBalance(0);
+      } else {
+        setThreadAccountBalance(data.lamports / LAMPORTS_PER_SOL);
+      }
+    });
+
     const subscriptionID = connection.onAccountChange(
       gameDataPDA,
       (account) => {
@@ -149,18 +180,8 @@ export const Game: FC = () => {
       return
     }
 
-    const threadId = "gameData-" + wallet.publicKey.toBase58().substring(0, 6)
-
-    const [threadAuthority] = PublicKey.findProgramAddressSync(
-      [anchor.utils.bytes.utf8.encode("authority"), publicKey.toBuffer()], // 👈 make sure it matches on the prog side
-      program.programId
-    )
-    const [threadAddress, threadBump] = clockworkProvider.getThreadPDA(
-      threadAuthority,
-      threadId
-    )
-
     console.log("threadAddress", threadAddress.toBase58())
+    console.log("threadAuthority", threadAuthority.toBase58())
 
     try {
       const transaction = await program.methods
@@ -244,6 +265,35 @@ export const Game: FC = () => {
         .accounts({
           gameData: gameDataPDA,
           signer: publicKey,
+        })
+        .transaction()
+
+      const txSig = await sendTransaction(transaction, connection, {
+        skipPreflight: true,
+      })
+      await connection.confirmTransaction(txSig, "confirmed")
+    } catch (error: any) {
+      logError(error?.message)
+    }
+  }, [gameDataPDA, connection])
+
+  const onStopThreadClick = useCallback(async () => {
+    if (!publicKey) {
+      return
+    }
+
+    console.log("threadAddress", threadAddress.toBase58())
+    console.log("threadAuthority", threadAuthority.toBase58())
+
+    try {
+      const transaction = await program.methods
+        .reset()
+        .accounts({
+          payer: publicKey,
+          gameData: gameDataPDA,
+          clockworkProgram: clockworkProvider.threadProgram.programId,
+          threadAuthority: threadAuthority,
+          thread: threadAddress,
         })
         .transaction()
 
@@ -342,6 +392,14 @@ export const Game: FC = () => {
               >
                 <span>
                   Trade {WOOD_PER_SELL} Wood for {costs.goldPerWood} Gold
+                </span>
+              </button>
+              <button
+                className="px-8 m-2 btn bg-gradient-to-br from-indigo-500 to-fuchsia-500 hover:from-white hover:to-purple-300 text-black"
+                onClick={onStopThreadClick}
+              >
+                <span>
+                  Stop Thread
                 </span>
               </button>
             </div>
