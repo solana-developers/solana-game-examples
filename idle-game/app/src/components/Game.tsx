@@ -26,7 +26,6 @@ type Costs = {
   lumberjackCost: number
   teethUpgradeCost: number
   goldPerWood: number
-  lumberjackMap: number[]
 }
 
 const WOOD_PER_SELL: number = 10
@@ -55,7 +54,6 @@ export const Game: FC = () => {
     lumberjackCost: LUMBERJACK_BASE_COST,
     teethUpgradeCost: TEETH_UPGRADE_BASE_COST,
     goldPerWood: GOLD_PER_WOOD_BASE,
-    lumberjackMap: [0],
   })
   const [gameDataPDA, setGameDataPDA] = useState<PublicKey | null>(null)
   const [threadId, setThreadId] = useState<string | null>(null)
@@ -85,8 +83,7 @@ export const Game: FC = () => {
       goldPerWood:
         GOLD_PER_WOOD_BASE +
         gameState.teethUpgrade * GOLD_PER_WOOD_TEETH_MULTIPLIER,
-      lumberjackMap: Array.from(Array(+gameState.lumberjacks), (_, index) => index + 1),
-    } 
+    }
 
     setCosts(newCosts)
   }, [gameState])
@@ -355,16 +352,15 @@ export const Game: FC = () => {
         {gameState && costs && publicKey && (
           <>
             <div className=" flex flex-row relative group items-center">
-              {costs.lumberjackMap.map((p) => {
-                return (
-                  <Image key={p.toString()}
-                    src="/Beaver.png"
-                    alt="Energy Icon"
-                    width={64}
-                    height={64}
-                  />
-                )
-              })}
+              {Array.from({ length: gameState.lumberjacks }, (_, i) => (
+                <Image
+                  key={i}
+                  src="/Beaver.png"
+                  alt="Energy Icon"
+                  width={64}
+                  height={64}
+                />
+              ))}
             </div>
             <div className="relative group items-center">
               <button
