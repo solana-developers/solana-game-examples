@@ -158,7 +158,6 @@ export const Game: FC = () => {
     )
 
     console.log("threadAddress", threadAddress.toBase58())
-    console.log("threadAuthority", threadAuthority.toBase58())
 
     try {
       const transaction = await program.methods
