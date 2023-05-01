@@ -4,7 +4,9 @@ This is a collection of example games built on Solana. The games are built using
 
 ## Games
 
-- [Lumberjack](./lumberjack/README.md) - A simple lumberjack game where you chop trees to earn wood.
+- [Lumberjack](./lumberjack/README.md) - A simple lumberjack game where you chop trees to earn wood. (Has a gum session key example)
+- [Idle-game](./idle-game/README.md) - An idle game using clockwork.
+- [Seven Seas](./seven-seas/README.md) - A realtime on chain sea battle game with unity client.
 
 ## Contributing
 
