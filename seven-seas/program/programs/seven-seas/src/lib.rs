@@ -8,7 +8,7 @@ pub use state::*;
 
 // This is your program's public key and it will update
 // automatically when you build the project.
-declare_id!("Djpx6DiXBuFUi6SeAwH9fmZc57JsffaimHf2kg5Q6XUs");
+declare_id!("HgmkLCs9Ti1e3juimSR8JNhdLE6eup5Pjk6PujiewZU6");
 
 #[program]
 pub mod seven_seas {
@@ -22,6 +22,24 @@ pub mod seven_seas {
 
         // let game = &mut ctx.accounts.new_game_data_account.load_mut()?;
         // game.clear().unwrap();
+        Ok(())
+    }
+
+    pub fn reset(_ctx: Context<Initialize>) -> Result<()> {
+        msg!("Initialized!");
+
+        let value: u64 = _ctx.accounts.chest_vault.to_account_info().lamports();
+        **_ctx.accounts.chest_vault.to_account_info().try_borrow_mut_lamports()? -= value;
+        **_ctx.accounts.signer.try_borrow_mut_lamports()? += value;
+
+        let value = _ctx.accounts.game_actions.to_account_info().lamports();
+        **_ctx.accounts.game_actions.to_account_info().try_borrow_mut_lamports()? -= value;
+        **_ctx.accounts.signer.try_borrow_mut_lamports()? += value;
+
+        let value = _ctx.accounts.new_game_data_account.to_account_info().lamports();
+        **_ctx.accounts.new_game_data_account.to_account_info().try_borrow_mut_lamports()? -= value;
+        **_ctx.accounts.signer.try_borrow_mut_lamports()? += value;
+
         Ok(())
     }
 
@@ -71,6 +89,23 @@ pub mod seven_seas {
             direction,
             ctx.accounts.player.to_account_info(),
             ctx.accounts.chest_vault.to_account_info(),
+        ) {
+            Ok(_val) => {}
+            Err(err) => {
+                panic!("Error: {}", err);
+            }
+        }
+        game.print().unwrap();
+        Ok(())
+    }
+
+    pub fn shoot(ctx: Context<Shoot>, _block_bump: u8) -> Result<()> {
+        let game = &mut ctx.accounts.game_data_account.load_mut()?;
+
+        match game.shoot(
+            ctx.accounts.player.to_account_info(),
+            &mut ctx.accounts.game_actions,
+            ctx.accounts.chest_vault.to_account_info()
         ) {
             Ok(_val) => {}
             Err(err) => {
