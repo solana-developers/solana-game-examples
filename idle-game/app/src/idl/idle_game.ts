@@ -124,14 +124,26 @@ export type IdleGame = {
           "isMut": true,
           "isSigner": false,
           "docs": [
-            "The Game Data account account.",
-            "Seeds: gameData + signerPublicKey"
+            "The Game Data account account."
           ]
         },
         {
-          "name": "signer",
+          "name": "thread",
           "isMut": false,
-          "isSigner": true
+          "isSigner": true,
+          "docs": [
+            "Verify that only this thread can execute the ThreadTick Instruction"
+          ]
+        },
+        {
+          "name": "threadAuthority",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "The Thread Admin",
+            "The authority that was used as a seed to derive the thread address",
+            "`thread_authority` should equal `thread.thread_authority`"
+          ]
         }
       ],
       "args": []
@@ -354,14 +366,26 @@ export const IDL: IdleGame = {
           "isMut": true,
           "isSigner": false,
           "docs": [
-            "The Game Data account account.",
-            "Seeds: gameData + signerPublicKey"
+            "The Game Data account account."
           ]
         },
         {
-          "name": "signer",
+          "name": "thread",
           "isMut": false,
-          "isSigner": true
+          "isSigner": true,
+          "docs": [
+            "Verify that only this thread can execute the ThreadTick Instruction"
+          ]
+        },
+        {
+          "name": "threadAuthority",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "The Thread Admin",
+            "The authority that was used as a seed to derive the thread address",
+            "`thread_authority` should equal `thread.thread_authority`"
+          ]
         }
       ],
       "args": []

@@ -65,12 +65,13 @@ pub mod idle_game {
         game_data.lumberjacks = 1;
         game_data.teeth_upgrade = 1;
         game_data.authority = payer.key();
+        game_data.updated_at = Clock::get().unwrap().unix_timestamp;
 
         // 1️⃣ Prepare an instruction to automate.
-        //    In this case, we will automate the Increment instruction.
+        //    In this case, we will automate the ThreadTick instruction.
         let target_ix = Instruction {
             program_id: ID,
-            accounts: crate::__client_accounts_increment::Increment {
+            accounts: crate::__client_accounts_thread_tick::ThreadTick {
                 game_data: game_data.key(),
                 thread: thread.key(),
                 thread_authority: thread_authority.key(),
@@ -81,7 +82,7 @@ pub mod idle_game {
 
         // 2️⃣ Define a trigger for the thread.
         let trigger = clockwork_sdk::state::Trigger::Cron {
-            schedule: format!("*/{} * * * * * *",THREAD_TICK_TIME_IN_SECONDS).into(),
+            schedule: format!("*/{} * * * * * *", THREAD_TICK_TIME_IN_SECONDS).into(),
             skippable: true,
         };
 
@@ -152,7 +153,7 @@ pub mod idle_game {
         Ok(())
     }
 
-    pub fn on_thread_tick(ctx: Context<Increment>) -> Result<()> {
+    pub fn on_thread_tick(ctx: Context<ThreadTick>) -> Result<()> {
         let game_data = &mut ctx.accounts.game_data;
         game_data.wood = game_data.wood.checked_add(game_data.lumberjacks).unwrap();
         game_data.updated_at = Clock::get().unwrap().unix_timestamp;
@@ -187,12 +188,12 @@ pub mod idle_game {
 }
 
 #[derive(Accounts)]
-pub struct Increment<'info> {
+pub struct ThreadTick<'info> {
     /// The Game Data account account.
     #[account(mut, seeds = [SEED_GAME_DATA, game_data.authority.key().as_ref()], bump)]
     pub game_data: Account<'info, GameData>,
 
-    /// Verify that only this thread can execute the Increment Instruction
+    /// Verify that only this thread can execute the ThreadTick Instruction
     #[account(signer, constraint = thread.authority.eq(&thread_authority.key()))]
     pub thread: Account<'info, Thread>,
 

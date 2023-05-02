@@ -1,9 +1,9 @@
 [features]
 seeds = false
 [programs.localnet]
-seven_seas = "Djpx6DiXBuFUi6SeAwH9fmZc57JsffaimHf2kg5Q6XUs"
+seven_seas = "HgmkLCs9Ti1e3juimSR8JNhdLE6eup5Pjk6PujiewZU6"
 [programs.devnet]
-seven_seas = "Djpx6DiXBuFUi6SeAwH9fmZc57JsffaimHf2kg5Q6XUs"
+seven_seas = "HgmkLCs9Ti1e3juimSR8JNhdLE6eup5Pjk6PujiewZU6"
 
 [registry]
 url = "https://anchor.projectserum.com"

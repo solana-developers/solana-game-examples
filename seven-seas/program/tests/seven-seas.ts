@@ -35,11 +35,17 @@ describe("seven-seas", () => {
       program.programId
     );
     
+    const [gameActions] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("gameActions")],
+      program.programId
+    );
+    
     const tx = await program.methods.initialize()
     .accounts({
       newGameDataAccount: level,
       chestVault: chestVault,
       signer: signer.publicKey,
+      gameActions: gameActions,
       systemProgram: anchor.web3.SystemProgram.programId,
     })
     .signers([signer])
@@ -78,6 +84,46 @@ describe("seven-seas", () => {
       gameDataAccount: level,
       chestVault: chestVault,
       systemProgram: anchor.web3.SystemProgram.programId,
+    })
+    .signers([signer])
+    .rpc(confirmOptions);
+    console.log("Your transaction signature", tx);
+  });
+
+  it("Shoot!", async () => {
+    console.log(new Date(), "requesting airdrop");
+    let airdropTx = await anchor.getProvider().connection.requestAirdrop(
+      signer.publicKey,
+      5 * anchor.web3.LAMPORTS_PER_SOL
+    );
+
+    let confirmOptions = {
+      skipPreflight: true,
+    };
+
+    const res = await anchor.getProvider().connection.confirmTransaction(airdropTx);
+
+    const [level] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("level")],
+      program.programId
+    );
+    
+    const [chestVault] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("chestVault")],
+      program.programId
+    );
+
+    const [gameActions] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("gameActions")],
+      program.programId
+    );
+
+    const tx = await program.methods.shoot()
+    .accounts({
+      player: signer.publicKey,
+      gameDataAccount: level,
+      chestVault: chestVault,
+      gameActions: gameActions
     })
     .signers([signer])
     .rpc(confirmOptions);
