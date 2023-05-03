@@ -1,7 +1,11 @@
 use anchor_lang::prelude::*;
+use anchor_spl::token::Mint;
+use anchor_spl::token::Token;
+use anchor_spl::token::TokenAccount;
 pub use crate::errors::TinyAdventureError;
 use crate::CHEST_REWARD;
 use crate::PLAYER_KILL_REWARD;
+use crate::seven_seas::Ship;
 const BOARD_SIZE_X: usize = 10;
 const BOARD_SIZE_Y: usize = 10;
 
@@ -33,6 +37,7 @@ pub struct Initialize<'info> {
         space = 8
     )]
     pub chest_vault: Box<Account<'info, ChestVaultAccount>>,
+    // These are used so that the clients can animate certain actions in the game.
     #[account(
         init,
         seeds = [b"gameActions"],
@@ -41,7 +46,30 @@ pub struct Initialize<'info> {
         space = 4096
     )]
     pub game_actions: Box<Account<'info, GameActionHistory>>,
+    /// CHECK: Derived PDAs
+    #[account(
+        init,
+        payer = signer,
+        seeds=[b"token_account_owner_pda".as_ref()],
+        bump,
+        space = 8
+    )]
+    token_account_owner_pda: AccountInfo<'info>,
+
+    #[account(
+        init,
+        payer = signer,
+        seeds=[b"token_vault".as_ref(), mint_of_token_being_sent.key().as_ref()],
+        token::mint=mint_of_token_being_sent,
+        token::authority=token_account_owner_pda,
+        bump
+    )]
+    vault_token_account: Account<'info, TokenAccount>,
+
+    pub mint_of_token_being_sent: Account<'info, Mint>,
+    
     pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>,
 }
 
 #[derive(Accounts)]
@@ -84,24 +112,13 @@ pub struct GameActionHistory {
     game_actions: Vec<GameAction>,
 }
 
-// TODO: Do we need a ship pda that can be upgraded? :thinking: 
-/*#[account]
-pub struct Ship {
-    health: u16,
-    kills: u16,
-    cannons: u16,
-    upgrades: u16,
-    xp: u16,
-    level: u16
-}*/
-
 #[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct GameAction {
     action_id: u64,        // 1
     action_type: u8,      // 1
     player: Pubkey,      // 32
     target: Pubkey,      // 32
-    damage: u64,         // 8   
+    damage: u16,         // 2   
 }
 
 #[zero_copy]
@@ -111,6 +128,8 @@ pub struct Tile {
     player: Pubkey,      // 32
     state: u8,           // 1
     health: u16,         // 1
+    damage: u16,         // 1
+    range: u16,          // 1
     collect_reward: u64, // 8
     avatar: Pubkey,      // 32
     kills: u8,           // 1
@@ -152,20 +171,7 @@ impl GameDataAccount {
                 self.action_id = 0;
             }
         }
-        let item = GameAction {
-            action_id: self.action_id,
-            action_type: 0,
-            player: player.key(),
-            target: player.key(),
-            damage: 5
-        };
-
-        if game_actions.game_actions.len() > 10 {
-            game_actions.game_actions.drain(0..5);
-        }
-
-        game_actions.game_actions.push(item);
-
+    
         let mut player_position: Option<(usize, usize)> = None;
 
         // Find the player on the board
@@ -181,55 +187,76 @@ impl GameDataAccount {
             }
         }
 
-        // If the player is on the board move him
+        // If the player is on the board shoot
         match player_position {
             None => {
-                return Err(TinyAdventureError::TriedToMovePlayerThatWasNotOnTheBoard.into());
+                return Err(TinyAdventureError::TriedToShootWithPlayerThatWasNotOnTheBoard.into());
             }
             Some(val) => {
                 
                 msg!("Player position x:{} y:{}", val.0, val.1);
-                // TODO: use damage from a new BoatPDA 
-                if val.0 < BOARD_SIZE_X -1 {
-                    self.attackTile(( val.0 + 1, val.1), 50, player.clone(), chest_vault.clone())?;
-                }
-                
-                if val.1 < BOARD_SIZE_Y -1 {
-                    self.attackTile(( val.0, val.1 + 1), 50, player.clone(), chest_vault.clone())?;
-                }
-                
-                if val.0 > 0 {
-                    self.attackTile(( val.0 - 1, val.1), 50, player.clone(), chest_vault.clone())?;
-                }
-                
-                if val.0 > 0 {
-                    self.attackTile(( val.0, val.1  - 1), 50, player.clone(), chest_vault.clone())?;
-                }
-                
-                
+                let player_tile: Tile = self.board[val.0][val.1];
+                let range_usize : usize = usize::from(player_tile.range);
+                for range in 1..range_usize {
+                    
+                    // Shoot left
+                    if player_tile.look_direction % 2 == 1 && val.0 > range {
+                        self.attack_tile((val.0 - range, val.1), player_tile.damage, player.clone(), chest_vault.clone(),game_actions)?;
+                    }
+
+                    // Shoot right
+                    if player_tile.look_direction % 2 == 1 && val.0 < BOARD_SIZE_X -range {
+                        self.attack_tile((val.0 + range, val.1), player_tile.damage, player.clone(), chest_vault.clone(),game_actions)?;
+                    }
+                    
+                    // Shoot up
+                    if player_tile.look_direction % 2 == 0 && val.1 < BOARD_SIZE_Y -range {
+                        self.attack_tile((val.0, val.1 + range), player_tile.damage, player.clone(), chest_vault.clone(),game_actions)?;
+                    }
+                    
+                    // Shoot down
+                    if player_tile.look_direction % 2 == 0 && val.1 > range {
+                        self.attack_tile((val.0, val.1 - range), player_tile.damage, player.clone(), chest_vault.clone(),game_actions)?;
+                    }                    
+                }                
             }
         }
 
         Ok(())
     }
 
-    fn attackTile(&mut self, val: (usize, usize), damage: u16, attacker: AccountInfo, chest_vault: AccountInfo)  -> Result<()> {
-        let mut tile = self.board[val.0][val.1];
-        msg!("Attack x:{} y:{}", val.0, val.1);
+    fn attack_tile(&mut self, attacked_position: (usize, usize), damage: u16, attacker: AccountInfo, chest_vault: AccountInfo, game_actions: &mut GameActionHistory,)  -> Result<()> {
+        let mut attacked_tile: Tile = self.board[attacked_position.0][attacked_position.1];
+        msg!("Attack x:{} y:{}", attacked_position.0, attacked_position.1);
 
-        if tile.state == STATE_PLAYER {
-            let matchOption = tile.health.checked_sub(damage);
-            match  matchOption {
+        if attacked_tile.state == STATE_PLAYER {
+            let match_option = attacked_tile.health.checked_sub(damage);
+            match  match_option {
                 None => {
-                    tile.health = 0;
-                    msg!("Enemy killed x:{} y:{} pubkey: {}", val.0, val.1, tile.player);
-                    self.board[val.0][val.1].state = STATE_EMPTY;
-                    **chest_vault.try_borrow_mut_lamports()? -= tile.collect_reward;
-                    **attacker.try_borrow_mut_lamports()? += tile.collect_reward;                },
+                    attacked_tile.health = 0;
+                    msg!("Enemy killed x:{} y:{} pubkey: {}", attacked_position.0, attacked_position.1, attacked_tile.player);
+                    self.board[attacked_position.0][attacked_position.1].state = STATE_EMPTY;
+                    **chest_vault.try_borrow_mut_lamports()? -= attacked_tile.collect_reward;
+                    **attacker.try_borrow_mut_lamports()? += attacked_tile.collect_reward;                
+                },
                 Some(value) =>  {
-                    tile.health = value;
+                    attacked_tile.health = value;
                 }   
             };
+            let item = GameAction {
+                action_id: self.action_id,
+                action_type: 0,
+                player: attacker.key(),
+                target: attacked_tile.player.key(),
+                damage: damage
+            };
+    
+            if game_actions.game_actions.len() > 10 {
+                game_actions.game_actions.drain(0..5);
+            }
+    
+            game_actions.game_actions.push(item);
+    
         }
         Ok(())
     }
@@ -301,7 +328,8 @@ impl GameDataAccount {
                     }
                 }
 
-                let tile = self.board[new_player_position.0][new_player_position.1];
+                let mut tile = self.board[new_player_position.0][new_player_position.1];
+                tile.look_direction = direction;
                 if tile.state == STATE_EMPTY {
                     self.board[new_player_position.0][new_player_position.1] =
                         self.board[player_position.unwrap().0][player_position.unwrap().1];
@@ -355,7 +383,7 @@ impl GameDataAccount {
         Ok(())
     }
 
-    pub fn spawn_player(&mut self, player: AccountInfo, avatar: Pubkey) -> Result<()> {
+    pub fn spawn_player(&mut self, player: AccountInfo, avatar: Pubkey, ship: &mut Ship) -> Result<()> {
         let mut empty_slots: Vec<(usize, usize)> = Vec::new();
 
         for x in 0..BOARD_SIZE_X {
@@ -386,13 +414,17 @@ impl GameDataAccount {
             random_empty_slot.0,
             random_empty_slot.1
         );
+
         self.board[random_empty_slot.0][random_empty_slot.1] = Tile {
             player: player.key.clone(),
             avatar: avatar.clone(),
             kills: 0,
             state: STATE_PLAYER,
-            health: 1,
+            health: ship.health,
+            damage: ship.cannons,
+            range: ship.level,
             collect_reward: PLAYER_KILL_REWARD,
+            look_direction: 0
         };
 
         Ok(())
@@ -433,7 +465,10 @@ impl GameDataAccount {
             kills: 0,
             state: STATE_CHEST,
             health: 1,
+            damage: 0,
+            range: 0,
             collect_reward: CHEST_REWARD,
+            look_direction: 0
         };
 
         Ok(())
@@ -462,21 +497,30 @@ pub struct Shoot<'info> {
     pub game_data_account: AccountLoader<'info, GameDataAccount>,
     #[account(mut)]
     pub game_actions: Account<'info, GameActionHistory>,
-    /// CHECK:
     #[account(mut)]
     pub player: Signer<'info>,
 }
 
 #[derive(Accounts)]
 pub struct SpawnPlayer<'info> {
-    /// CHECK:
     #[account(mut)]
     pub payer: Signer<'info>,
-    /// CHECK:
-    #[account(mut)]
-    pub chest_vault: AccountInfo<'info>,
+    #[account(
+        mut,
+        seeds = [b"chestVault"],
+        bump
+    )]
+    pub chest_vault: Account<'info, ChestVaultAccount>,
     #[account(mut)]
     pub game_data_account: AccountLoader<'info, GameDataAccount>,
+    #[account(
+        mut,
+        seeds = [b"ship", nft_account.key().as_ref()],
+        bump
+    )]
+    pub ship: Account<'info, Ship>,
+    /// CHECK: change to token account later
+    pub nft_account: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
 }
 

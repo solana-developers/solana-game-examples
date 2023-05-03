@@ -4118,6 +4118,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShipPrefab: {fileID: 326862648763548868, guid: 4b36a4e96c599455987fc94c1a383231, type: 3}
+  TreasureChestPrefab: {fileID: 7344144835601536767, guid: 4bb5a68e9145b445d9bf4c06ae603c30, type: 3}
 --- !u!4 &1794682124
 Transform:
   m_ObjectHideFlags: 0

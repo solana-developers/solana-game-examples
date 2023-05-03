@@ -9,7 +9,7 @@ seven_seas = "HgmkLCs9Ti1e3juimSR8JNhdLE6eup5Pjk6PujiewZU6"
 url = "https://anchor.projectserum.com"
 
 [provider]
-cluster = "devnet"
+cluster = "localnet"
 wallet = "/Users/jonasmac2/.config/solana/id.json"
 
 [scripts]

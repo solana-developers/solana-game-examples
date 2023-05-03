@@ -17,7 +17,9 @@ public class Ship : MonoBehaviour
     public void Init(Vector2 startPosition)
     {
         transform.position = new Vector3(10 * startPosition.x + 5f, 1.4f, (10 * startPosition.y) - 5f);
+        TargetPosition = transform.position;
         GridPosition = startPosition;
+        LastGridPosition = startPosition;
     }
 
     private void Update()
@@ -51,14 +53,13 @@ public class Ship : MonoBehaviour
 
     public void Shoot()
     {
-        ShotPrefab.SetActive(true);
-        Animator.Play("Shoot");
-        StartCoroutine(KillDelayed());
+        var shootInstance = Instantiate(ShotPrefab, transform);
+        StartCoroutine(KillDelayed(shootInstance));
     }
 
-    private IEnumerator KillDelayed()
+    private IEnumerator KillDelayed(GameObject shootInstance)
     {
         yield return new WaitForSeconds(2);
-        ShotPrefab.SetActive(false);
+        Destroy(shootInstance);
     }
 }

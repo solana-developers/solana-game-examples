@@ -6,5 +6,6 @@ pub enum TinyAdventureError {
     BoardIsFull,
     PlayerAlreadyExists,
     TriedToMovePlayerThatWasNotOnTheBoard,
+    TriedToShootWithPlayerThatWasNotOnTheBoard,
     WrongDirectionInput,
 }
