@@ -134,6 +134,7 @@ pub struct Tile {
     avatar: Pubkey,      // 32
     kills: u8,           // 1
     look_direction: u8,  // 1 (Up, right, down, left) 
+    ship_level: u16,     // 2
 }
 
 impl GameDataAccount {
@@ -197,10 +198,10 @@ impl GameDataAccount {
                 msg!("Player position x:{} y:{}", val.0, val.1);
                 let player_tile: Tile = self.board[val.0][val.1];
                 let range_usize : usize = usize::from(player_tile.range);
-                for range in 1..range_usize {
+                for range in 1..range_usize+1 {
                     
                     // Shoot left
-                    if player_tile.look_direction % 2 == 1 && val.0 > range {
+                    if player_tile.look_direction % 2 == 1 && val.0 >= range {
                         self.attack_tile((val.0 - range, val.1), player_tile.damage, player.clone(), chest_vault.clone(),game_actions)?;
                     }
 
@@ -209,16 +210,30 @@ impl GameDataAccount {
                         self.attack_tile((val.0 + range, val.1), player_tile.damage, player.clone(), chest_vault.clone(),game_actions)?;
                     }
                     
-                    // Shoot up
+                    // Shoot down
                     if player_tile.look_direction % 2 == 0 && val.1 < BOARD_SIZE_Y -range {
                         self.attack_tile((val.0, val.1 + range), player_tile.damage, player.clone(), chest_vault.clone(),game_actions)?;
                     }
                     
-                    // Shoot down
-                    if player_tile.look_direction % 2 == 0 && val.1 > range {
+                    // Shoot up
+                    if player_tile.look_direction % 2 == 0 && val.1 >= range {
                         self.attack_tile((val.0, val.1 - range), player_tile.damage, player.clone(), chest_vault.clone(),game_actions)?;
                     }                    
-                }                
+                }
+
+                let item = GameAction {
+                    action_id: self.action_id,
+                    action_type: 0,
+                    player: player_tile.player.key(),
+                    target: player_tile.player.key(),
+                    damage: player_tile.damage
+                };
+        
+                if game_actions.game_actions.len() > 20 {
+                    game_actions.game_actions.drain(0..5);
+                }
+        
+                game_actions.game_actions.push(item);                
             }
         }
 
@@ -234,30 +249,38 @@ impl GameDataAccount {
             match  match_option {
                 None => {
                     attacked_tile.health = 0;
-                    msg!("Enemy killed x:{} y:{} pubkey: {}", attacked_position.0, attacked_position.1, attacked_tile.player);
-                    self.board[attacked_position.0][attacked_position.1].state = STATE_EMPTY;
-                    **chest_vault.try_borrow_mut_lamports()? -= attacked_tile.collect_reward;
-                    **attacker.try_borrow_mut_lamports()? += attacked_tile.collect_reward;                
+                    self.on_ship_died(attacked_position, attacked_tile, chest_vault, &attacker)?;             
                 },
                 Some(value) =>  {
-                    attacked_tile.health = value;
+                    msg!("New health {}", value);
+                    self.board[attacked_position.0][attacked_position.1].health = value;
+                    if value == 0 {
+                        self.on_ship_died(attacked_position, attacked_tile, chest_vault, &attacker)?;  
+                    }
                 }   
-            };
+            };    
             let item = GameAction {
                 action_id: self.action_id,
-                action_type: 0,
+                action_type: 1,
                 player: attacker.key(),
                 target: attacked_tile.player.key(),
                 damage: damage
             };
     
-            if game_actions.game_actions.len() > 10 {
+            if game_actions.game_actions.len() > 20 {
                 game_actions.game_actions.drain(0..5);
             }
     
             game_actions.game_actions.push(item);
-    
         }
+        Ok(())
+    }
+
+    fn on_ship_died(&mut self, attacked_position: (usize, usize), attacked_tile: Tile, chest_vault: AccountInfo, attacker: &AccountInfo) -> Result<()> {
+        msg!("Enemy killed x:{} y:{} pubkey: {}", attacked_position.0, attacked_position.1, attacked_tile.player);
+        self.board[attacked_position.0][attacked_position.1].state = STATE_EMPTY;
+        **chest_vault.try_borrow_mut_lamports()? -= attacked_tile.collect_reward;
+        **attacker.try_borrow_mut_lamports()? += attacked_tile.collect_reward;
         Ok(())
     }
 
@@ -329,7 +352,7 @@ impl GameDataAccount {
                 }
 
                 let mut tile = self.board[new_player_position.0][new_player_position.1];
-                tile.look_direction = direction;
+                self.board[new_player_position.0][new_player_position.1].look_direction = direction;
                 if tile.state == STATE_EMPTY {
                     self.board[new_player_position.0][new_player_position.1] =
                         self.board[player_position.unwrap().0][player_position.unwrap().1];
@@ -424,7 +447,8 @@ impl GameDataAccount {
             damage: ship.cannons,
             range: ship.level,
             collect_reward: PLAYER_KILL_REWARD,
-            look_direction: 0
+            look_direction: 0,
+            ship_level: ship.level,
         };
 
         Ok(())
@@ -468,7 +492,8 @@ impl GameDataAccount {
             damage: 0,
             range: 0,
             collect_reward: CHEST_REWARD,
-            look_direction: 0
+            look_direction: 0,
+            ship_level: 0
         };
 
         Ok(())

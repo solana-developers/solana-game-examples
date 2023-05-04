@@ -5,9 +5,9 @@ using UnityEngine;
 
 public class ShipManager : MonoBehaviour
 {
-    public Ship ShipPrefab;
+    public ShipBehaviour ShipPrefab;
     public TreasureChest TreasureChestPrefab;
-    public Dictionary<string, Ship> Ships = new Dictionary<string, Ship>();
+    public Dictionary<string, ShipBehaviour> Ships = new Dictionary<string, ShipBehaviour>();
     public Dictionary<string, TreasureChest> Chests = new Dictionary<string, TreasureChest>();
     public Tile[][] Board { get; set; }
 
@@ -43,12 +43,12 @@ public class ShipManager : MonoBehaviour
                 {
                     if (!Ships.ContainsKey(tile.Player))
                     {
-                        var newShip = SpawnShip(new Vector2(x, -y));
+                        var newShip = SpawnShip(new Vector2(x, -y), tile);
                         Ships.Add(tile.Player, newShip);
                     }
                     else
                     {
-                        Ships[tile.Player].SetNewTargetPosition(new Vector2(x, -y));
+                        Ships[tile.Player].SetNewTargetPosition(new Vector2(x, -y), tile);
                     }
                 }
 
@@ -72,9 +72,9 @@ public class ShipManager : MonoBehaviour
     {
         var length = board.GetLength(0);
 
-        List<KeyValuePair<string, Ship>> deadShips = new List<KeyValuePair<string, Ship>>();
+        List<KeyValuePair<string, ShipBehaviour>> deadShips = new List<KeyValuePair<string, ShipBehaviour>>();
         
-        foreach (KeyValuePair<string, Ship> ship in Ships)
+        foreach (KeyValuePair<string, ShipBehaviour> ship in Ships)
         {
             bool found = false;
             for (int y = 0; y < length; y++)
@@ -148,10 +148,10 @@ public class ShipManager : MonoBehaviour
         }
     }
 
-    private Ship SpawnShip(Vector2 startPosition)
+    private ShipBehaviour SpawnShip(Vector2 startPosition, Tile tile)
     {
         var newShip = Instantiate(ShipPrefab);
-        newShip.Init(startPosition);
+        newShip.Init(startPosition, tile);
         return newShip;
     }
     

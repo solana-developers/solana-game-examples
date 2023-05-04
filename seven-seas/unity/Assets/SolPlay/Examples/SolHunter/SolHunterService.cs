@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using Frictionless;
+using NUnit.Framework.Constraints;
 using SevenSeas.Accounts;
 using Solana.Unity.Programs;
 using Solana.Unity.Rpc.Models;
@@ -87,8 +88,8 @@ public class SolHunterService : MonoBehaviour
         GetGameData();
         ServiceFactory.Resolve<SolPlayWebSocketService>().SubscribeToPubKeyData(levelAccount, result =>
         {
-            SevenSeas.Accounts.GameDataAccount gameDataAccount =
-                SevenSeas.Accounts.GameDataAccount.Deserialize(Convert.FromBase64String(result.result.value.data[0]));
+            GameDataAccount gameDataAccount =
+                GameDataAccount.Deserialize(Convert.FromBase64String(result.result.value.data[0]));
             SetCachedGameData(gameDataAccount);
             MessageRouter.RaiseMessage(new SolHunterGameDataChangedMessage()
             {
@@ -99,6 +100,7 @@ public class SolHunterService : MonoBehaviour
         {
             GameActionHistory gameActionHistory =
                 GameActionHistory.Deserialize(Convert.FromBase64String(result.result.value.data[0]));
+            Debug.Log("Actions len: " + gameActionHistory.GameActions.Length);
             OnNewGameActions(gameActionHistory);
         });
     }
@@ -107,7 +109,6 @@ public class SolHunterService : MonoBehaviour
     {
         foreach (var gameAction in gameActionHistory.GameActions)
         {
-            Debug.Log(gameAction.ActionId);
             if (!alreadyPreformedGameActions.ContainsKey(gameAction.ActionId))
             {
                 //if (gameAction.ActionType == 0)
@@ -122,6 +123,23 @@ public class SolHunterService : MonoBehaviour
         }
     }
 
+    public static int GetMaxHealthByLevel(Tile tile)
+    {
+        switch (tile.ShipLevel)
+        {
+            case 1:
+                return 3;
+            case 2:
+                return 7;
+            case 3:
+                return 12;
+            case 4:
+                return 20;
+        }
+
+        return 1;
+    }
+    
     public async Task<GameDataAccount> GetGameData()
     {
         var gameData = await ServiceFactory.Resolve<WalletHolderService>().InGameWallet.ActiveRpcClient
@@ -227,12 +245,22 @@ public class SolHunterService : MonoBehaviour
 
         LoggingService.Log("Spawn player and chest", true);
 
+        TransactionInstruction initShip = GetInitShipInstruction();
+        ServiceFactory.Resolve<TransactionService>().SendInstructionInNextBlock("Init ship", initShip,
+            walletHolderService.InGameWallet,
+            s =>
+            {
+                //GetGameData(); not needed since we rely on the socket connection
+                GetGameData();
+            });
+        
         TransactionInstruction initializeInstruction = GetSpawnPlayerAndChestInstruction();
         ServiceFactory.Resolve<TransactionService>().SendInstructionInNextBlock("Spawn player", initializeInstruction,
             walletHolderService.InGameWallet,
             s =>
             {
                 //GetGameData(); not needed since we rely on the socket connection
+                GetGameData();
             });
     }
 
@@ -272,7 +300,7 @@ public class SolHunterService : MonoBehaviour
         var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
         var wallet = walletHolderService.InGameWallet;
 
-        var accounts = new SevenSeas.Program.InitializeAccounts();
+        var accounts = new InitializeAccounts();
         accounts.Signer = wallet.Account.PublicKey;
         accounts.NewGameDataAccount = levelAccount;
         accounts.SystemProgram = SystemProgram.ProgramIdKey;
@@ -288,7 +316,7 @@ public class SolHunterService : MonoBehaviour
         var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
         var wallet = walletHolderService.InGameWallet;
 
-        var accounts = new SevenSeas.Program.ResetAccounts();
+        var accounts = new ResetAccounts();
         accounts.Signer = wallet.Account.PublicKey;
         accounts.NewGameDataAccount = levelAccount;
         accounts.SystemProgram = SystemProgram.ProgramIdKey;
@@ -313,9 +341,42 @@ public class SolHunterService : MonoBehaviour
         accounts.ChestVault = chestVaultAccount;
         accounts.SystemProgram = SystemProgram.ProgramIdKey;
         accounts.Payer = ServiceFactory.Resolve<WalletHolderService>().InGameWallet.Account.PublicKey;
-
+        accounts.NftAccount = new PublicKey(ServiceFactory.Resolve<NftService>().SelectedNft.MetaplexData.mint);
+        PublicKey.TryFindProgramAddress(new[]
+            {
+                Encoding.UTF8.GetBytes("ship"),
+                accounts.NftAccount.KeyBytes
+            },
+            ProgramId, out PublicKey shipPda, out var bump);
+        accounts.Ship = shipPda;
+        
         TransactionInstruction initializeInstruction =
             SevenSeasProgram.SpawnPlayer(accounts, new PublicKey(selectedNft.MetaplexData.mint), ProgramId);
+        return initializeInstruction;
+    }
+
+    public TransactionInstruction GetInitShipInstruction()
+    {
+        var selectedNft = ServiceFactory.Resolve<NftService>().SelectedNft;
+        if (selectedNft == null)
+        {
+            LoggingService.Log("Nft is still loading...", true);
+            return null;
+        }
+
+        InitializeShipAccounts accounts = new InitializeShipAccounts();
+        accounts.SystemProgram = SystemProgram.ProgramIdKey;
+        accounts.NftAccount = new PublicKey(ServiceFactory.Resolve<NftService>().SelectedNft.MetaplexData.mint);
+        PublicKey.TryFindProgramAddress(new[]
+            {
+                Encoding.UTF8.GetBytes("ship"),
+                accounts.NftAccount.KeyBytes
+            },
+            ProgramId, out PublicKey shipPda, out var bump);
+        accounts.NewShip = shipPda;
+        accounts.Signer = ServiceFactory.Resolve<WalletHolderService>().InGameWallet.Account.PublicKey;
+
+        TransactionInstruction initializeInstruction = SevenSeasProgram.InitializeShip(accounts, ProgramId);
         return initializeInstruction;
     }
 

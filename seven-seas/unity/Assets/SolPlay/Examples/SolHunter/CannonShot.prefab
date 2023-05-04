@@ -147,7 +147,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 19833346, guid: 1beb0a8414c49964fa16289d0fb73952, type: 3}
       propertyPath: looping
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 19833346, guid: 1beb0a8414c49964fa16289d0fb73952, type: 3}
       propertyPath: prewarm
@@ -286,7 +286,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 19833346, guid: 1beb0a8414c49964fa16289d0fb73952, type: 3}
       propertyPath: looping
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 19833346, guid: 1beb0a8414c49964fa16289d0fb73952, type: 3}
       propertyPath: prewarm
@@ -425,7 +425,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 19833346, guid: 1beb0a8414c49964fa16289d0fb73952, type: 3}
       propertyPath: looping
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 19833346, guid: 1beb0a8414c49964fa16289d0fb73952, type: 3}
       propertyPath: prewarm
@@ -495,7 +495,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 19833346, guid: 1beb0a8414c49964fa16289d0fb73952, type: 3}
       propertyPath: looping
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 19833346, guid: 1beb0a8414c49964fa16289d0fb73952, type: 3}
       propertyPath: prewarm
@@ -565,7 +565,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 19833346, guid: 1beb0a8414c49964fa16289d0fb73952, type: 3}
       propertyPath: looping
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 19833346, guid: 1beb0a8414c49964fa16289d0fb73952, type: 3}
       propertyPath: prewarm
@@ -635,7 +635,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 19833346, guid: 1beb0a8414c49964fa16289d0fb73952, type: 3}
       propertyPath: looping
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 19833346, guid: 1beb0a8414c49964fa16289d0fb73952, type: 3}
       propertyPath: prewarm

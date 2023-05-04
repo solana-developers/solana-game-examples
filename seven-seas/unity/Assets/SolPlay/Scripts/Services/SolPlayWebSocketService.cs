@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Net;
 using System.Threading.Tasks;
 using Frictionless;
 using UnityEngine;
@@ -108,7 +109,10 @@ namespace SolPlay.Scripts.Services
         private void SetSocketUrl(string rpcUrl)
         {
             socketUrl = rpcUrl.Replace("https://", "wss://");
-            socketUrl = socketUrl.Replace("http://", "ws://");
+            if (socketUrl.Contains("localhost"))
+            {
+                socketUrl = "ws://localhost:8900";
+            }
             Debug.Log("Socket url: " + socketUrl);
         }
 
