@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Net;
+using System.Numerics;
 using System.Threading.Tasks;
 using Frictionless;
 using UnityEngine;
@@ -83,7 +84,7 @@ namespace SolPlay.Scripts.Services
             public List<string> data;
             public string owner;
             public bool executable;
-            public long rentEpoch;
+            public BigInteger rentEpoch;
         }
 
         private void Awake()

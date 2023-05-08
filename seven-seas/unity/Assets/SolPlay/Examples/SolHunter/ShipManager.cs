@@ -1,6 +1,9 @@
+using System;
 using System.Collections.Generic;
 using Frictionless;
 using SevenSeas.Types;
+using Solana.Unity.Wallet;
+using SolPlay.Scripts.Ui;
 using UnityEngine;
 
 public class ShipManager : MonoBehaviour
@@ -10,6 +13,11 @@ public class ShipManager : MonoBehaviour
     public Dictionary<string, ShipBehaviour> Ships = new Dictionary<string, ShipBehaviour>();
     public Dictionary<string, TreasureChest> Chests = new Dictionary<string, TreasureChest>();
     public Tile[][] Board { get; set; }
+
+    private void Awake()
+    {
+        ServiceFactory.RegisterSingleton(this);
+    }
 
     private void Start()
     {
@@ -30,6 +38,21 @@ public class ShipManager : MonoBehaviour
         InitWithData(obj.GameDataAccount.Board);
     }
 
+    public bool TryGetShipByOwner(PublicKey owner, out ShipBehaviour shipBehaviour)
+    {
+        foreach (var keypair in Ships)
+        {
+            if (keypair.Value.currentTile.Player == owner)
+            {
+                shipBehaviour = keypair.Value;
+                return true;
+            }
+        }
+
+        shipBehaviour = null;
+        return false;
+    }
+    
     public void InitWithData(Tile[][] board)
     {
         var length = board.GetLength(0);
@@ -101,10 +124,11 @@ public class ShipManager : MonoBehaviour
             }
         }
 
-        foreach (var ship in deadShips) 
+        foreach (KeyValuePair<string, ShipBehaviour> valuePair in deadShips) 
         {
-            Destroy(ship.Value.gameObject);
-            Ships.Remove(ship.Key);
+            MessageRouter.RaiseMessage(new BlimpSystem.Show3DBlimpMessage("Destroyed", valuePair.Value.transform.position));
+            Destroy(valuePair.Value.gameObject);
+            Ships.Remove(valuePair.Key);
         }
     }
 

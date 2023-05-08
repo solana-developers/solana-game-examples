@@ -13,6 +13,7 @@ using SevenSeas.Program;
 using SevenSeas.Types;
 using SolPlay.DeeplinksNftExample.Utils;
 using SolPlay.Scripts.Services;
+using SolPlay.Scripts.Ui;
 using UnityEngine;
 
 public class SolHunterService : MonoBehaviour
@@ -107,17 +108,26 @@ public class SolHunterService : MonoBehaviour
 
     private void OnNewGameActions(GameActionHistory gameActionHistory)
     {
-        foreach (var gameAction in gameActionHistory.GameActions)
+        foreach (GameAction gameAction in gameActionHistory.GameActions)
         {
             if (!alreadyPreformedGameActions.ContainsKey(gameAction.ActionId))
             {
-                //if (gameAction.ActionType == 0)
-                //{
+                if (gameAction.ActionType == 0)
+                {
                     MessageRouter.RaiseMessage(new ShipShotMessage()
                     {
                         ShipOwner = ServiceFactory.Resolve<WalletHolderService>().InGameWallet.Account.PublicKey
                     });
-                //}
+                }
+
+                if (gameAction.ActionType == 1)
+                {
+                    if (ServiceFactory.Resolve<ShipManager>()
+                    .TryGetShipByOwner(gameAction.Target, out ShipBehaviour ship))
+                    {
+                        MessageRouter.RaiseMessage(new BlimpSystem.Show3DBlimpMessage("-"+gameAction.Damage, ship.transform.position));   
+                    }
+                }
                 alreadyPreformedGameActions.Add(gameAction.ActionId, gameAction);
             }
         }

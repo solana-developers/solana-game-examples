@@ -19,6 +19,7 @@ namespace SolPlay.FlappyGame.Runtime.Scripts
         void Awake()
         {
             instance = this;
+            instance._originalPos = instance.gameObject.transform.localPosition;
         }
 
         void Update() {
@@ -26,15 +27,14 @@ namespace SolPlay.FlappyGame.Runtime.Scripts
             _timeAtCurrentFrame = Time.realtimeSinceStartup;
             _fakeDelta = _timeAtCurrentFrame - _timeAtLastFrame;
             _timeAtLastFrame = _timeAtCurrentFrame; 
+            /*
             //GetComponent<Camera>().orthographicSize = CameraSize / Screen.width * Screen.height;
-            var orthographicSize = 1 / ((CameraSize / 1000) * Screen.width);
-        
-            GetComponent<Camera>().orthographicSize = Mathf.Max(Minimum, orthographicSize);
+            var orthographicSize = 1 / ((CameraSize / 1000) * Screen.width);        
+            GetComponent<Camera>().orthographicSize = Mathf.Max(Minimum, orthographicSize);*/
         }
 
         public static void Shake (float duration, float amount) {
-            instance._originalPos = instance.gameObject.transform.localPosition;
-            instance.StopAllCoroutines();
+           // instance.StopAllCoroutines();
             instance.StartCoroutine(instance.cShake(duration, amount));
         }
 

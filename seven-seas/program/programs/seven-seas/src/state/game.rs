@@ -1,7 +1,8 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::Mint;
-use anchor_spl::token::Token;
-use anchor_spl::token::TokenAccount;
+use anchor_spl::{
+    associated_token::AssociatedToken,
+    token::{burn, mint_to, Burn, Mint, MintTo, Token, TokenAccount},
+};
 pub use crate::errors::TinyAdventureError;
 use crate::CHEST_REWARD;
 use crate::PLAYER_KILL_REWARD;
@@ -98,7 +99,7 @@ pub struct Reset<'info> {
     pub system_program: Program<'info, System>,
 }
 
-#[account(zero_copy)]
+#[account(zero_copy(unsafe))]
 #[repr(packed)]
 #[derive(Default)]
 pub struct GameDataAccount {
@@ -106,22 +107,7 @@ pub struct GameDataAccount {
     action_id: u64,
 }
 
-#[account]
-pub struct GameActionHistory {
-    id_counter: u64,
-    game_actions: Vec<GameAction>,
-}
-
-#[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
-pub struct GameAction {
-    action_id: u64,        // 1
-    action_type: u8,      // 1
-    player: Pubkey,      // 32
-    target: Pubkey,      // 32
-    damage: u16,         // 2   
-}
-
-#[zero_copy]
+#[zero_copy(unsafe)]
 #[repr(packed)]
 #[derive(Default)]
 pub struct Tile {
@@ -135,6 +121,21 @@ pub struct Tile {
     kills: u8,           // 1
     look_direction: u8,  // 1 (Up, right, down, left) 
     ship_level: u16,     // 2
+}
+
+#[account]
+pub struct GameActionHistory {
+    id_counter: u64,
+    game_actions: Vec<GameAction>,
+}
+
+#[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct GameAction {
+    action_id: u64,      // 1
+    action_type: u8,     // 1
+    player: Pubkey,      // 32
+    target: Pubkey,      // 32
+    damage: u16,         // 2   
 }
 
 impl GameDataAccount {
@@ -201,24 +202,34 @@ impl GameDataAccount {
                 for range in 1..range_usize+1 {
                     
                     // Shoot left
-                    if player_tile.look_direction % 2 == 1 && val.0 >= range {
+                    if player_tile.look_direction % 2 == 0 && val.0 >= range {
                         self.attack_tile((val.0 - range, val.1), player_tile.damage, player.clone(), chest_vault.clone(),game_actions)?;
                     }
 
                     // Shoot right
-                    if player_tile.look_direction % 2 == 1 && val.0 < BOARD_SIZE_X -range {
+                    if player_tile.look_direction % 2 == 0 && val.0 < BOARD_SIZE_X -range {
                         self.attack_tile((val.0 + range, val.1), player_tile.damage, player.clone(), chest_vault.clone(),game_actions)?;
                     }
                     
                     // Shoot down
-                    if player_tile.look_direction % 2 == 0 && val.1 < BOARD_SIZE_Y -range {
+                    if player_tile.look_direction % 2 == 1 && val.1 < BOARD_SIZE_Y -range {
                         self.attack_tile((val.0, val.1 + range), player_tile.damage, player.clone(), chest_vault.clone(),game_actions)?;
                     }
                     
                     // Shoot up
-                    if player_tile.look_direction % 2 == 0 && val.1 >= range {
+                    if player_tile.look_direction % 2 == 1 && val.1 >= range {
                         self.attack_tile((val.0, val.1 - range), player_tile.damage, player.clone(), chest_vault.clone(),game_actions)?;
                     }                    
+                }
+
+                let option_add = self.action_id.checked_add(1);
+                match option_add {
+                    Some(val) =>  {
+                        self.action_id = val;
+                    }, 
+                    None => {
+                        self.action_id = 0;
+                    }
                 }
 
                 let item = GameAction {
@@ -352,12 +363,13 @@ impl GameDataAccount {
                 }
 
                 let mut tile = self.board[new_player_position.0][new_player_position.1];
-                self.board[new_player_position.0][new_player_position.1].look_direction = direction;
                 if tile.state == STATE_EMPTY {
                     self.board[new_player_position.0][new_player_position.1] =
                         self.board[player_position.unwrap().0][player_position.unwrap().1];
                     self.board[player_position.unwrap().0][player_position.unwrap().1].state =
                         STATE_EMPTY;
+                    self.board[new_player_position.0][new_player_position.1].look_direction = direction;
+
                     msg!("Moved player to new tile");
                 } else {
                     msg!(

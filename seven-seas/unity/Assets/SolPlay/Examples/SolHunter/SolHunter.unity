@@ -677,6 +677,7 @@ GameObject:
   - component: {fileID: 298411035}
   - component: {fileID: 298411034}
   - component: {fileID: 298411033}
+  - component: {fileID: 298411037}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -709,7 +710,7 @@ Camera:
   m_GameObject: {fileID: 298411032}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 2
+  m_ClearFlags: 1
   m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0.019607844}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
@@ -751,13 +752,27 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 298411032}
   m_LocalRotation: {x: 0.5699297, y: -0, z: -0, w: 0.8216934}
-  m_LocalPosition: {x: 48, y: 89.8, z: -89.6}
+  m_LocalPosition: {x: 45.38179, y: 89.18782, z: -92.30008}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 10
   m_LocalEulerAnglesHint: {x: 69.491, y: 0, z: 0}
+--- !u!114 &298411037
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 298411032}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6516ef9487f8e47fcb4c2e20fdd7bd29, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  CameraSize: 10.65
+  Minimum: 5
 --- !u!1001 &328177980
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1483,6 +1498,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: SolBalanceWidget
       objectReference: {fileID: 0}
+    - target: {fileID: 7768150992220359611, guid: 932385457eb6e48999e46c08f0039d6c, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7768150992220359613, guid: 932385457eb6e48999e46c08f0039d6c, type: 3}
       propertyPath: InGameWallet
       value: 1
@@ -1506,6 +1525,22 @@ PrefabInstance:
     - target: {fileID: 7768150992304558030, guid: 932385457eb6e48999e46c08f0039d6c, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7768150992304558032, guid: 932385457eb6e48999e46c08f0039d6c, type: 3}
+      propertyPath: m_fontColor.b
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7768150992304558032, guid: 932385457eb6e48999e46c08f0039d6c, type: 3}
+      propertyPath: m_fontColor.g
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7768150992304558032, guid: 932385457eb6e48999e46c08f0039d6c, type: 3}
+      propertyPath: m_fontColor.r
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7768150992304558032, guid: 932385457eb6e48999e46c08f0039d6c, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4278190080
       objectReference: {fileID: 0}
     - target: {fileID: 7768150992751066498, guid: 932385457eb6e48999e46c08f0039d6c, type: 3}
       propertyPath: m_IsActive
@@ -2423,6 +2458,22 @@ PrefabInstance:
     - target: {fileID: 7768150992304558030, guid: 932385457eb6e48999e46c08f0039d6c, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7768150992304558032, guid: 932385457eb6e48999e46c08f0039d6c, type: 3}
+      propertyPath: m_fontColor.b
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7768150992304558032, guid: 932385457eb6e48999e46c08f0039d6c, type: 3}
+      propertyPath: m_fontColor.g
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7768150992304558032, guid: 932385457eb6e48999e46c08f0039d6c, type: 3}
+      propertyPath: m_fontColor.r
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7768150992304558032, guid: 932385457eb6e48999e46c08f0039d6c, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4278190080
       objectReference: {fileID: 0}
     - target: {fileID: 7768150992751066500, guid: 932385457eb6e48999e46c08f0039d6c, type: 3}
       propertyPath: m_Enabled
@@ -3410,8 +3461,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
-  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+    rgba: 4278190080
+  m_fontColor: {r: 0, g: 0, b: 0, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -18342,6 +18393,10 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.x
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3717849123567025178, guid: bc76dbd9ca62145069ac709427e99206, type: 3}
+      propertyPath: DamageBlimpPrefab
+      value: 
+      objectReference: {fileID: 3937335489223350052, guid: d344c11aa41bd4a6091876a4e889da0e, type: 3}
     - target: {fileID: 3757795471086493542, guid: bc76dbd9ca62145069ac709427e99206, type: 3}
       propertyPath: m_SortingOrder
       value: 5

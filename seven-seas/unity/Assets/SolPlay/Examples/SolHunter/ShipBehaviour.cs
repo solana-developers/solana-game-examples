@@ -1,9 +1,11 @@
 using System.Collections;
+using System.Collections.Generic;
 using DG.Tweening;
 using Frictionless;
 using NUnit.Framework.Constraints;
 using SevenSeas.Types;
 using Solana.Unity.Wallet;
+using SolPlay.FlappyGame.Runtime.Scripts;
 using SolPlay.Scripts;
 using SolPlay.Scripts.Services;
 using TMPro;
@@ -13,6 +15,9 @@ using UnityEngine.UI;
 public class ShipBehaviour : MonoBehaviour
 {
     public GameObject ShotPrefab;
+    public GameObject Root;
+
+    public List<GameObject> UpgradeLevels;
     
     public Vector3 TargetPosition;
     public Vector2 GridPosition;
@@ -25,6 +30,9 @@ public class ShipBehaviour : MonoBehaviour
     public RawImage Avatar;
     public GameObject RotationRoot;
     public Tile currentTile;
+
+    public float ScrenShakePower = 3;
+    public float ScrenShakeDuration = 0.05f;
     
     public void Init(Vector2 startPosition, Tile tile)
     {
@@ -49,12 +57,15 @@ public class ShipBehaviour : MonoBehaviour
                 RotationRoot.transform.rotation = Quaternion.Euler(0, 270, 0);
                 break;
         }
+
+        var model = Instantiate(UpgradeLevels[tile.ShipLevel], RotationRoot.transform);
+        model.name = "model";
     }
 
     private void Update()
     {
         var transformPosition = transform.position - LastPosition;
-        if (transformPosition.magnitude > 0.03f)
+        if (transformPosition.magnitude > 0.04f)
         {
            RotationRoot.transform.rotation = Quaternion.LookRotation(transformPosition, UpVector);   
         }
@@ -87,7 +98,7 @@ public class ShipBehaviour : MonoBehaviour
         SetNftAvatar(tile.Avatar);
         TargetPosition = new Vector3((10 * newPosition.x) + 5f, 1.4f, (10 * newPosition.y) - 5f);
         
-        if ((newPosition - LastGridPosition).magnitude  > 3)
+        if ((newPosition - LastGridPosition).magnitude  > 5)
         {
             transform.DOKill();
             transform.position = new Vector3(10 * newPosition.x + 5f, 1.4f, (10 * newPosition.y) - 5f);
@@ -104,6 +115,7 @@ public class ShipBehaviour : MonoBehaviour
 
     private async void SetNftAvatar(PublicKey avatarPublicKey)
     {
+        Avatar.gameObject.SetActive(false);
         var avatarNft = ServiceFactory.Resolve<NftService>().GetNftByMintAddress(avatarPublicKey);
         var wallet = ServiceFactory.Resolve<WalletHolderService>().BaseWallet;
 
@@ -120,15 +132,18 @@ public class ShipBehaviour : MonoBehaviour
             {
                 await avatarNft.LoadingImageTask;
                 Avatar.texture = avatarNft.MetaplexData.nftImage.file;
+                Avatar.gameObject.SetActive(true);
             }
         }
 
-        Avatar.gameObject.SetActive(true);
     }
 
     public void Shoot()
     {
-        var shootInstance = Instantiate(ShotPrefab, RotationRoot.transform);
+        CameraShake.Shake(ScrenShakeDuration, ScrenShakePower);
+        var shootInstance = Instantiate(ShotPrefab);
+        shootInstance.transform.position = RotationRoot.transform.position;
+        shootInstance.transform.rotation = RotationRoot.transform.rotation;
         StartCoroutine(KillDelayed(shootInstance));
     }
 

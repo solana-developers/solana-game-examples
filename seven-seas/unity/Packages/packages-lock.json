@@ -14,14 +14,14 @@
       "url": "https://package.openupm.com"
     },
     "com.solana.unity_sdk": {
-      "version": "https://github.com/garbles-labs/Solana.Unity-SDK.git#v0.0.6",
+      "version": "https://github.com/magicblock-labs/Solana.Unity-SDK.git",
       "depth": 0,
       "source": "git",
       "dependencies": {
         "com.unity.nuget.newtonsoft-json": "3.0.2",
         "com.unity.textmeshpro": "3.0.6"
       },
-      "hash": "2f00727835d53c1282c477586f045f7cb1fa9434"
+      "hash": "35bbeadb5d42e3956775a91637e55538a04c7391"
     },
     "com.unity.2d.sprite": {
       "version": "1.0.0",

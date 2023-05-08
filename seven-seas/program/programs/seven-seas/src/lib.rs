@@ -6,10 +6,9 @@ pub mod state;
 pub use state::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    metadata::{create_metadata_accounts_v3, CreateMetadataAccountsV3, Metadata},
     token::{burn, mint_to, Burn, Mint, MintTo, Token, TokenAccount},
 };
-use mpl_token_metadata::{pda::find_metadata_account, state::DataV2};
+//use mpl_token_metadata::{pda::find_metadata_account, state::DataV2};
 
 // This is your program's public key and it will update
 // automatically when you build the project.

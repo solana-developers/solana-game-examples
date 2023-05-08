@@ -11,7 +11,8 @@ namespace SolPlay.Scripts.Ui
         {
             TextWithBackground,
             Boost,
-            Score
+            Score,
+            DamageBlimp
         }
 
         public class ShowLogMessage
@@ -39,19 +40,42 @@ namespace SolPlay.Scripts.Ui
                 Position = position;
             }
         }
+        
+        public class Show3DBlimpMessage
+        {
+            public string BlimpText;
+            public BlimpType BlimpType;
+            public Vector3 Position;
+
+            public Show3DBlimpMessage(string blimpText, Vector3 position, BlimpType blimpType = BlimpType.DamageBlimp)
+            {
+                BlimpText = blimpText;
+                BlimpType = blimpType;
+                Position = position;
+            }
+        }
 
         public TextBlimp TextBlimpPrefab;
         public TextBlimp BoostBlimpPrefab;
         public TextBlimp ScoreBlimpPrefab;
+        public TextBlimp3D DamageBlimpPrefab;
         public GameObject LogMessageRoot;
         public GameObject BlimpRoot;
 
-        // Start is called before the first frame update
         void Start()
         {
             MessageRouter.AddHandler<ShowLogMessage>(OnShowLogMessage);
             MessageRouter.AddHandler<ShowBlimpMessage>(OnShowBlimpMessage);
+            MessageRouter.AddHandler<Show3DBlimpMessage>(OnShow3DBlimpMessage);
             Application.logMessageReceived += OnLogMessage;
+        }
+
+        private void OnShow3DBlimpMessage(Show3DBlimpMessage message)
+        {
+            TextBlimp3D textBlimp  = Instantiate(DamageBlimpPrefab);
+            textBlimp.SetData(message.BlimpText);
+            textBlimp.transform.position = message.Position;
+            StartCoroutine(DestroyDelayed(textBlimp.gameObject));
         }
 
         private void OnShowBlimpMessage(ShowBlimpMessage message)
