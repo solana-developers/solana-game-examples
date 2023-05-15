@@ -8,7 +8,6 @@ using Solana.Unity.SDK.Nft;
 using Solana.Unity.Wallet;
 using SolPlay.DeeplinksNftExample.Scripts;
 using SolPlay.DeeplinksNftExample.Scripts.OrcaWhirlPool;
-using SolPlay.MetaPlex;
 using SolPlay.Orca.OrcaWhirlPool;
 using SolPlay.Scripts;
 using SolPlay.Scripts.Services;
@@ -122,9 +121,6 @@ public class OrcaSwapWidget : MonoBehaviour
             poolData.Pool = pool;
             poolData.PoolPda = whirlPoolPda;
 
-            var metadataPdaA = MetaPlexPDAUtils.GetMetadataPDA(pool.TokenMintA);
-            var metadataPdaB = MetaPlexPDAUtils.GetMetadataPDA(pool.TokenMintB);
-
             /* Since this is very slow we get the data from the orca API instead 
             var accountInfoMintA = await wallet.ActiveRpcClient.GetTokenMintInfoAsync(pool.TokenMintA);
             var accountInfoMintB = await wallet.ActiveRpcClient.GetTokenMintInfoAsync(pool.TokenMintB);
@@ -141,22 +137,7 @@ public class OrcaSwapWidget : MonoBehaviour
 
             poolData.TokenA = ServiceFactory.Resolve<OrcaWhirlpoolService>().GetToken(pool.TokenMintA);
             poolData.TokenB = ServiceFactory.Resolve<OrcaWhirlpoolService>().GetToken(pool.TokenMintB);
-
-            AccountInfo tokenAccountInfoA = await Nft.GetAccountData(metadataPdaA, wallet.ActiveRpcClient);
-            AccountInfo tokenAccountInfoB = await Nft.GetAccountData(metadataPdaB, wallet.ActiveRpcClient);
-
-            if (tokenAccountInfoA == null || tokenAccountInfoA.Data == null)
-            {
-                Debug.LogWarning($"Could not load meta data of mint A");
-                continue;
-            }
-
-            if (tokenAccountInfoB == null || tokenAccountInfoB.Data == null)
-            {
-                Debug.LogWarning($"Could not load meta data of mint B");
-                continue;
-            }
-
+            
             poolData.SymbolA = poolData.TokenA.symbol;
             poolData.SymbolB = poolData.TokenB.symbol;
 

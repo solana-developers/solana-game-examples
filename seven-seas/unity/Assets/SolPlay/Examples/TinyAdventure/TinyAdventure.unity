@@ -324,6 +324,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1665109046784520929, guid: 1b4fdc6f1968a43d68ee82dc0c862785, type: 3}
+      propertyPath: DevnetWalletCluster
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 1665109047506567878, guid: 1b4fdc6f1968a43d68ee82dc0c862785, type: 3}
       propertyPath: m_Name
       value: NftMintingService

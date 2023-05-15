@@ -7,13 +7,14 @@ using System.Text;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using Frictionless;
+using Solana.Unity.Metaplex.Utilities.Json;
 using Solana.Unity.Rpc;
 using Solana.Unity.Rpc.Models;
+using Solana.Unity.Rpc.Types;
 using Solana.Unity.SDK;
 using Solana.Unity.SDK.Nft;
 using Solana.Unity.Wallet;
 using Solana.Unity.Wallet.Utilities;
-using Solnet.Metaplex;
 using SolPlay.Scripts.Services;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -38,15 +39,15 @@ namespace SolPlay.Scripts
     [Serializable]
     public class SolPlayNft
     {
-        public Metaplex MetaplexData;
+        public Metaplex metaplexData;
         public AccountInfo AccountInfo;
         public TokenAccount TokenAccount;
 
         [NonSerialized] public Task LoadingImageTask;
         [NonSerialized] public string LoadingError;
 
-        private static string ImagePrefix = "V2_Image_";
-        private static string JsonPrefix = "V2_Json_";
+        private static string ImagePrefix = "V5_Image_";
+        private static string JsonPrefix = "V5_Json_";
 
         public SolPlayNft()
         {
@@ -59,22 +60,7 @@ namespace SolPlay.Scripts
 
         public SolPlayNft(Metaplex metaplexData)
         {
-            MetaplexData = metaplexData;
-        }
-
-        public static async Task<NFTProData> TryGetNftPro(string mint, IRpcClient connection)
-        {
-            AccountInfo accountInfo = await Nft.GetAccountData(mint, connection);
-
-            Debug.Log(Newtonsoft.Json.JsonConvert.SerializeObject(accountInfo));
-
-            if (accountInfo != null && accountInfo.Data != null && accountInfo.Data.Count > 0)
-            {
-                AccountLayout accountlayout = AccountLayout.DeserializeAccountLayout(accountInfo.Data[0]);
-                Debug.Log(Newtonsoft.Json.JsonConvert.SerializeObject(accountlayout));
-            }
-
-            return null;
+            this.metaplexData = metaplexData;
         }
 
         public async UniTask LoadData(string mint, IRpcClient connection)
@@ -92,25 +78,27 @@ namespace SolPlay.Scripts
                 return;
             }
 
-            AccountInfo accountInfo = await Nft.GetAccountData(metaplexDataPubKey.Key, connection);
-
+            var accountInfoResult = await connection.GetAccountInfoAsync(metaplexDataPubKey.Key, Commitment.Confirmed, BinaryEncoding.JsonParsed);
+            AccountInfo accountInfo = accountInfoResult.Result.Value;
             if (accountInfo != null && accountInfo.Data != null && accountInfo.Data.Count > 0)
             {
                 try
                 {
-                    Metaplex metaPlex = new Metaplex().ParseData(accountInfo.Data[0]);
-                    MetaplexData = metaPlex;
-                    AccountInfo = accountInfo;
-                    await LoadJson(metaPlex.mint);
-                    LoadingImageTask = LoadImage(mint, this);
-                                        
-                    if (MetaplexData != null)
+                    Nft.TryGetNftData(mint,
+                        Web3.Instance.WalletBase.ActiveRpcClient, false).AsUniTask().ContinueWith(nft =>
                     {
-                        var nftService = ServiceFactory.Resolve<NftService>();
-                        nftService.MetaPlexNFts.Add(this);
-                        MessageRouter.RaiseMessage(new NftJsonLoadedMessage(this));
-                    }
-
+                        metaplexData = nft.metaplexData;
+                        AccountInfo = accountInfo;
+                        LoadingImageTask = LoadImage(mint, this);
+                                    
+                        if (metaplexData != null)
+                        {
+                            var nftService = ServiceFactory.Resolve<NftService>();
+                            // TODO: removed because of magic block new version 
+                            //nftService.MetaPlexNFts.Add(this);
+                            //MessageRouter.RaiseMessage(new NftJsonLoadedMessage(this));
+                        }
+                    }).Forget();
                 }
                 catch (Exception e)
                 {
@@ -135,11 +123,11 @@ namespace SolPlay.Scripts
 
         private async UniTask LoadJson(string mint)
         {
-            MetaplexJsonData jsonData = await SolPlayFileLoader.LoadFile<MetaplexJsonData>(MetaplexData.data.url);
+            MetaplexTokenStandard jsonData = await SolPlayFileLoader.LoadFile<MetaplexTokenStandard>(metaplexData.data.metadata.uri);
 
             if (jsonData != null)
             {
-                MetaplexData.data.json = jsonData;
+                metaplexData.data.offchainData = jsonData;
                 SolPlayFileLoader.SaveToPersistenDataPath(
                     Path.Combine(Application.persistentDataPath, $"{JsonPrefix}{mint}.json"),
                     this);
@@ -152,11 +140,11 @@ namespace SolPlay.Scripts
 
         private static async Task LoadImage(string mint, SolPlayNft nft)
         {
-            if (nft.MetaplexData.data.json == null)
+            if (nft.metaplexData.data.offchainData == null)
             {
                 return;
             }
-            Texture2D texture = await SolPlayFileLoader.LoadFile<Texture2D>(nft.MetaplexData.data.json.image);
+            Texture2D texture = await SolPlayFileLoader.LoadFile<Texture2D>(nft.metaplexData.data.offchainData.default_image);
             var nftImageSize = ServiceFactory.Resolve<NftService>().NftImageSize;
 
             Texture2D compressedTexture = Resize(texture, nftImageSize, nftImageSize);
@@ -164,9 +152,9 @@ namespace SolPlay.Scripts
             if (compressedTexture)
             {
                 NftImage nftImage = new NftImage();
-                nftImage.externalUrl = nft.MetaplexData.data.json.image;
+                nftImage.externalUrl = nft.metaplexData.data.offchainData.default_image;
                 nftImage.file = compressedTexture;
-                nft.MetaplexData.nftImage = nftImage;
+                nft.metaplexData.nftImage = nftImage;
                 SolPlayFileLoader.SaveToPersistenDataPath(
                     Path.Combine(Application.persistentDataPath, $"{ImagePrefix}{mint}.png"), compressedTexture);
             }
@@ -175,7 +163,7 @@ namespace SolPlay.Scripts
                 nft.LoadingError = "Could not load image";
             }
 
-            MessageRouter.RaiseMessage(new NftImageLoadedMessage(nft));
+            //MessageRouter.RaiseMessage(new NftImageLoadedMessage(nft));
         }
 
         public static SolPlayNft TryLoadNftFromLocal(string mint)
@@ -190,8 +178,8 @@ namespace SolPlay.Scripts
                         $"{Path.Combine(Application.persistentDataPath, $"{ImagePrefix}{mint}")}.png");
                 if (tex)
                 {
-                    local.MetaplexData.nftImage = new NftImage();
-                    local.MetaplexData.nftImage.file = tex;
+                    local.metaplexData.nftImage = new NftImage();
+                    local.metaplexData.nftImage.file = tex;
                 }
                 else
                 {

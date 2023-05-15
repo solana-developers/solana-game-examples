@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using Solana.Unity.SDK.Nft;
 #if GLTFAST
 using GLTFast;
 #endif
@@ -42,9 +43,9 @@ namespace SolPlay.FlappyGame.Runtime.Scripts.Player
         private Coroutine _fireDisableCoroutine;
         public Vector3 Velocity { get => _velocity; }
 
-        public async void SetSpriteFromNft(SolPlayNft nft)
+        public async void SetSpriteFromNft(Nft nft)
         {
-            if (!string.IsNullOrEmpty(nft.MetaplexData.data.json.animation_url))
+            if (!string.IsNullOrEmpty(nft.metaplexData.data.offchainData.animation_url))
             {
                 _spriteRenderer.gameObject.SetActive(false);
 #if GLTFAST
@@ -67,8 +68,8 @@ namespace SolPlay.FlappyGame.Runtime.Scripts.Player
 #if GLTFAST
                 GltfAsset.gameObject.SetActive(false);
 #endif
-                var rect = new Rect(0, 0, nft.MetaplexData.nftImage.file.width, nft.MetaplexData.nftImage.file.height);
-                _spriteRenderer.sprite = Sprite.Create(nft.MetaplexData.nftImage.file, rect, new Vector2(0.5f, 0.5f));
+                var rect = new Rect(0, 0, nft.metaplexData.nftImage.file.width, nft.metaplexData.nftImage.file.height);
+                _spriteRenderer.sprite = Sprite.Create(nft.metaplexData.nftImage.file, rect, new Vector2(0.5f, 0.5f));
             }
         }
 

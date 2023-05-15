@@ -34,15 +34,14 @@ namespace SolPlay.Scripts.Services
     {
         public RpcCluster DevnetWalletCluster = RpcCluster.DevNet;
 
-        [HideIfEnumValue("DevnetWalletCluster", HideIf.NotEqual, (int) RpcCluster.Custom)]
         public string DevnetLoginRPCUrl = "";
 
         public RpcCluster MainnetWalletCluster = RpcCluster.DevNet;
 
-        [HideIfEnumValue("MainnetWalletCluster", HideIf.NotEqual, (int) RpcCluster.Custom)]
         public string MainNetRpcUrl = "";
 
         public PhantomWalletOptions PhantomWalletOptions;
+        public SolanaWalletAdapterWebGLOptions WebGlWalletOptions;
 
         [NonSerialized] public WalletBase BaseWallet;
 
@@ -52,8 +51,9 @@ namespace SolPlay.Scripts.Services
         public long InGameWalletSolBalance;
         public WalletType walletType;
 
-        public PhantomWallet DeeplinkWallet;
-        public XNFTWallet xnftWallet;
+        public SolanaWalletAdapterWebGL DeeplinkWallet;
+        public SolanaWalletAdapterWebGL WalletAdapterWebGL;
+
         public InGameWallet InGameWallet;
         public bool IsDevNetLogin;
 
@@ -85,8 +85,11 @@ namespace SolPlay.Scripts.Services
                 cluster = MainnetWalletCluster;
             }
 
-            DeeplinkWallet = new PhantomWallet(PhantomWalletOptions, cluster, rpcUrl, null, true);
-            xnftWallet = new XNFTWallet(cluster, rpcUrl, null, true);
+            if (Application.platform == RuntimePlatform.WebGLPlayer)
+            {
+                DeeplinkWallet = new SolanaWalletAdapterWebGL(WebGlWalletOptions, cluster, rpcUrl, null, true);
+            }
+
             InGameWallet = new InGameWallet(cluster, rpcUrl, null, true);
 
             IsDevNetLogin = devNetLogin;
@@ -118,11 +121,11 @@ namespace SolPlay.Scripts.Services
                         BaseWallet = DeeplinkWallet;
                         break;
                     case WalletType.Backpack:
-                        BaseWallet = xnftWallet;
+                        //BaseWallet = xnftWallet;
                         break;
                 }
                 //BaseWallet = DeeplinkWallet;
-                Debug.Log(BaseWallet.ActiveRpcClient.NodeAddress);
+
                 await BaseWallet.Login();
 #endif
                 var newMnemonic = new Mnemonic(WordList.English, WordCount.Twelve);
@@ -149,15 +152,21 @@ namespace SolPlay.Scripts.Services
             }
 
             var baseSolBalance = await BaseWallet.ActiveRpcClient.GetBalanceAsync(BaseWallet.Account.PublicKey, Commitment.Confirmed);
-            BaseWalletSolBalance = (long) baseSolBalance.Result.Value;
-            MessageRouter.RaiseMessage(new SolBalanceChangedMessage(BaseWalletSolBalance, false));
+            if (baseSolBalance.Result != null)
+            {
+                BaseWalletSolBalance = (long) baseSolBalance.Result.Value;
+                MessageRouter.RaiseMessage(new SolBalanceChangedMessage(BaseWalletSolBalance, false));
+                Debug.Log("Logged in Base: " + BaseWallet.Account.PublicKey + " balance: " + baseSolBalance.Result.Value);
+            }
             
             var ingameSolBalance = await InGameWallet.ActiveRpcClient.GetBalanceAsync(InGameWallet.Account.PublicKey, Commitment.Confirmed);
-            InGameWalletSolBalance = (long) ingameSolBalance.Result.Value;
-            MessageRouter.RaiseMessage(new SolBalanceChangedMessage(InGameWalletSolBalance, true));
+            if (ingameSolBalance.Result != null)
+            {
+                InGameWalletSolBalance = (long) ingameSolBalance.Result.Value;
+                MessageRouter.RaiseMessage(new SolBalanceChangedMessage(InGameWalletSolBalance, true));
+                Debug.Log("Logged in InGameWallet: " + InGameWallet.Account.PublicKey + " balance: " + ingameSolBalance.Result.Value);
+            }
 
-            Debug.Log("Logged in Base: " + BaseWallet.Account.PublicKey + " balance: " + baseSolBalance.Result.Value);
-            Debug.Log("Logged in InGameWallet: " + InGameWallet.Account.PublicKey + " balance: " + ingameSolBalance.Result.Value);
 
             return BaseWallet.Account;
         }

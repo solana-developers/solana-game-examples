@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Frictionless;
+using Solana.Unity.SDK.Nft;
 using SolPlay.Scripts.Services;
 using UnityEngine;
 
@@ -14,7 +15,7 @@ namespace SolPlay.Scripts.Ui
         public string BlackList;
 
         private List<NftItemView> allNftItemViews = new List<NftItemView>();
-        private Action<SolPlayNft> onNftSelected;
+        private Action<Nft> onNftSelected;
 
         public void OnEnable()
         {
@@ -27,7 +28,7 @@ namespace SolPlay.Scripts.Ui
             MessageRouter.AddHandler<NewHighScoreLoadedMessage>(OnHighscoreLoadedMessage);
         }
 
-        public void SetData(Action<SolPlayNft> onNftSelected)
+        public void SetData(Action<Nft> onNftSelected)
         {
             this.onNftSelected = onNftSelected;
         }
@@ -36,7 +37,7 @@ namespace SolPlay.Scripts.Ui
         {
             foreach (var itemView in allNftItemViews)
             {
-                if (itemView.CurrentSolPlayNft.MetaplexData.mint == message.HighscoreEntry.Seed)
+                if (itemView.CurrentSolPlayNft.metaplexData.data.mint == message.HighscoreEntry.Seed)
                 {
                     itemView.PowerLevel.text = $"Score: {message.HighscoreEntry.Highscore}";
                 }
@@ -56,7 +57,7 @@ namespace SolPlay.Scripts.Ui
                 return;
             }
 
-            foreach (SolPlayNft nft in nftService.MetaPlexNFts)
+            foreach (Nft nft in nftService.MetaPlexNFts)
             {
                 AddNFt(nft);
             }
@@ -65,9 +66,9 @@ namespace SolPlay.Scripts.Ui
             foreach (NftItemView nftItemView in allNftItemViews)
             {
                 bool existsInWallet = false;
-                foreach (SolPlayNft walletNft in nftService.MetaPlexNFts)
+                foreach (Nft walletNft in nftService.MetaPlexNFts)
                 {
-                    if (nftItemView.CurrentSolPlayNft.MetaplexData.mint == walletNft.MetaplexData.mint)
+                    if (nftItemView.CurrentSolPlayNft.metaplexData.data.mint == walletNft.metaplexData.data.mint)
                     {
                         existsInWallet = true;
                         break;
@@ -88,11 +89,11 @@ namespace SolPlay.Scripts.Ui
             }
         }
 
-        public void AddNFt(SolPlayNft newSolPlayNft)
+        public void AddNFt(Nft newSolPlayNft)
         {
             foreach (var nft in allNftItemViews)
             {
-                if (nft.CurrentSolPlayNft.MetaplexData.mint == newSolPlayNft.MetaplexData.mint)
+                if (nft.CurrentSolPlayNft.metaplexData.data.mint == newSolPlayNft.metaplexData.data.mint)
                 {
                     // already exists
                     return;
@@ -102,19 +103,19 @@ namespace SolPlay.Scripts.Ui
             InstantiateListNftItem(newSolPlayNft);
         }
 
-        private void InstantiateListNftItem(SolPlayNft solPlayNft)
+        private void InstantiateListNftItem(Nft solPlayNft)
         {
-            if (string.IsNullOrEmpty(solPlayNft.MetaplexData.mint))
+            if (string.IsNullOrEmpty(solPlayNft.metaplexData.data.mint))
             {
                 return;
             }
 
-            if (!string.IsNullOrEmpty(FilterSymbol) && solPlayNft.MetaplexData.data.symbol != FilterSymbol)
+            if (!string.IsNullOrEmpty(FilterSymbol) && solPlayNft.metaplexData.data.offchainData.symbol != FilterSymbol)
             {
                 return;
             }
 
-            if (!string.IsNullOrEmpty(BlackList) && solPlayNft.MetaplexData.data.symbol == BlackList)
+            if (!string.IsNullOrEmpty(BlackList) && solPlayNft.metaplexData.data.offchainData.symbol == BlackList)
             {
                 return;
             }
@@ -126,7 +127,7 @@ namespace SolPlay.Scripts.Ui
 
         private void OnItemClicked(NftItemView itemView)
         {
-            Debug.Log("Item Clicked: " + itemView.CurrentSolPlayNft.MetaplexData.data.name);
+            Debug.Log("Item Clicked: " + itemView.CurrentSolPlayNft.metaplexData.data.offchainData.name);
             ServiceFactory.Resolve<NftContextMenu>().Open(itemView, onNftSelected);
         }
     }

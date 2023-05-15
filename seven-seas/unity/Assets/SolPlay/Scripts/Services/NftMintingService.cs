@@ -6,15 +6,17 @@ using System.Threading.Tasks;
 using CandyMachineV2;
 using CandyMachineV2.Program;
 using Frictionless;
+using Solana.Unity.Metaplex.NFT.Library;
 using Solana.Unity.Programs;
 using Solana.Unity.Rpc.Builders;
 using Solana.Unity.Rpc.Core.Http;
 using Solana.Unity.Rpc.Messages;
 using Solana.Unity.Rpc.Types;
 using Solana.Unity.Wallet;
-using Solnet.Metaplex;
 using SolPlay.DeeplinksNftExample.Utils;
 using UnityEngine;
+using Creator = Solana.Unity.Metaplex.NFT.Library.Creator;
+using MetadataProgram = Solana.Unity.Metaplex.NFT.Library.MetadataProgram;
 using PublicKey = Solana.Unity.Wallet.PublicKey;
 using Transaction = Solana.Unity.Rpc.Models.Transaction;
 
@@ -281,27 +283,22 @@ namespace SolPlay.Scripts.Services
             var wallet = walletHolderService.BaseWallet;
             var rpcClient = walletHolderService.BaseWallet.ActiveRpcClient;
 
-            Account mintAccount = new Account();
-            Account tokenAccount = new Account();
-
+            Account mint = new Account();
+            var associatedTokenAccount = AssociatedTokenAccountProgram
+                .DeriveAssociatedTokenAccount(wallet.Account, mint.PublicKey);
+            
             var fromAccount = walletHolderService.BaseWallet.Account;
-
-            // To be able to sign the transaction while using the transaction builder we need to have a private key set in the signing account. 
-            // TODO: I will try to make this nicer later. 
-            fromAccount = new Account(walletHolderService.BaseWallet.Account.PrivateKey.KeyBytes,
-                walletHolderService.BaseWallet.Account.PublicKey.KeyBytes);
 
             RequestResult<ResponseValue<ulong>> balance =
                 await rpcClient.GetBalanceAsync(wallet.Account.PublicKey, Commitment.Confirmed);
 
-            // TODO: Check if there is enough sol in the wallet to mint. 
             if (balance.Result != null && balance.Result.Value < SolanaUtils.SolToLamports / 10)
             {
                 LoggingService.Log("Sol balance is low. Minting may fail", true);
             }
 
             Debug.Log($"Balance: {balance.Result.Value} ");
-            Debug.Log($"Mint key : {mintAccount.PublicKey} ");
+            Debug.Log($"Mint key : {mint.PublicKey} ");
 
             var blockHash = await rpcClient.GetRecentBlockHashAsync();
             var rentMint = await rpcClient.GetMinimumBalanceForRentExemptionAsync(
@@ -313,38 +310,29 @@ namespace SolPlay.Scripts.Services
                 Commitment.Confirmed
             );
 
-            Debug.Log($"Token key : {tokenAccount.PublicKey} ");
 
             //2. create a mint and a token
             var createMintAccount = SystemProgram.CreateAccount(
                 fromAccount,
-                mintAccount,
+                mint,
                 rentMint.Result,
                 TokenProgram.MintAccountDataSize,
                 TokenProgram.ProgramIdKey
             );
             var initializeMint = TokenProgram.InitializeMint(
-                mintAccount.PublicKey,
+                mint.PublicKey,
                 0,
                 fromAccount.PublicKey,
                 fromAccount.PublicKey
             );
-            var createTokenAccount = SystemProgram.CreateAccount(
+            var createTokenAccount = AssociatedTokenAccountProgram.CreateAssociatedTokenAccount(
                 fromAccount,
-                tokenAccount,
-                rentToken.Result,
-                TokenProgram.TokenAccountDataSize,
-                TokenProgram.ProgramIdKey
-            );
-            var initializeMintAccount = TokenProgram.InitializeAccount(
-                tokenAccount.PublicKey,
-                mintAccount.PublicKey,
-                fromAccount.PublicKey
-            );
+                fromAccount,
+                mint.PublicKey);
 
             var mintTo = TokenProgram.MintTo(
-                mintAccount.PublicKey,
-                tokenAccount,
+                mint.PublicKey,
+                associatedTokenAccount,
                 1,
                 fromAccount.PublicKey
             );
@@ -365,7 +353,7 @@ namespace SolPlay.Scripts.Services
                 {
                     Encoding.UTF8.GetBytes("metadata"),
                     MetadataProgram.ProgramIdKey,
-                    mintAccount.PublicKey
+                    mint.PublicKey
                 },
                 MetadataProgram.ProgramIdKey,
                 out metadataAddressPDA,
@@ -382,8 +370,8 @@ namespace SolPlay.Scripts.Services
                 {
                     Encoding.UTF8.GetBytes("metadata"),
                     MetadataProgram.ProgramIdKey,
-                    mintAccount.PublicKey,
-                    Encoding.UTF8.GetBytes("edition")
+                    mint.PublicKey,
+                    Encoding.UTF8.GetBytes("edition"),
                 },
                 MetadataProgram.ProgramIdKey,
                 out masterEditionAddress,
@@ -392,52 +380,56 @@ namespace SolPlay.Scripts.Services
             Console.WriteLine($"PDA MASTER: {masterEditionAddress}");
 
             // Craetors
-            var creator1 = new Creator(fromAccount.PublicKey, 100);
+            var creator1 = new Creator(fromAccount.PublicKey, 100, false);
 
             // Meta Data
-            var data = new MetadataV1()
+            var data = new Metadata()
             {
                 name = name,
                 symbol = symbol,
                 uri = metaDataUri,
                 creators = new List<Creator>() {creator1},
-                sellerFeeBasisPoints = 77,
+                sellerFeeBasisPoints = 77
             };
 
-            var signers = new List<Account> {fromAccount, mintAccount, tokenAccount};
+            var signers = new List<Account> {fromAccount, mint};
             var transactionBuilder = new TransactionBuilder()
                 .SetRecentBlockHash(blockHash.Result.Value.Blockhash)
                 .SetFeePayer(fromAccount)
                 .AddInstruction(createMintAccount)
                 .AddInstruction(initializeMint)
                 .AddInstruction(createTokenAccount)
-                .AddInstruction(initializeMintAccount)
                 .AddInstruction(mintTo)
                 //.AddInstruction(freezeAccount)
                 .AddInstruction(
                     MetadataProgram.CreateMetadataAccount(
                         metadataAddressPDA, // PDA
-                        mintAccount,
+                        mint,
                         fromAccount.PublicKey,
                         fromAccount.PublicKey,
                         fromAccount.PublicKey, // update Authority 
                         data, // DATA
+                        TokenStandard.NonFungible,
                         true,
-                        true // ISMUTABLE
+                        true, // ISMUTABLE,
+                        masterEditionKey: null,
+                        1,
+                        0UL,
+                        MetadataVersion.V3
                     )
                 )
                 .AddInstruction(
-                    MetadataProgram.SignMetada(
+                    MetadataProgram.SignMetadata(
                         metadataAddressPDA,
                         creator1.key
                     )
                 )
-                .AddInstruction(
+               .AddInstruction(
                     MetadataProgram.PuffMetada(
                         metadataAddressPDA
                     )
                 )
-                .AddInstruction(
+                /*.AddInstruction(
                     MetadataProgram.CreateMasterEdition(
                         1,
                         masterEditionAddress,
@@ -447,36 +439,41 @@ namespace SolPlay.Scripts.Services
                         fromAccount.PublicKey,
                         metadataAddressPDA
                     )
-                );
+                )*/;
 
-            byte[] transaction = transactionBuilder.Build(signers);
+            var tx = Transaction.Deserialize(transactionBuilder.Build(new List<Account> {fromAccount, mint}));
+            var res = await walletHolderService.BaseWallet.SignAndSendTransaction(tx, true, Commitment.Confirmed);
+            Debug.Log(res.Result);
+
+            /*byte[] transaction = transactionBuilder.Build(signers);
             Transaction deserializedTransaction = Transaction.Deserialize(transaction);
             Transaction signedTransaction =
                 await walletHolderService.BaseWallet.SignTransaction(deserializedTransaction);
 
             var transactionSignature =
                 await walletHolderService.BaseWallet.ActiveRpcClient.SendTransactionAsync(
-                    Convert.ToBase64String(signedTransaction.Serialize()), false, Commitment.Finalized);
+                    Convert.ToBase64String(signedTransaction.Serialize()), true, Commitment.Confirmed);*/
 
-            if (!transactionSignature.WasSuccessful)
+            if (!res.WasSuccessful)
             {
                 mintDone?.Invoke(false);
                 LoggingService
-                    .Log("Mint was not successfull: " + transactionSignature.Reason, true);
+                    .Log("Mint was not successfull: " + res.Reason, true);
             }
             else
             {
-                ServiceFactory.Resolve<TransactionService>().CheckSignatureStatus(transactionSignature.Result,
+                ServiceFactory.Resolve<TransactionService>().CheckSignatureStatus(res.Result,
                     success =>
                     {
                         mintDone?.Invoke(success);
                         LoggingService.Log("Mint Successfull! Woop woop!", true);
                         MessageRouter.RaiseMessage(new NftMintFinishedMessage());
-                    }, null, TransactionService.TransactionResult.finalized);
+                    }, null, TransactionService.TransactionResult.confirmed);
             }
 
-            Debug.Log(transactionSignature.Reason);
-            return transactionSignature.Result;
+            //Debug.Log(transactionSignature.Reason);
+            //Debug.Log(transactionSignature.Result);
+            return res.Result;
         }
 
         public async void MintNftWithoutMetaDat()
@@ -620,7 +617,7 @@ namespace SolPlay.Scripts.Services
             var creator1 = new Creator(fromAccount.PublicKey, 100);
 
             // DATA
-            var data = new MetadataV1()
+            var data = new Metadata()
             {
                 name = "Super NFT",
                 symbol = "SolPlay",
@@ -628,7 +625,7 @@ namespace SolPlay.Scripts.Services
                 creators = new List<Creator>() {creator1},
                 sellerFeeBasisPoints = 77,
             };
-
+            
             var transaction = new TransactionBuilder()
                 .SetRecentBlockHash(blockHash.Result.Value.Blockhash)
                 .SetFeePayer(fromAccount.PublicKey)
@@ -639,13 +636,19 @@ namespace SolPlay.Scripts.Services
                         fromAccount.PublicKey, // mint AUTHORITY
                         fromAccount.PublicKey, // PAYER
                         fromAccount.PublicKey, // update Authority 
-                        data, // DATA
+                        data: data, // DATA
+                        TokenStandard.NonFungible,
                         true,
-                        true // ISMUTABLE
+                        true,
+                        null, 
+                        1,
+                        0UL,
+                        Solana.Unity.Metaplex.NFT.Library.MetadataVersion.V1
+                        
                     )
                 )
                 .AddInstruction(
-                    MetadataProgram.SignMetada(
+                    MetadataProgram.SignMetadata(
                         metadataAddress,
                         creator1.key
                     )

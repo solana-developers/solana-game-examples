@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token::{burn, mint_to, Burn, Mint, MintTo, Token, TokenAccount},
+    token::{Mint, Token, TokenAccount, Transfer},
 };
 pub use crate::errors::TinyAdventureError;
 use crate::CHEST_REWARD;
@@ -13,6 +13,8 @@ const BOARD_SIZE_Y: usize = 10;
 const STATE_EMPTY: u8 = 0;
 const STATE_PLAYER: u8 = 1;
 const STATE_CHEST: u8 = 2;
+
+const TOKEN_DECIMAL_MULTIPLIER: u64 = 1000000000;
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -117,8 +119,8 @@ pub struct Tile {
     damage: u16,         // 1
     range: u16,          // 1
     collect_reward: u64, // 8
-    avatar: Pubkey,      // 32
-    kills: u8,           // 1
+    avatar: Pubkey,      // 32 used in the client to display the avatar
+    kills: u8,           // 1  
     look_direction: u8,  // 1 (Up, right, down, left) 
     ship_level: u16,     // 2
 }
@@ -157,22 +159,17 @@ impl GameDataAccount {
         Ok(())
     }
 
-    pub fn shoot(
+    pub fn shoot<'info>(
         &mut self,
         player: AccountInfo,
         game_actions: &mut GameActionHistory,
-        chest_vault: AccountInfo
+        chest_vault: AccountInfo,
+        vault_token_account: AccountInfo<'info>,
+        player_token_account: AccountInfo<'info>,
+        token_account_owner_pda: AccountInfo<'info>,
+        token_program: AccountInfo<'info>,
+        token_owner_bump: u8,
     ) -> Result<()> {
-
-        let option_add = self.action_id.checked_add(1);
-        match option_add {
-            Some(val) =>  {
-                self.action_id = val;
-            }, 
-            None => {
-                self.action_id = 0;
-            }
-        }
     
         let mut player_position: Option<(usize, usize)> = None;
 
@@ -203,34 +200,26 @@ impl GameDataAccount {
                     
                     // Shoot left
                     if player_tile.look_direction % 2 == 0 && val.0 >= range {
-                        self.attack_tile((val.0 - range, val.1), player_tile.damage, player.clone(), chest_vault.clone(),game_actions)?;
-                    }
+                        self.attack_tile((val.0 - range, val.1), player_tile.damage, player.clone(), chest_vault.clone(),game_actions, &vault_token_account, &player_token_account, &token_account_owner_pda, &token_program, token_owner_bump)?;
+                    } 
 
                     // Shoot right
                     if player_tile.look_direction % 2 == 0 && val.0 < BOARD_SIZE_X -range {
-                        self.attack_tile((val.0 + range, val.1), player_tile.damage, player.clone(), chest_vault.clone(),game_actions)?;
-                    }
+                        self.attack_tile((val.0 + range, val.1), player_tile.damage, player.clone(), chest_vault.clone(),game_actions, &vault_token_account, &player_token_account, &token_account_owner_pda, &token_program, token_owner_bump)?;
+                    } 
                     
                     // Shoot down
                     if player_tile.look_direction % 2 == 1 && val.1 < BOARD_SIZE_Y -range {
-                        self.attack_tile((val.0, val.1 + range), player_tile.damage, player.clone(), chest_vault.clone(),game_actions)?;
-                    }
+                        self.attack_tile((val.0, val.1 + range), player_tile.damage, player.clone(), chest_vault.clone(),game_actions, &vault_token_account, &player_token_account, &token_account_owner_pda, &token_program, token_owner_bump)?;
+                    } 
                     
                     // Shoot up
                     if player_tile.look_direction % 2 == 1 && val.1 >= range {
-                        self.attack_tile((val.0, val.1 - range), player_tile.damage, player.clone(), chest_vault.clone(),game_actions)?;
+                        self.attack_tile((val.0, val.1 - range), player_tile.damage, player.clone(), chest_vault.clone(),game_actions, &vault_token_account, &player_token_account, &token_account_owner_pda, &token_program, token_owner_bump)?;
                     }                    
                 }
 
-                let option_add = self.action_id.checked_add(1);
-                match option_add {
-                    Some(val) =>  {
-                        self.action_id = val;
-                    }, 
-                    None => {
-                        self.action_id = 0;
-                    }
-                }
+                self.increase_action_id();
 
                 let item = GameAction {
                     action_id: self.action_id,
@@ -251,22 +240,67 @@ impl GameDataAccount {
         Ok(())
     }
 
-    fn attack_tile(&mut self, attacked_position: (usize, usize), damage: u16, attacker: AccountInfo, chest_vault: AccountInfo, game_actions: &mut GameActionHistory,)  -> Result<()> {
+    fn increase_action_id(&mut self) {
+        let option_add = self.action_id.checked_add(1);
+        match option_add {
+            Some(val) =>  {
+                self.action_id = val;
+            }, 
+            None => {
+                self.action_id = 0;
+            }
+        }
+    }
+
+    fn attack_tile<'info>(&mut self, attacked_position: (usize, usize), 
+        damage: u16, 
+        attacker: AccountInfo, 
+        chest_vault: AccountInfo, 
+        game_actions: &mut GameActionHistory,
+        vault_token_account: &AccountInfo<'info>,
+        player_token_account: &AccountInfo<'info>,
+        token_account_owner_pda: &AccountInfo<'info>,
+        token_program: &AccountInfo<'info>,
+        token_owner_bump: u8,) -> Result<()> {
         let mut attacked_tile: Tile = self.board[attacked_position.0][attacked_position.1];
         msg!("Attack x:{} y:{}", attacked_position.0, attacked_position.1);
+
+        let transfer_instruction = Transfer {
+            from: vault_token_account.to_account_info(),
+            to: player_token_account.to_account_info(),
+            authority: token_account_owner_pda.to_account_info(),
+        };
+
+        let seeds = &[b"token_account_owner_pda".as_ref(), &[token_owner_bump]];
+        let signer = &[&seeds[..]];
+
+        let cpi_ctx = CpiContext::new_with_signer(
+            token_program.to_account_info(),
+            transfer_instruction,
+            signer,
+        );
+
+        self.increase_action_id();
+
+        if game_actions.game_actions.len() > 20 {
+            game_actions.game_actions.drain(0..5);
+        }
+
 
         if attacked_tile.state == STATE_PLAYER {
             let match_option = attacked_tile.health.checked_sub(damage);
             match  match_option {
                 None => {
                     attacked_tile.health = 0;
-                    self.on_ship_died(attacked_position, attacked_tile, chest_vault, &attacker)?;             
+                    self.on_ship_died(attacked_position, attacked_tile, chest_vault, &attacker)?;  
+                    anchor_spl::token::transfer(cpi_ctx, (attacked_tile.ship_level as u64) * 10*TOKEN_DECIMAL_MULTIPLIER)?;           
                 },
                 Some(value) =>  {
                     msg!("New health {}", value);
                     self.board[attacked_position.0][attacked_position.1].health = value;
                     if value == 0 {
                         self.on_ship_died(attacked_position, attacked_tile, chest_vault, &attacker)?;  
+                        anchor_spl::token::transfer(cpi_ctx, (attacked_tile.ship_level as u64) * 10*TOKEN_DECIMAL_MULTIPLIER)?;           
                     }
                 }   
             };    
@@ -277,11 +311,6 @@ impl GameDataAccount {
                 target: attacked_tile.player.key(),
                 damage: damage
             };
-    
-            if game_actions.game_actions.len() > 20 {
-                game_actions.game_actions.drain(0..5);
-            }
-    
             game_actions.game_actions.push(item);
         }
         Ok(())
@@ -295,11 +324,17 @@ impl GameDataAccount {
         Ok(())
     }
 
-    pub fn move_in_direction(
+    pub fn move_in_direction<'info>(
         &mut self,
         direction: u8,
         player: AccountInfo,
         chest_vault: AccountInfo,
+        vault_token_account: AccountInfo<'info>,
+        player_token_account: AccountInfo<'info>,
+        token_account_owner_pda: AccountInfo<'info>,
+        token_program: AccountInfo<'info>,
+        token_owner_bump: u8,
+        game_actions: &mut GameActionHistory,
     ) -> Result<()> {
         let mut player_position: Option<(usize, usize)> = None;
 
@@ -362,8 +397,8 @@ impl GameDataAccount {
                     }
                 }
 
-                let mut tile = self.board[new_player_position.0][new_player_position.1];
-                if tile.state == STATE_EMPTY {
+                let new_tile = self.board[new_player_position.0][new_player_position.1];
+                if new_tile.state == STATE_EMPTY {
                     self.board[new_player_position.0][new_player_position.1] =
                         self.board[player_position.unwrap().0][player_position.unwrap().1];
                     self.board[player_position.unwrap().0][player_position.unwrap().1].state =
@@ -382,26 +417,47 @@ impl GameDataAccount {
                         new_player_position.0,
                         new_player_position.1
                     );
-                    if tile.state == STATE_CHEST {
+                    if new_tile.state == STATE_CHEST {
                         self.board[new_player_position.0][new_player_position.1] =
                             self.board[player_position.unwrap().0][player_position.unwrap().1];
                         self.board[player_position.unwrap().0][player_position.unwrap().1].state =
                             STATE_EMPTY;
-                        **chest_vault.try_borrow_mut_lamports()? -= tile.collect_reward;
-                        **player.try_borrow_mut_lamports()? += tile.collect_reward;
+                        **chest_vault.try_borrow_mut_lamports()? -= new_tile.collect_reward;
+                        **player.try_borrow_mut_lamports()? += new_tile.collect_reward;
+                        let transfer_instruction = Transfer {
+                            from: vault_token_account,
+                            to: player_token_account,
+                            authority: token_account_owner_pda,
+                        };
+                
+                        let seeds = &[b"token_account_owner_pda".as_ref(), &[token_owner_bump]];
+                        let signer = &[&seeds[..]];
+                
+                        let cpi_ctx = CpiContext::new_with_signer(
+                            token_program,
+                            transfer_instruction,
+                            signer,
+                        );
+                        anchor_spl::token::transfer(cpi_ctx, 10*TOKEN_DECIMAL_MULTIPLIER)?;
                         msg!("Collected Chest");
-                    }
-                    if tile.state == STATE_PLAYER {
-                        self.board[new_player_position.0][new_player_position.1] =
+                    } else if new_tile.state == STATE_PLAYER {
+                        self.attack_tile((new_player_position.0,new_player_position.1),
+                         1,
+                         player.clone(),
+                          chest_vault.clone(),
+                          game_actions, &vault_token_account, &player_token_account, &token_account_owner_pda, &token_program, token_owner_bump)?;
+
+                        /*self.board[new_player_position.0][new_player_position.1] =
                             self.board[player_position.unwrap().0][player_position.unwrap().1];
                         self.board[player_position.unwrap().0][player_position.unwrap().1].state =
                             STATE_EMPTY;
-                        **chest_vault.try_borrow_mut_lamports()? -= tile.collect_reward;
-                        **player.try_borrow_mut_lamports()? += tile.collect_reward;
+                        **chest_vault.try_borrow_mut_lamports()? -= new_tile.collect_reward;
+                        **player.try_borrow_mut_lamports()? += new_tile.collect_reward;
+                        anchor_spl::token::transfer(cpi_ctx, (new_tile.ship_level as u64) * 10*TOKEN_DECIMAL_MULTIPLIER)?;*/
                         msg!("Other player killed");
                     }
 
-                    msg!("{} type {}", tile.player, tile.state);
+                    msg!("{} type {}", new_tile.player, new_tile.state);
                 }
             }
         }
@@ -519,16 +575,47 @@ pub struct MovePlayer<'info> {
     pub chest_vault: AccountInfo<'info>,
     #[account(mut)]
     pub game_data_account: AccountLoader<'info, GameDataAccount>,
-    /// CHECK:
     #[account(mut)]
-    pub player: AccountInfo<'info>,
+    pub player: Signer<'info>,
     pub system_program: Program<'info, System>,
+    #[account(      
+        init_if_needed,
+        payer = player,
+        associated_token::mint = mint_of_token_being_sent,
+        associated_token::authority = player      
+    )]
+    pub player_token_account: Account<'info, TokenAccount>,
+    #[account(
+        init_if_needed,
+        payer = player,
+        seeds=[b"token_vault".as_ref(), mint_of_token_being_sent.key().as_ref()],
+        token::mint=mint_of_token_being_sent,
+        token::authority=token_account_owner_pda,
+        bump
+    )]
+    pub vault_token_account: Account<'info, TokenAccount>,
+    /// CHECK:
+    #[account(
+        mut,
+        seeds=[b"token_account_owner_pda".as_ref()],
+        bump
+    )]
+    pub token_account_owner_pda: AccountInfo<'info>,    
+    pub mint_of_token_being_sent: Account<'info, Mint>,
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    #[account(mut)]
+    pub game_actions: Account<'info, GameActionHistory>,
 }
 
 #[derive(Accounts)]
 pub struct Shoot<'info> {
     /// CHECK:
-    #[account(mut)]
+    #[account(
+        mut,
+        seeds = [b"chestVault"],
+        bump
+    )]
     pub chest_vault: AccountInfo<'info>,
     #[account(mut)]
     pub game_data_account: AccountLoader<'info, GameDataAccount>,
@@ -536,6 +623,32 @@ pub struct Shoot<'info> {
     pub game_actions: Account<'info, GameActionHistory>,
     #[account(mut)]
     pub player: Signer<'info>,
+    pub system_program: Program<'info, System>,
+    #[account(      
+        init_if_needed,
+        payer = player,
+        associated_token::mint = mint_of_token_being_sent,
+        associated_token::authority = player      
+    )]
+    pub player_token_account: Account<'info, TokenAccount>,
+    #[account(
+        mut,
+        seeds=[b"token_vault".as_ref(), mint_of_token_being_sent.key().as_ref()],
+        token::mint=mint_of_token_being_sent,
+        token::authority=token_account_owner_pda,
+        bump
+    )]
+    pub vault_token_account: Account<'info, TokenAccount>,
+    /// CHECK:
+    #[account(
+        mut,
+        seeds=[b"token_account_owner_pda".as_ref()],
+        bump
+    )]
+    pub token_account_owner_pda: AccountInfo<'info>,    
+    pub mint_of_token_being_sent: Account<'info, Mint>,
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
 }
 
 #[derive(Accounts)]

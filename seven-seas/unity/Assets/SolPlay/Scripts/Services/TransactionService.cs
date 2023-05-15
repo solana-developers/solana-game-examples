@@ -11,6 +11,7 @@ using Solana.Unity.Rpc.Messages;
 using Solana.Unity.Rpc.Models;
 using Solana.Unity.Rpc.Types;
 using Solana.Unity.SDK;
+using Solana.Unity.SDK.Nft;
 using Solana.Unity.Wallet;
 using SolPlay.Scripts.Ui;
 using UnityEngine;
@@ -189,17 +190,17 @@ namespace SolPlay.Scripts.Services
             }
         }
 
-        public async Task<RequestResult<string>> TransferNftToPubkey(PublicKey destination, SolPlayNft nft,
+        public async Task<RequestResult<string>> TransferNftToPubkey(PublicKey destination, Nft nft,
             Commitment commitment = Commitment.Confirmed)
         {
             var wallHolderService = ServiceFactory.Resolve<WalletHolderService>();
 
             PublicKey destinationTokenAccount =
                 AssociatedTokenAccountProgram.DeriveAssociatedTokenAccount(destination,
-                    new PublicKey(nft.MetaplexData.mint));
+                    new PublicKey(nft.metaplexData.data.mint));
             var tokenAccounts =
                 await wallHolderService.BaseWallet.ActiveRpcClient.GetTokenAccountsByOwnerAsync(destination,
-                    new PublicKey(nft.MetaplexData.mint));
+                    new PublicKey(nft.metaplexData.data.mint));
 
             var blockHash = await wallHolderService.BaseWallet.ActiveRpcClient.GetRecentBlockHashAsync();
 
@@ -219,12 +220,15 @@ namespace SolPlay.Scripts.Services
                     AssociatedTokenAccountProgram.CreateAssociatedTokenAccount(
                         wallHolderService.BaseWallet.Account.PublicKey,
                         destination,
-                        new PublicKey(nft.MetaplexData.mint)));
+                        new PublicKey(nft.metaplexData.data.mint)));
             }
 
+            var associatedTokenAddress =
+                AssociatedTokenAccountProgram.DeriveAssociatedTokenAccount(wallHolderService.BaseWallet.Account.PublicKey, new PublicKey(nft.metaplexData.data.mint));
+            
             transaction.Instructions.Add(
                 TokenProgram.Transfer(
-                    new PublicKey(nft.TokenAccount.PublicKey),
+                    associatedTokenAddress,
                     destinationTokenAccount,
                     1,
                     wallHolderService.BaseWallet.Account.PublicKey
@@ -444,9 +448,16 @@ namespace SolPlay.Scripts.Services
 
             RequestResult<string> requestResult =
                 await wallet.SignAndSendTransaction(transferSolTransaction,
-                    Commitment.Confirmed);
+                    true, Commitment.Confirmed);
 
+            Debug.Log(requestResult.ErrorData);
+            Debug.Log(requestResult.WasSuccessful);
+            Debug.Log(requestResult.HttpStatusCode);
+            Debug.Log(requestResult.WasHttpRequestSuccessful);
+            Debug.Log(requestResult.Result);
+            Debug.Log(requestResult.Reason);
             Debug.Log(requestResult.RawRpcResponse);
+            
             CheckSignatureStatus(requestResult.Result);
 
             return requestResult;

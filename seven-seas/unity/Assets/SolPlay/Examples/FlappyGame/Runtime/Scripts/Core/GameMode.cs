@@ -58,7 +58,7 @@ namespace SolPlay.FlappyGame.Runtime.Scripts.Core
 
         private void OnNftSelectedMessage(NftSelectedMessage message)
         {
-            _playerController.Type = message.NewNFt.MetaplexData.data.symbol == "ORCANAUT"
+            _playerController.Type = message.NewNFt.metaplexData.data.offchainData.symbol == "ORCANAUT"
                 ? PlayerController.NftType.Water
                 : PlayerController.NftType.Default;
             _playerController.SetSpriteFromNft(message.NewNFt);

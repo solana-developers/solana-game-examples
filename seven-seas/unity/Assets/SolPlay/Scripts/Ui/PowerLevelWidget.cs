@@ -14,10 +14,10 @@ namespace SolPlay.Scripts.Ui
 
         void Start()
         {
-            MessageRouter.AddHandler<NftJsonLoadedMessage>(OnNftArrived);
+            MessageRouter.AddHandler<NftLoadedMessage>(OnNftArrived);
         }
 
-        private void OnNftArrived(NftJsonLoadedMessage message)
+        private void OnNftArrived(NftLoadedMessage message)
         {
             var totalPowerLevel = ServiceFactory.Resolve<NftPowerLevelService>().GetTotalPowerLevel();
             TotalPowerLevelText.text = $"{totalPowerLevel}";

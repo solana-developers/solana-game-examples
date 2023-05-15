@@ -13,6 +13,7 @@ using Solana.Unity.Rpc.Messages;
 using Solana.Unity.Rpc.Models;
 using Solana.Unity.Rpc.Types;
 using Solana.Unity.SDK;
+using Solana.Unity.SDK.Nft;
 using Solana.Unity.Wallet;
 using SolPlay.DeeplinksNftExample.Scripts;
 using SolPlay.DeeplinksNftExample.Utils;
@@ -67,16 +68,16 @@ namespace SolPlay.Scripts.Services
         private void Start()
         {
             MessageRouter.AddHandler<NftLoadingFinishedMessage>(OnAllNftsLoadedMessage);
-            MessageRouter.AddHandler<NftJsonLoadedMessage>(OnNftArrivedMessage);
+            MessageRouter.AddHandler<NftLoadedMessage>(OnNftArrivedMessage);
         }
 
-        private void OnNftArrivedMessage(NftJsonLoadedMessage message)
+        private void OnNftArrivedMessage(NftLoadedMessage message)
         {
             if (!LoadHighscoresForAllNFtsAutomatically)
             {
                 return;
             }
-            var seedFromPubkey = GetSeedFromPubkey(message.Nft.MetaplexData.mint);
+            var seedFromPubkey = GetSeedFromPubkey(message.Nft.metaplexData.data.mint);
 
             var highscoreEntry = new HighscoreEntry()
             {
@@ -90,7 +91,7 @@ namespace SolPlay.Scripts.Services
             StartCoroutine(GetHighScoreDataDelayed(message.Nft, Random.Range(0, 3)));
         }
 
-        private IEnumerator GetHighScoreDataDelayed(SolPlayNft messageNewNFt, int range)
+        private IEnumerator GetHighScoreDataDelayed(Nft messageNewNFt, int range)
         {
             yield return new WaitForSeconds(range);
             GetHighscoreAccountData(messageNewNFt);
@@ -111,7 +112,7 @@ namespace SolPlay.Scripts.Services
             var solPlayNft = ServiceFactory.Resolve<NftService>().SelectedNft;
             if (solPlayNft != null)
             {
-                return GetSeedFromPubkey(solPlayNft.MetaplexData.mint);
+                return GetSeedFromPubkey(solPlayNft.metaplexData.data.mint);
             }
 
             var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
@@ -137,12 +138,12 @@ namespace SolPlay.Scripts.Services
             return _allHighscores.TryGetValue(GetCurrentAccountSeed(), out highscoreEntry);
         }
 
-        private PublicKey GetNftRelatedPubkey(SolPlayNft nft)
+        private PublicKey GetNftRelatedPubkey(Nft nft)
         {
-            return new PublicKey(nft.MetaplexData.mint);
+            return new PublicKey(nft.metaplexData.data.mint);
         }
 
-        public async Task<AccountInfo> GetHighscoreAccountData(SolPlayNft nft)
+        public async Task<AccountInfo> GetHighscoreAccountData(Nft nft)
         {
             var wallet = ServiceFactory.Resolve<WalletHolderService>().BaseWallet;
 
@@ -189,7 +190,7 @@ namespace SolPlay.Scripts.Services
             return null;
         }
 
-        public async Task SafeHighScore(SolPlayNft nft, uint highScore)
+        public async Task SafeHighScore(Nft nft, uint highScore)
         {
             var wallet = ServiceFactory.Resolve<WalletHolderService>().BaseWallet;
             double sol = await wallet.GetBalance() * SolanaUtils.SolToLamports;
@@ -252,7 +253,7 @@ namespace SolPlay.Scripts.Services
         }
 
         private async Task CreateAndSendUnsignedSafeHighscoreTransaction(BlockHash blockHash, bool createAccount,
-            SolPlayNft nft, uint highScore)
+            Nft nft, uint highScore)
         {
             var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
             var activeRpcClient = walletHolderService.BaseWallet.ActiveRpcClient;
@@ -260,7 +261,7 @@ namespace SolPlay.Scripts.Services
             if (!await CheckIfProgramIsDeployed(activeRpcClient)) return;
 
             var localPublicKey = walletHolderService.BaseWallet.Account.PublicKey;
-            var nftMintPublicKey = new PublicKey(nft.MetaplexData.mint);
+            var nftMintPublicKey = new PublicKey(nft.metaplexData.data.mint);
 
             if (!PublicKey.TryFindProgramAddress(
                     new List<byte[]>() {Encoding.ASCII.GetBytes(ScoreSeed), nftMintPublicKey.KeyBytes},
@@ -272,7 +273,7 @@ namespace SolPlay.Scripts.Services
             increasePlayerLevelTransaction.Signatures = new List<SignaturePubKeyPair>();
             increasePlayerLevelTransaction.Instructions = new List<TransactionInstruction>();
 
-            Debug.Log(nft.MetaplexData.mint);
+            Debug.Log(nft.metaplexData.data.mint);
 
             List<AccountMeta> accountMetaList = new List<AccountMeta>()
             {

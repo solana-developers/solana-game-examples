@@ -35,7 +35,7 @@ namespace SolPlay.Scripts.Ui
             //GetBeaverButton.gameObject.SetActive(false);
 // #endif
 
-            MessageRouter.AddHandler<NftJsonLoadedMessage>(OnNftLoadedMessage);
+            MessageRouter.AddHandler<NftLoadedMessage>(OnNftLoadedMessage);
             MessageRouter
                 .AddHandler<NftLoadingStartedMessage>(OnNftLoadingStartedMessage);
             MessageRouter
@@ -120,7 +120,7 @@ namespace SolPlay.Scripts.Ui
             PhantomUtils.OpenUrlInWalletBrowser("https://beavercrush.com");
         }
 
-        private void OnNftLoadedMessage(NftJsonLoadedMessage message)
+        private void OnNftLoadedMessage(NftLoadedMessage message)
         {
             NftItemListView.AddNFt(message.Nft);
             UpdateBeaverStatus();
@@ -174,9 +174,8 @@ namespace SolPlay.Scripts.Ui
 
         private async Task RequestNfts(bool tryUseLocalCache)
         {
-            var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
-            await ServiceFactory.Resolve<NftService>()
-                .RequestNftsFromWallet(walletHolderService.BaseWallet, tryUseLocalCache);
+            ServiceFactory.Resolve<NftService>()
+                .LoadNfts();
         }
     }
 }

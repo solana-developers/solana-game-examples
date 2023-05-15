@@ -53,7 +53,6 @@ namespace SolPlay.Scripts.Ui
         private void OnWalletLoggedInMessage(WalletLoggedInMessage message)
         {
             UpdateTokenAmount();
-
         }
 
         private async void UpdateTokenAmount()
@@ -64,10 +63,11 @@ namespace SolPlay.Scripts.Ui
                 return;
             } 
             var wallet = walletHolderService.BaseWallet;
+            var ingamewallet = walletHolderService.InGameWallet;
             if (wallet != null && wallet.Account.PublicKey != null)
             {
                 _associatedTokenAddress =
-                    AssociatedTokenAccountProgram.DeriveAssociatedTokenAccount(wallet.Account.PublicKey, new PublicKey(TokenMintAdress));
+                    AssociatedTokenAccountProgram.DeriveAssociatedTokenAccount(ingamewallet.Account.PublicKey, new PublicKey(TokenMintAdress));
             }
             
             if (_associatedTokenAddress == null)

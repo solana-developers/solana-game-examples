@@ -31,11 +31,12 @@ namespace SolPlay.Scripts.Ui
             MintInAppButton.onClick.AddListener(OnMintInAppButtonClicked);
             MintInApp3DButton.onClick.AddListener(OnMintInApp3DButtonClicked);
 
-            MessageRouter.AddHandler<NftJsonLoadedMessage>(OnNftLoadedMessage);
             MessageRouter
                 .AddHandler<NftLoadingStartedMessage>(OnNftLoadingStartedMessage);
             MessageRouter
                 .AddHandler<NftLoadingFinishedMessage>(OnNftLoadingFinishedMessage);
+            MessageRouter
+                .AddHandler<NftLoadedMessage>(OnNftLoadedMessage);
             MessageRouter
                 .AddHandler<NftMintFinishedMessage>(OnNftMintFinishedMessage);
             MessageRouter
@@ -52,11 +53,6 @@ namespace SolPlay.Scripts.Ui
                 return;
             }
 
-            if (nftListPopupUiData.RequestNfts)
-            {
-                ServiceFactory.Resolve<NftService>().RequestNftsFromWallet(nftListPopupUiData.Wallet);
-            }
-            
             NftItemListView.UpdateContent();
             NftItemListView.SetData(nft =>
             {
@@ -86,7 +82,7 @@ namespace SolPlay.Scripts.Ui
             var signature = await ServiceFactory.Resolve<NftMintingService>()
                 .MintNftWithMetaData(
                     "https://arweave.net/x-NmscUWB6zzdROsLsX1-CfRVVlYcuBL2rQ5vk8Fslo",
-                    "Alpha Racing Dummy", "Test3D", b =>
+                    "Alpha Racing", "Test", b =>
                     {
                         if (MinitingBlocker != null)
                         {
@@ -135,7 +131,7 @@ namespace SolPlay.Scripts.Ui
             PhantomUtils.OpenUrlInWalletBrowser("https://beavercrush.com");
         }
 
-        private void OnNftLoadedMessage(NftJsonLoadedMessage message)
+        private void OnNftLoadedMessage(NftLoadedMessage message)
         {
             NftItemListView.AddNFt(message.Nft);
             UpdateBeaverStatus();
@@ -189,9 +185,7 @@ namespace SolPlay.Scripts.Ui
 
         private async Task RequestNfts(bool tryUseLocalCache)
         {
-            var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
-            await ServiceFactory.Resolve<NftService>()
-                .RequestNftsFromWallet(walletHolderService.BaseWallet, tryUseLocalCache);
+            ServiceFactory.Resolve<NftService>().LoadNfts();
         }
     }
 }

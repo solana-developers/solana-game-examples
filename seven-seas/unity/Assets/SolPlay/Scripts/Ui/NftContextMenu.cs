@@ -1,6 +1,7 @@
 using System;
 using Frictionless;
 using Solana.Unity.Programs;
+using Solana.Unity.SDK.Nft;
 using Solana.Unity.Wallet;
 using SolPlay.Orca;
 using SolPlay.Scripts.Services;
@@ -19,18 +20,16 @@ namespace SolPlay.Scripts.Ui
         public Button CloseButton;
         public TextMeshProUGUI NftNameText;
         public TextMeshProUGUI PowerLevelText;
-        public Button BurnButton;
         public Button SelectButton;
         public Button TransferButton;
-        public SolPlayNft currentNft;
-        private Action<SolPlayNft> onNftSelected;
+        public Nft currentNft;
+        private Action<Nft> onNftSelected;
 
         private void Awake()
         {
             ServiceFactory.RegisterSingleton(this);
             Root.gameObject.SetActive(false);
             CloseButton.onClick.AddListener(OnCloseButtonClicked);
-            BurnButton.onClick.AddListener(OnBurnClicked);
             SelectButton.onClick.AddListener(OnSelectClicked);
             TransferButton.onClick.AddListener(OnTransferClicked);
         }
@@ -45,7 +44,7 @@ namespace SolPlay.Scripts.Ui
         {
             ServiceFactory.Resolve<NftService>().SelectNft(currentNft);
             MessageRouter.RaiseMessage(
-                new BlimpSystem.ShowLogMessage($"{currentNft.MetaplexData.data.name} selected"));
+                new BlimpSystem.ShowLogMessage($"{currentNft.metaplexData.data.offchainData.name} selected"));
             Close();
             var tabBarComponent = ServiceFactory.Resolve<TabBarComponent>();
             if (tabBarComponent != null)
@@ -61,11 +60,6 @@ namespace SolPlay.Scripts.Ui
             }
         }
 
-        private void OnBurnClicked()
-        {
-            ServiceFactory.Resolve<NftService>().BurnNft(currentNft);
-        }
-
         private void OnCloseButtonClicked()
         {
             Close();
@@ -76,15 +70,15 @@ namespace SolPlay.Scripts.Ui
             Root.gameObject.SetActive(false);
         }
 
-        public void Open(NftItemView nftItemView, Action<SolPlayNft> onNftSelected)
+        public void Open(NftItemView nftItemView, Action<Nft> onNftSelected)
         {
             this.onNftSelected = onNftSelected;
             currentNft = nftItemView.CurrentSolPlayNft;
             Root.gameObject.SetActive(true);
-            NftNameText.text = nftItemView.CurrentSolPlayNft.MetaplexData.data.name;
+            NftNameText.text = nftItemView.CurrentSolPlayNft.metaplexData.data.offchainData.name;
             transform.position = nftItemView.transform.position;
             var powerLevelService = ServiceFactory.Resolve<HighscoreService>();
-            if (powerLevelService.TryGetHighscoreForSeed(nftItemView.CurrentSolPlayNft.MetaplexData.mint, out HighscoreEntry highscoreEntry))
+            if (powerLevelService.TryGetHighscoreForSeed(nftItemView.CurrentSolPlayNft.metaplexData.data.mint, out HighscoreEntry highscoreEntry))
             {
                 PowerLevelText.text = $"High score: {highscoreEntry.Highscore}";
             }

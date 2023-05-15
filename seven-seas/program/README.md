@@ -16,3 +16,6 @@ yarn add ts-mocha
 
 anchor run test
 ```
+
+Port idl to unity
+dotnet anchorgen -i target/idl/seven_seas.json -o target/idl/seven_seas.cs

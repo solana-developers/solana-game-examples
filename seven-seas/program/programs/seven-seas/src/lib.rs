@@ -8,11 +8,10 @@ use anchor_spl::{
     associated_token::AssociatedToken,
     token::{burn, mint_to, Burn, Mint, MintTo, Token, TokenAccount},
 };
-//use mpl_token_metadata::{pda::find_metadata_account, state::DataV2};
 
 // This is your program's public key and it will update
 // automatically when you build the project.
-declare_id!("HgmkLCs9Ti1e3juimSR8JNhdLE6eup5Pjk6PujiewZU6");
+declare_id!("BZdtLcjPeNCC65Y71Qo5Xhbtf1udCR6fBiPyk91x554M");
 
 #[program]
 pub mod seven_seas {
@@ -117,30 +116,18 @@ pub mod seven_seas {
         Ok(())
     }
 
-    pub fn move_player(ctx: Context<MovePlayer>, direction: u8) -> Result<()> {
-        let game = &mut ctx.accounts.game_data_account.load_mut()?;
-
-        match game.move_in_direction(
-            direction,
-            ctx.accounts.player.to_account_info(),
-            ctx.accounts.chest_vault.to_account_info(),
-        ) {
-            Ok(_val) => {}
-            Err(err) => {
-                panic!("Error: {}", err);
-            }
-        }
-        game.print().unwrap();
-        Ok(())
-    }
-
-    pub fn shoot(ctx: Context<Shoot>, _block_bump: u8) -> Result<()> {
+    pub fn shoot(ctx: Context<MovePlayer>, _block_bump: u8) -> Result<()> {
         let game = &mut ctx.accounts.game_data_account.load_mut()?;
 
         match game.shoot(
             ctx.accounts.player.to_account_info(),
             &mut ctx.accounts.game_actions,
-            ctx.accounts.chest_vault.to_account_info()
+            ctx.accounts.chest_vault.to_account_info(),
+            ctx.accounts.vault_token_account.to_account_info(),
+            ctx.accounts.player_token_account.to_account_info(),
+            ctx.accounts.token_account_owner_pda.to_account_info(),
+            ctx.accounts.token_program.to_account_info(),
+            ctx.bumps["token_account_owner_pda"],
         ) {
             Ok(_val) => {}
             Err(err) => {
@@ -158,6 +145,12 @@ pub mod seven_seas {
             direction,
             ctx.accounts.player.to_account_info(),
             ctx.accounts.chest_vault.to_account_info(),
+            ctx.accounts.vault_token_account.to_account_info(),
+            ctx.accounts.player_token_account.to_account_info(),
+            ctx.accounts.token_account_owner_pda.to_account_info(),
+            ctx.accounts.token_program.to_account_info(),
+            ctx.bumps["token_account_owner_pda"],
+            &mut ctx.accounts.game_actions,
         ) {
             Ok(_val) => {}
             Err(err) => {

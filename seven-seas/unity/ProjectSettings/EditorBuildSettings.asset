@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/SolPlay/Examples/SolHunter/SolHunter.unity
+    path: Assets/StylizedWaterShader/Standard/Example/SunsetScene.unity
+    guid: ecf6c3281821c1248b18e89f6e764697
+  - enabled: 1
+    path: Assets/SolPlay/Examples/SevenSeas/SevenSeas.unity
     guid: 6f61575f6f3464b04aead34be4d89430
   m_configObjects: {}

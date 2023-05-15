@@ -1,6 +1,7 @@
 using System;
 using Cysharp.Threading.Tasks;
 using Frictionless;
+using Solana.Unity.SDK.Nft;
 #if GLTFAST
 using GLTFast;
 #endif
@@ -16,7 +17,7 @@ namespace SolPlay.Scripts.Ui
     /// </summary>
     public class NftItemView : MonoBehaviour
     {
-        public SolPlayNft CurrentSolPlayNft;
+        public Nft CurrentSolPlayNft;
         public RawImage Icon;
         public TextMeshProUGUI Headline;
         public TextMeshProUGUI Description;
@@ -40,7 +41,7 @@ namespace SolPlay.Scripts.Ui
 
         private Action<NftItemView> onButtonClickedAction;
 
-        public async void SetData(SolPlayNft solPlayNft, Action<NftItemView> onButtonClicked)
+        public async void SetData(Nft solPlayNft, Action<NftItemView> onButtonClicked)
         {
             if (solPlayNft == null)
             {
@@ -54,21 +55,9 @@ namespace SolPlay.Scripts.Ui
             IsLoadingDataRoot.gameObject.SetActive(true);
             PowerLevel.text = "Loading Image";
 
-            if (solPlayNft.LoadingImageTask != null)
-            {
-                await solPlayNft.LoadingImageTask;
-            }
-            
-            if (!string.IsNullOrEmpty(solPlayNft.LoadingError))
-            {
-                ErrorText.text = solPlayNft.LoadingError;
-                LoadingErrorRoot.gameObject.SetActive(true);
-                return;
-            }
-
             IsLoadingDataRoot.gameObject.SetActive(false);
 
-            if (Load3DNfts && !string.IsNullOrEmpty(solPlayNft.MetaplexData.data.json.animation_url))
+            if (Load3DNfts && !string.IsNullOrEmpty(solPlayNft.metaplexData.data.offchainData.animation_url))
             {
                 Icon.gameObject.SetActive(true);
                 GltfRoot.SetActive(true);
@@ -90,31 +79,31 @@ namespace SolPlay.Scripts.Ui
                 }
 #endif
             }
-            else if (solPlayNft.MetaplexData.nftImage != null)
+            else if (solPlayNft.metaplexData.nftImage != null)
             {
                 Icon.gameObject.SetActive(true);
-                Icon.texture = solPlayNft.MetaplexData.nftImage.file;
+                Icon.texture = solPlayNft.metaplexData.nftImage.file;
             }
 
             var nftService = ServiceFactory.Resolve<NftService>();
             
             SelectionGameObject.gameObject.SetActive(nftService.IsNftSelected(solPlayNft));
             
-            if (solPlayNft.MetaplexData.data.json != null)
+            if (solPlayNft.metaplexData.data.offchainData != null)
             {
-                Description.text = solPlayNft.MetaplexData.data.json.description;
+                Description.text = solPlayNft.metaplexData.data.offchainData.description;
             }
 
-            Headline.text = solPlayNft.MetaplexData.data.name;
+            Headline.text = solPlayNft.metaplexData.data.offchainData.name;
             var nftPowerLevelService = ServiceFactory.Resolve<HighscoreService>();
 
-            if (nftPowerLevelService.TryGetHighscoreForSeed(solPlayNft.MetaplexData.mint, out HighscoreEntry highscoreEntry))
+            if (nftPowerLevelService.TryGetHighscoreForSeed(solPlayNft.metaplexData.data.mint, out HighscoreEntry highscoreEntry))
             {
                 PowerLevel.text = $"Score: {highscoreEntry.Highscore}";
             }
             else
             {
-                PowerLevel.text = solPlayNft.MetaplexData.data.name;
+                PowerLevel.text = solPlayNft.metaplexData.data.offchainData.name;
             }
 
             Button.onClick.AddListener(OnButtonClicked);

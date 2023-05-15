@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using AllArt.Solana.Example;
 using Frictionless;
+using Solana.Unity.SDK.Nft;
 using Solana.Unity.Wallet;
 using SolPlay.Orca;
 using SolPlay.Scripts;
@@ -27,7 +28,7 @@ public class TransferNftPopup : BasePopup
     private float RestartTime;
     private QrCodeData CurrentQrCodeData;
     private IScanner BarcodeScanner;
-    private SolPlayNft currentNft;
+    private Nft currentNft;
     private Token currentToken;
 
     private new void Awake()
@@ -43,7 +44,7 @@ public class TransferNftPopup : BasePopup
         // Screen.autorotateToPortraitUpsideDown = false;
     }
 
-    private void Open(SolPlayNft nft)
+    private void Open(Nft nft)
     {
         currentNft = nft;
         NftItemView.gameObject.SetActive(true);
