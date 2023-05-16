@@ -68,6 +68,18 @@ public class SolHunterService : MonoBehaviour
     {
         public Ship Ship;
     }
+    
+    public class CthulhuAttackedMessage
+    {
+        public ShipBehaviour Ship;
+        public int Damage;
+
+        public CthulhuAttackedMessage(ShipBehaviour ship, int damage)
+        {
+            Ship = ship;
+            Damage = damage;
+        }
+    }
 
     public class ShipShotMessage
     {
@@ -140,6 +152,7 @@ public class SolHunterService : MonoBehaviour
         {
             if (!alreadyPreformedGameActions.ContainsKey(gameAction.ActionId))
             {
+                // Ship shot
                 if (gameAction.ActionType == 0)
                 {
                     MessageRouter.RaiseMessage(new ShipShotMessage()
@@ -149,6 +162,7 @@ public class SolHunterService : MonoBehaviour
                     });
                 }
 
+                // Ship has taken damage
                 if (gameAction.ActionType == 1)
                 {
                     if (ServiceFactory.Resolve<ShipManager>()
@@ -157,6 +171,17 @@ public class SolHunterService : MonoBehaviour
                         MessageRouter.RaiseMessage(new BlimpSystem.Show3DBlimpMessage("-"+gameAction.Damage, ship.transform.position));   
                     }
                 }
+                
+                // Chutuluh has attacked a ship
+                if (gameAction.ActionType == 2)
+                {
+                    if (ServiceFactory.Resolve<ShipManager>()
+                        .TryGetShipByOwner(gameAction.Target, out ShipBehaviour ship))
+                    {
+                        MessageRouter.RaiseMessage(new CthulhuAttackedMessage(ship, gameAction.Damage));   
+                    }
+                }
+                
                 alreadyPreformedGameActions.Add(gameAction.ActionId, gameAction);
             }
         }
@@ -374,7 +399,7 @@ public class SolHunterService : MonoBehaviour
          }
 
          TransactionInstruction initializeInstruction = GetSpawnPlayerAndChestInstruction();
-        ServiceFactory.Resolve<TransactionService>().SendInstructionInNextBlock("Spawn player", initializeInstruction,
+         ServiceFactory.Resolve<TransactionService>().SendInstructionInNextBlock("Spawn player", initializeInstruction,
             walletHolderService.InGameWallet,
             s =>
             {
@@ -424,6 +449,31 @@ public class SolHunterService : MonoBehaviour
         return initializeInstruction;
     }
 
+    private TransactionInstruction GetChutuluhInstruction()
+    {
+        var baseWalletAddress = ServiceFactory.Resolve<WalletHolderService>().BaseWallet.Account.PublicKey;
+
+        var playerTokenAccount =
+            AssociatedTokenAccountProgram.DeriveAssociatedTokenAccount(baseWalletAddress, TokenMint);
+        
+        CthulhuAccounts accounts = new CthulhuAccounts();
+        accounts.GameDataAccount = levelAccount;
+        accounts.ChestVault = chestVaultAccount;
+        accounts.GameActions = gameActionsAccount;
+        accounts.Player = ServiceFactory.Resolve<WalletHolderService>().InGameWallet.Account.PublicKey;
+        accounts.PlayerTokenAccount = playerTokenAccount;
+        accounts.VaultTokenAccount = vaultTokenAccountPDA;
+        accounts.TokenAccountOwnerPda = tokenAccountOwnerPDA;
+        accounts.TokenProgram = TokenProgram.ProgramIdKey;
+        accounts.MintOfTokenBeingSent = TokenMint;
+        accounts.AssociatedTokenProgram = AssociatedTokenAccountProgram.ProgramIdKey;
+        accounts.SystemProgram = SystemProgram.ProgramIdKey;
+
+        TransactionInstruction initializeInstruction =
+            SevenSeasProgram.Cthulhu(accounts, GetInstructionBump(), ProgramId);
+        return initializeInstruction;
+    }
+    
     private TransactionInstruction GetMovePlayerInstruction(byte direction)
     {
         var ingameWalletAddress = ServiceFactory.Resolve<WalletHolderService>().InGameWallet.Account.PublicKey;
@@ -640,5 +690,18 @@ public class SolHunterService : MonoBehaviour
         }
 
         return false;
+    }
+
+    public void Chutuluh()
+    {
+        var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
+        if (!walletHolderService.HasEnoughSol(true, 10000))
+        {
+            return;
+        }
+
+        TransactionInstruction initializeInstruction = GetChutuluhInstruction();
+        ServiceFactory.Resolve<TransactionService>().SendInstructionInNextBlock($"Chutuluh",
+            initializeInstruction, walletHolderService.InGameWallet);
     }
 }

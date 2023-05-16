@@ -5,6 +5,7 @@ using SevenSeas.Accounts;
 using Solana.Unity.SDK.Nft;
 using SolPlay.Scripts.Services;
 using SolPlay.Scripts.Ui;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -26,6 +27,8 @@ namespace TinyAdventure
         public Button OpenNftScreenButton;
         public Button UpgradeButton;
         public Button InitShipButton;
+        public Button ChutuluhButton;
+        public TextMeshProUGUI ShipLevel;
 
         public GameObject NoSelectedNftRoot;
         public GameObject NoPlayerSpawnedRoot;
@@ -44,6 +47,7 @@ namespace TinyAdventure
             MoveLeftButton.onClick.AddListener(OnMoveLeftButtonClicked);
             MoveUpButton.onClick.AddListener(OnMoveUpButtonClicked);
             BoomButton.onClick.AddListener(OnBoomButtonClicked);
+            ChutuluhButton.onClick.AddListener(OnChutuluhButtonClicked);
             MoveDownButton.onClick.AddListener(OnMoveDownButtonClicked);
             InitializeButton.onClick.AddListener(OnInitializeButtonClicked);
             ResetButton.onClick.AddListener(OnResetButtonClicked);
@@ -54,7 +58,6 @@ namespace TinyAdventure
             UpgradeButton.onClick.AddListener(OnUpgradeButtonClicked);
             InitShipButton.onClick.AddListener(OnInitShipButtonClicked);
         }
-
 
         private void Start()
         {
@@ -82,6 +85,7 @@ namespace TinyAdventure
         {
             UpgradeButton.gameObject.SetActive(message != null);
             InitShipButton.gameObject.SetActive(message == null);
+            ShipLevel.text = "Level: " + message.Ship.Upgrades;
         }
 
         private async void OnWalletLoggedInMessage(WalletLoggedInMessage message)
@@ -91,11 +95,6 @@ namespace TinyAdventure
             {
                 InitializeButton.gameObject.SetActive(true);
             }
-            var ship = await ServiceFactory.Resolve<SolHunterService>().GetShipData();
-
-            UpgradeButton.gameObject.SetActive(ship != null);
-            InitShipButton.gameObject.SetActive(ship == null);
-            
         }
 
         private void OnNftLoadingFinishedMessage(NftLoadingFinishedMessage message)
@@ -176,7 +175,7 @@ namespace TinyAdventure
             }
             else
             {
-                Debug.Log("Player has not ship yet");
+                Debug.Log("Player has no ship yet");
                 ServiceFactory.Resolve<SolHunterService>().InitShip();
             }
         }
@@ -186,10 +185,11 @@ namespace TinyAdventure
             ServiceFactory.Resolve<SolHunterService>().InitShip();
         }
         
-        private void OnNftSelectedMessage(NftSelectedMessage message)
+        private async void OnNftSelectedMessage(NftSelectedMessage message)
         {
             SetNftGraphic();
             UpdateContent();
+            await ServiceFactory.Resolve<SolHunterService>().GetShipData();
         }
 
         private void SetNftGraphic()
@@ -265,6 +265,11 @@ namespace TinyAdventure
         private void OnBoomButtonClicked()
         {
             ServiceFactory.Resolve<SolHunterService>().Shoot();
+        }
+
+        private void OnChutuluhButtonClicked()
+        {
+            ServiceFactory.Resolve<SolHunterService>().Chutuluh();
         }
 
         private void OnMoveRightButtonClicked()

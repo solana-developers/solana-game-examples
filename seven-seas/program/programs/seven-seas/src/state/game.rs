@@ -1,9 +1,11 @@
+use std::{f32::MAX, ops::Sub};
+
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
     token::{Mint, Token, TokenAccount, Transfer},
 };
-pub use crate::errors::TinyAdventureError;
+pub use crate::errors::SevenSeasError;
 use crate::CHEST_REWARD;
 use crate::PLAYER_KILL_REWARD;
 use crate::seven_seas::Ship;
@@ -68,9 +70,7 @@ pub struct Initialize<'info> {
         bump
     )]
     vault_token_account: Account<'info, TokenAccount>,
-
-    pub mint_of_token_being_sent: Account<'info, Mint>,
-    
+    pub mint_of_token_being_sent: Account<'info, Mint>,    
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
 }
@@ -157,6 +157,83 @@ impl GameDataAccount {
         Ok(())
     }
 
+    pub fn euclidean_distance(x1: &usize, x2: &usize, y1: &usize, y2: &usize) -> f64 {
+        let dx = (x1 - x2) as f64;
+        let dy = (y1 - y2) as f64;
+        (dx * dx + dy * dy).sqrt()
+    }
+
+    pub fn cthulhu<'info>(
+        &mut self,
+        player: AccountInfo,
+        game_actions: &mut GameActionHistory,
+        chest_vault: AccountInfo,
+        vault_token_account: AccountInfo<'info>,
+        player_token_account: AccountInfo<'info>,
+        token_account_owner_pda: AccountInfo<'info>,
+        token_program: AccountInfo<'info>,
+        token_owner_bump: u8,
+    ) -> Result<()> {
+    
+        let mut smallestDistance: f64 = 100000.0;
+        let mut attacked_player_position: Option<(usize, usize)> = None;
+
+        let cthulhu_position: (usize, usize) = (0, 0);
+
+        // Find closest player on the board
+        for x in 0..BOARD_SIZE_X {
+            for y in 0..BOARD_SIZE_Y {
+                let tile = self.board[x][y];                
+                if tile.state == STATE_PLAYER {
+                    let distance = Self::euclidean_distance(&x, &cthulhu_position.0, &y, &cthulhu_position.0);
+                    if distance < smallestDistance {
+                        smallestDistance = distance;
+                        attacked_player_position = Some((x, y));
+                    }                    
+                }
+            }
+        }
+
+        // Found a player on the board that we can attack
+        match attacked_player_position {
+            None => {
+                return Err(SevenSeasError::CouldNotFindAShipToAttack.into());
+            }
+            Some(val) => {                
+                let mut tile = self.board[val.0][val.1];   
+                let mut test = tile.health;
+                msg!("Health before {}", test);
+                self.board[val.0][val.1].health = self.board[val.0][val.1].health.sub(1);
+                test = tile.health;
+                msg!("Health after {}", test);
+
+                if self.board[val.0][val.1].health == 0 {
+                    self.board[val.0][val.1].state = STATE_EMPTY;
+                }
+
+                self.increase_action_id();
+
+                let item = GameAction {
+                    action_id: self.action_id,
+                    action_type: 2,
+                    player: tile.player.key(),
+                    target: tile.player.key(),
+                    damage: 1
+                };
+        
+                if game_actions.game_actions.len() > 20 {
+                    game_actions.game_actions.drain(0..5);
+                }
+        
+                game_actions.game_actions.push(item);  
+
+                msg!("Attack closes enemy is as {} {}", val.0, val.1);
+            }
+        }
+
+        Ok(())
+    }
+
     pub fn shoot<'info>(
         &mut self,
         player: AccountInfo,
@@ -187,10 +264,9 @@ impl GameDataAccount {
         // If the player is on the board shoot
         match player_position {
             None => {
-                return Err(TinyAdventureError::TriedToShootWithPlayerThatWasNotOnTheBoard.into());
+                return Err(SevenSeasError::TriedToShootWithPlayerThatWasNotOnTheBoard.into());
             }
-            Some(val) => {
-                
+            Some(val) => {                
                 msg!("Player position x:{} y:{}", val.0, val.1);
                 let player_tile: Tile = self.board[val.0][val.1];
                 let range_usize : usize = usize::from(player_tile.range);
@@ -284,7 +360,6 @@ impl GameDataAccount {
             game_actions.game_actions.drain(0..5);
         }
 
-
         if attacked_tile.state == STATE_PLAYER {
             let match_option = attacked_tile.health.checked_sub(damage);
             match  match_option {
@@ -353,7 +428,7 @@ impl GameDataAccount {
         // If the player is on the board move him
         match player_position {
             None => {
-                return Err(TinyAdventureError::TriedToMovePlayerThatWasNotOnTheBoard.into());
+                return Err(SevenSeasError::TriedToMovePlayerThatWasNotOnTheBoard.into());
             }
             Some(val) => {
                 let mut new_player_position: (usize, usize) = (val.0, val.1);
@@ -391,7 +466,7 @@ impl GameDataAccount {
                         }                        
                     }
                     _ => {
-                        return Err(TinyAdventureError::WrongDirectionInput.into());
+                        return Err(SevenSeasError::WrongDirectionInput.into());
                     }
                 }
 
@@ -482,7 +557,7 @@ impl GameDataAccount {
                     empty_slots.push((x, y));
                 } else {
                     if tile.player == player.key.clone() && tile.state == STATE_PLAYER {
-                        return Err(TinyAdventureError::PlayerAlreadyExists.into());
+                        return Err(SevenSeasError::PlayerAlreadyExists.into());
                     }
                     //msg!("{}", tile.player);
                 }
@@ -490,7 +565,7 @@ impl GameDataAccount {
         }
 
         if empty_slots.len() == 0 {
-            return Err(TinyAdventureError::BoardIsFull.into());
+            return Err(SevenSeasError::BoardIsFull.into());
         }
 
         let mut rng = XorShift64 {
@@ -504,6 +579,17 @@ impl GameDataAccount {
             random_empty_slot.1
         );
 
+        let mut range: u16 = 1;
+
+        match ship.upgrades {
+            0 | 1 |  2 => {
+                range = 1;
+            } 
+            _ => {
+                range = 2;
+            }
+        }
+
         self.board[random_empty_slot.0][random_empty_slot.1] = Tile {
             player: player.key.clone(),
             avatar: avatar.clone(),
@@ -511,10 +597,10 @@ impl GameDataAccount {
             state: STATE_PLAYER,
             health: ship.health,
             damage: ship.cannons,
-            range: ship.level,
+            range: range,
             collect_reward: PLAYER_KILL_REWARD,
             look_direction: 0,
-            ship_level: ship.level,
+            ship_level: ship.upgrades,
         };
 
         Ok(())
@@ -535,7 +621,7 @@ impl GameDataAccount {
         }
 
         if empty_slots.len() == 0 {
-            return Err(TinyAdventureError::BoardIsFull.into());
+            return Err(SevenSeasError::BoardIsFull.into());
         }
 
         let mut rng = XorShift64 {

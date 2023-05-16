@@ -1,11 +1,10 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::native_token::LAMPORTS_PER_SOL;
-pub use crate::errors::TinyAdventureError;
+pub use crate::errors::SevenSeasError;
 pub mod errors;
 pub mod state;
 pub use state::*;
 use anchor_spl::{
-    associated_token::AssociatedToken,
     token::{Mint, Token, TokenAccount, Transfer},
 };
 
@@ -30,12 +29,12 @@ pub mod seven_seas {
         msg!("Ship Initialized!");
         ctx.accounts.new_ship.health = 3;
         ctx.accounts.new_ship.level = 1;
+        ctx.accounts.new_ship.upgrades = 1;
         ctx.accounts.new_ship.cannons = 1;
         Ok(())
     }
 
-    pub fn upgrade_ship(ctx: Context<UpgradeShip>) -> Result<()> {
-        
+    pub fn upgrade_ship(ctx: Context<UpgradeShip>) -> Result<()> {        
         let transfer_instruction = Transfer {
             from: ctx.accounts.player_token_account.to_account_info(),
             to: ctx.accounts.vault_token_account.to_account_info(),
@@ -46,27 +45,35 @@ pub mod seven_seas {
             ctx.accounts.token_program.to_account_info(),
             transfer_instruction
         );
-
-        anchor_spl::token::transfer(cpi_ctx, (ctx.accounts.new_ship.level as u64) * 1 * TOKEN_DECIMAL_MULTIPLIER)?;           
-
-        match ctx.accounts.new_ship.level {
+        let mut cost: u64 = 0;
+        match ctx.accounts.new_ship.upgrades {
+            0 => {
+                ctx.accounts.new_ship.health = 5;
+                ctx.accounts.new_ship.upgrades = 1;                
+                cost = 5;
+            },
             1 => {
                 ctx.accounts.new_ship.health = 7;
-                ctx.accounts.new_ship.level = 2;                
+                ctx.accounts.new_ship.upgrades = 2;                
+                cost = 5;
             },
             2 => {
                 ctx.accounts.new_ship.health = 12;
-                ctx.accounts.new_ship.level = 3;                
+                ctx.accounts.new_ship.upgrades = 3;                
+                cost = 200;
             },
             3 => {
                 ctx.accounts.new_ship.health = 20;
-                ctx.accounts.new_ship.level = 4;                
+                ctx.accounts.new_ship.upgrades = 4;                
+                cost = 20000;
             }
             _ => {
-                panic!("Max level reached");
+                return Err(SevenSeasError::MaxShipLevelReached.into());
             }  
         }
-        msg!("Ship upgraded to level: {}", ctx.accounts.new_ship.level);
+        anchor_spl::token::transfer(cpi_ctx, cost * TOKEN_DECIMAL_MULTIPLIER)?;           
+
+        msg!("Ship upgraded to level: {}", ctx.accounts.new_ship.upgrades);
 
         Ok(())
     }
@@ -129,6 +136,29 @@ pub mod seven_seas {
         }
         Ok(())
     }
+
+    pub fn cthulhu(ctx: Context<Shoot>, _block_bump: u8) -> Result<()> {
+        let game = &mut ctx.accounts.game_data_account.load_mut()?;
+
+        match game.cthulhu(
+            ctx.accounts.player.to_account_info(),
+            &mut ctx.accounts.game_actions,
+            ctx.accounts.chest_vault.to_account_info(),
+            ctx.accounts.vault_token_account.to_account_info(),
+            ctx.accounts.player_token_account.to_account_info(),
+            ctx.accounts.token_account_owner_pda.to_account_info(),
+            ctx.accounts.token_program.to_account_info(),
+            ctx.bumps["token_account_owner_pda"],
+        ) {
+            Ok(_val) => {}
+            Err(err) => {
+                panic!("Error: {}", err);
+            }
+        }
+        game.print().unwrap();
+        Ok(())
+    }
+
 
     pub fn shoot(ctx: Context<Shoot>, _block_bump: u8) -> Result<()> {
         let game = &mut ctx.accounts.game_data_account.load_mut()?;

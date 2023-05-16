@@ -14,13 +14,18 @@ import {
 import fs from "fs";
 import { Keypair } from "@solana/web3.js";
 
+let mint = new anchor.web3.PublicKey("tokNTPpdBjMeLz1pHRmWgoUJ9sQ1VqxcE431B7adeYv");
+
 describe("seven-seas", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const program = anchor.workspace.SevenSeas as Program<SevenSeas>;
-  const signer = anchor.web3.Keypair.generate();
-  console.log("Local signer is: ", signer.publicKey.toBase58());
+  const player = anchor.web3.Keypair.generate();
+  let tokenOwner = new Uint8Array(JSON.parse(fs.readFileSync("ownSX1SCfotCS3TMmkZtnrGPdjsVwf5E9sAG94eNQS2.json").toString()));
+  let tokenOwnerKeypair = Keypair.fromSecretKey(tokenOwner);
+
+  console.log("Local signer is: ", player.publicKey.toBase58());
 
   it("Initialize!", async () => {
     
@@ -30,11 +35,16 @@ describe("seven-seas", () => {
 
     console.log(new Date(), "requesting airdrop");
     let airdropTx = await anchor.getProvider().connection.requestAirdrop(
-      signer.publicKey,
+      player.publicKey,
+      5 * anchor.web3.LAMPORTS_PER_SOL
+    );
+    let res = await anchor.getProvider().connection.confirmTransaction(airdropTx);
+    airdropTx = await anchor.getProvider().connection.requestAirdrop(
+      tokenOwnerKeypair.publicKey,
       5 * anchor.web3.LAMPORTS_PER_SOL
     );
 
-    const res = await anchor.getProvider().connection.confirmTransaction(airdropTx);
+    res = await anchor.getProvider().connection.confirmTransaction(airdropTx);
 
     let key = new Uint8Array(JSON.parse(fs.readFileSync("tokNTPpdBjMeLz1pHRmWgoUJ9sQ1VqxcE431B7adeYv.json").toString()));
 
@@ -42,9 +52,9 @@ describe("seven-seas", () => {
 
     const mint = await createMint(
       anchor.getProvider().connection,
-      signer,
-      signer.publicKey,
-      signer.publicKey,
+      tokenOwnerKeypair,
+      tokenOwnerKeypair.publicKey,
+      tokenOwnerKeypair.publicKey,
       9, // We are using 9 decimals to match the CLI decimal default exactly, 
       tokenKeypair    
     );
@@ -67,9 +77,9 @@ describe("seven-seas", () => {
     
     const playerTokenAccount = await getOrCreateAssociatedTokenAccount(
       anchor.getProvider().connection,
-      signer,
+      player,
       mint,
-      signer.publicKey
+      tokenOwnerKeypair.publicKey
     );
 
     console.log("SenderTokeAccount: " + playerTokenAccount.address.toBase58());
@@ -78,14 +88,21 @@ describe("seven-seas", () => {
 
     const mintToPlayerResult = await mintTo(
       anchor.getProvider().connection,
-      signer,
+      player,
       mint,
       playerTokenAccount.address,
-      signer,
+      tokenOwnerKeypair,
       10000000 * mintDecimals // 10000000 Token with 9 decimals
     );
     console.log("mint sig: " + mintToPlayerResult);
     await anchor.getProvider().connection.confirmTransaction(mintToPlayerResult, "confirmed");
+
+    let tokenAccountInfo = await getAccount(anchor.getProvider().connection, playerTokenAccount.address);
+      console.log(
+        "Owned player token amount: " + tokenAccountInfo.amount / BigInt(mintDecimals)
+      );
+
+    console.log("Play tokens: " + (10000000 * mintDecimals).toString());
 
     const [level] = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("level")],
@@ -104,7 +121,7 @@ describe("seven-seas", () => {
     
     const tx = await program.methods.initialize()
     .accounts({
-      signer: signer.publicKey,
+      signer: player.publicKey,
       newGameDataAccount: level,
       chestVault: chestVault,
       gameActions: gameActions,
@@ -114,17 +131,17 @@ describe("seven-seas", () => {
       systemProgram: anchor.web3.SystemProgram.programId,      
       tokenProgram: TOKEN_PROGRAM_ID,
     })
-    .signers([signer])
+    .signers([player])
     .rpc(confirmOptions);
     console.log("Your transaction signature", tx);
 
     // Now that all accounts are there mint some tokens to the program token vault
     const mintToProgramResult = await mintTo(
       anchor.getProvider().connection,
-      signer,
+      player,
       mint,
       token_vault,
-      signer,
+      tokenOwnerKeypair,
       10000000 * mintDecimals // 10000000 Token with 9 decimals
     );
     console.log("mint sig: " + mintToProgramResult);
@@ -139,18 +156,17 @@ describe("seven-seas", () => {
 
     console.log(new Date(), "requesting airdrop");
     let airdropTx = await anchor.getProvider().connection.requestAirdrop(
-      signer.publicKey,
+      player.publicKey,
       5 * anchor.web3.LAMPORTS_PER_SOL
     );
 
     const res = await anchor.getProvider().connection.confirmTransaction(airdropTx);
 
     const [shipPDA] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("ship"), signer.publicKey.toBuffer()],
+      [Buffer.from("ship"), player.publicKey.toBuffer()],
       program.programId
     );
 
-    let mint = new anchor.web3.PublicKey("tokNTPpdBjMeLz1pHRmWgoUJ9sQ1VqxcE431B7adeYv");
     let [token_vault, bump2] = await anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("token_vault", "utf8"), mint.toBuffer()],
       program.programId
@@ -158,34 +174,58 @@ describe("seven-seas", () => {
 
     const playerTokenAccount = await getOrCreateAssociatedTokenAccount(
       anchor.getProvider().connection,
-      signer,
+      player,
       mint,
-      signer.publicKey
+      player.publicKey
     );
+
+    let mintInfo = await getMint(anchor.getProvider().connection, mint);
+    console.log("Mint Supply" + mintInfo.supply.toString());
+    const mintDecimals = Math.pow(10, mintInfo.decimals);
+
+    const mintToPlayerResult = await mintTo(
+      anchor.getProvider().connection,
+      player,
+      mint,
+      playerTokenAccount.address,
+      tokenOwnerKeypair,
+      1000000 * mintDecimals, // 10000000 Token with 9 decimals
+      [],
+      confirmOptions
+    );
+    console.log("mint sig: " + mintToPlayerResult);
+    await anchor.getProvider().connection.confirmTransaction(mintToPlayerResult, "confirmed");
+
+    let tokenAccountInfo = await getAccount(anchor.getProvider().connection, playerTokenAccount.address);
+      console.log(
+        "Owned player token amount: " + tokenAccountInfo.amount / BigInt(mintDecimals)
+      );
+
+    console.log("Play tokens: " + (10000000 * mintDecimals).toString());
 
     let tx = await program.methods.initializeShip()
     .accounts({
       newShip: shipPDA,
-      signer: signer.publicKey,
-      nftAccount: signer.publicKey,
+      signer: player.publicKey,
+      nftAccount: player.publicKey,
       systemProgram: anchor.web3.SystemProgram.programId,
     })
-    .signers([signer])
+    .signers([player])
     .rpc(confirmOptions);
     console.log("Init ship transaction", tx);
     
     tx = await program.methods.upgradeShip()
     .accounts({
       newShip: shipPDA,
-      signer: signer.publicKey,
-      nftAccount: signer.publicKey,
+      signer: player.publicKey,
+      nftAccount: player.publicKey,
       systemProgram: anchor.web3.SystemProgram.programId,
       vaultTokenAccount: token_vault,
       mintOfTokenBeingSent: mint,
       tokenProgram: TOKEN_PROGRAM_ID,
       playerTokenAccount: playerTokenAccount.address,    
     })
-    .signers([signer])
+    .signers([player])
     .rpc(confirmOptions);
     console.log("Upgrade ship transaction", tx);
         
@@ -193,15 +233,15 @@ describe("seven-seas", () => {
     tx = await program.methods.upgradeShip()
     .accounts({
       newShip: shipPDA,
-      signer: signer.publicKey,
-      nftAccount: signer.publicKey,
+      signer: player.publicKey,
+      nftAccount: player.publicKey,
       systemProgram: anchor.web3.SystemProgram.programId,
       vaultTokenAccount: token_vault,
       mintOfTokenBeingSent: mint,
       tokenProgram: TOKEN_PROGRAM_ID,
       playerTokenAccount: playerTokenAccount.address,    
     })
-    .signers([signer])
+    .signers([player])
     .rpc(confirmOptions);
     console.log("Upgrade ship transaction", tx);
     
@@ -211,7 +251,7 @@ describe("seven-seas", () => {
 
     console.log(new Date(), "requesting airdrop");
     let airdropTx = await anchor.getProvider().connection.requestAirdrop(
-      signer.publicKey,
+      player.publicKey,
       5 * anchor.web3.LAMPORTS_PER_SOL
     );
 
@@ -234,20 +274,20 @@ describe("seven-seas", () => {
 
     // TODO: change the owner to the ship
     const [shipPDA] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("ship"), signer.publicKey.toBuffer()],
+      [Buffer.from("ship"), player.publicKey.toBuffer()],
       program.programId
     );
 
     const tx = await program.methods.spawnPlayer(avatarPubkey.publicKey)
     .accounts({
-      payer: signer.publicKey,
+      payer: player.publicKey,
       gameDataAccount: level,
       chestVault: chestVault,
-      nftAccount: signer.publicKey,
+      nftAccount: player.publicKey,
       ship: shipPDA,
       systemProgram: anchor.web3.SystemProgram.programId,
     })
-    .signers([signer])
+    .signers([player])
     .rpc(confirmOptions);
     console.log("Your transaction signature", tx);
   });
@@ -255,7 +295,7 @@ describe("seven-seas", () => {
   it("Move!", async () => {
     console.log(new Date(), "requesting airdrop");
     let airdropTx = await anchor.getProvider().connection.requestAirdrop(
-      signer.publicKey,
+      player.publicKey,
       5 * anchor.web3.LAMPORTS_PER_SOL
     );
 
@@ -292,14 +332,14 @@ describe("seven-seas", () => {
     );
     const playerTokenAccount = await getOrCreateAssociatedTokenAccount(
       anchor.getProvider().connection,
-      signer,
+      player,
       mint,
-      signer.publicKey
+      player.publicKey
     );
 
     const tx = await program.methods.movePlayerV2(1, 0)
     .accounts({
-      player: signer.publicKey,
+      player: player.publicKey,
       gameDataAccount: level,
       chestVault: chestVault,
       systemProgram: anchor.web3.SystemProgram.programId,
@@ -311,7 +351,7 @@ describe("seven-seas", () => {
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
       gameActions: gameActions,
     })
-    .signers([signer])
+    .signers([player])
     .rpc(confirmOptions);
     console.log("Your transaction signature", tx);
   });
@@ -319,7 +359,7 @@ describe("seven-seas", () => {
   it("Shoot!", async () => {
     console.log(new Date(), "requesting airdrop");
     let airdropTx = await anchor.getProvider().connection.requestAirdrop(
-      signer.publicKey,
+      player.publicKey,
       5 * anchor.web3.LAMPORTS_PER_SOL
     );
 
@@ -357,14 +397,14 @@ describe("seven-seas", () => {
 
     const playerTokenAccount = await getOrCreateAssociatedTokenAccount(
       anchor.getProvider().connection,
-      signer,
+      player,
       mint,
-      signer.publicKey
+      player.publicKey
     );
 
     const tx = await program.methods.shoot(0)
     .accounts({
-      player: signer.publicKey,
+      player: player.publicKey,
       gameDataAccount: level,
       chestVault: chestVault,
       gameActions: gameActions,
@@ -375,7 +415,69 @@ describe("seven-seas", () => {
       tokenProgram: TOKEN_PROGRAM_ID,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
     })
-    .signers([signer])
+    .signers([player])
+    .rpc(confirmOptions);
+    console.log("Your transaction signature", tx);
+  });
+
+  it("Chutuluh!", async () => {
+    console.log(new Date(), "requesting airdrop");
+    let airdropTx = await anchor.getProvider().connection.requestAirdrop(
+      player.publicKey,
+      5 * anchor.web3.LAMPORTS_PER_SOL
+    );
+    const res = await anchor.getProvider().connection.confirmTransaction(airdropTx);
+
+    let confirmOptions = {
+      skipPreflight: true,
+    };
+
+    const [level] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("level")],
+      program.programId
+    );
+    
+    const [chestVault] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("chestVault")],
+      program.programId
+    );
+
+    const [gameActions] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("gameActions")],
+      program.programId
+    );
+
+    let [tokenAccountOwnerPda, bump] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("token_account_owner_pda", "utf8")],
+      program.programId
+    );
+    
+    let [token_vault, bump2] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("token_vault", "utf8"), mint.toBuffer()],
+      program.programId
+    );
+
+    const playerTokenAccount = await getOrCreateAssociatedTokenAccount(
+      anchor.getProvider().connection,
+      player,
+      mint,
+      player.publicKey
+    );
+
+    const tx = await program.methods.cthulhu(0)
+    .accounts({
+      player: player.publicKey,
+      gameDataAccount: level,
+      chestVault: chestVault,
+      gameActions: gameActions,
+      tokenAccountOwnerPda: tokenAccountOwnerPda,
+      vaultTokenAccount: token_vault,
+      playerTokenAccount: playerTokenAccount.address,
+      mintOfTokenBeingSent: mint,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+    })
+    .signers([player])
     .rpc(confirmOptions);
     console.log("Your transaction signature", tx);
   });

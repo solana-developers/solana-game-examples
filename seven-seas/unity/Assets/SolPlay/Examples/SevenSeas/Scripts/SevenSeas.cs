@@ -168,7 +168,9 @@ namespace SevenSeas
             PlayerAlreadyExists = 6002U,
             TriedToMovePlayerThatWasNotOnTheBoard = 6003U,
             TriedToShootWithPlayerThatWasNotOnTheBoard = 6004U,
-            WrongDirectionInput = 6005U
+            WrongDirectionInput = 6005U,
+            MaxShipLevelReached = 6006U,
+            CouldNotFindAShipToAttack = 6007U
         }
     }
 
@@ -461,6 +463,12 @@ namespace SevenSeas
             return await SignAndSendTransaction(instr, feePayer, signingCallback);
         }
 
+        public async Task<RequestResult<string>> SendCthulhuAsync(CthulhuAccounts accounts, byte blockBump, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
+        {
+            Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.SevenSeasProgram.Cthulhu(accounts, blockBump, programId);
+            return await SignAndSendTransaction(instr, feePayer, signingCallback);
+        }
+
         public async Task<RequestResult<string>> SendShootAsync(ShootAccounts accounts, byte blockBump, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
         {
             Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.SevenSeasProgram.Shoot(accounts, blockBump, programId);
@@ -552,6 +560,31 @@ namespace SevenSeas
             public PublicKey NftAccount { get; set; }
 
             public PublicKey SystemProgram { get; set; }
+        }
+
+        public class CthulhuAccounts
+        {
+            public PublicKey ChestVault { get; set; }
+
+            public PublicKey GameDataAccount { get; set; }
+
+            public PublicKey GameActions { get; set; }
+
+            public PublicKey Player { get; set; }
+
+            public PublicKey SystemProgram { get; set; }
+
+            public PublicKey PlayerTokenAccount { get; set; }
+
+            public PublicKey VaultTokenAccount { get; set; }
+
+            public PublicKey TokenAccountOwnerPda { get; set; }
+
+            public PublicKey MintOfTokenBeingSent { get; set; }
+
+            public PublicKey TokenProgram { get; set; }
+
+            public PublicKey AssociatedTokenProgram { get; set; }
         }
 
         public class ShootAccounts
@@ -668,6 +701,21 @@ namespace SevenSeas
                 offset += 8;
                 _data.WritePubKey(avatar, offset);
                 offset += 32;
+                byte[] resultData = new byte[offset];
+                Array.Copy(_data, resultData, offset);
+                return new Solana.Unity.Rpc.Models.TransactionInstruction{Keys = keys, ProgramId = programId.KeyBytes, Data = resultData};
+            }
+
+            public static Solana.Unity.Rpc.Models.TransactionInstruction Cthulhu(CthulhuAccounts accounts, byte blockBump, PublicKey programId)
+            {
+                List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
+                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.ChestVault, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameDataAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameActions, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Player, true), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.PlayerTokenAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.VaultTokenAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.TokenAccountOwnerPda, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.MintOfTokenBeingSent, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.TokenProgram, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.AssociatedTokenProgram, false)};
+                byte[] _data = new byte[1200];
+                int offset = 0;
+                _data.WriteU64(1430635477224443476UL, offset);
+                offset += 8;
+                _data.WriteU8(blockBump, offset);
+                offset += 1;
                 byte[] resultData = new byte[offset];
                 Array.Copy(_data, resultData, offset);
                 return new Solana.Unity.Rpc.Models.TransactionInstruction{Keys = keys, ProgramId = programId.KeyBytes, Data = resultData};
