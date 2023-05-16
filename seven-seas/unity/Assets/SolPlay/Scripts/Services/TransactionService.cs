@@ -152,6 +152,7 @@ namespace SolPlay.Scripts.Services
                                 LoggingService
                                     .LogWarning("Transaction Error" + signatureStatusInfo.Error.InstructionError.Type,
                                         true);
+                                Debug.LogError(signatureStatusInfo.Error.InstructionError);
                                 ParseAndCheckError(wallet, signature, onError);
                             }
 

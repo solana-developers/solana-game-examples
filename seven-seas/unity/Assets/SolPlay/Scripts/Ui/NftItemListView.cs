@@ -127,7 +127,7 @@ namespace SolPlay.Scripts.Ui
 
         private void OnItemClicked(NftItemView itemView)
         {
-            Debug.Log("Item Clicked: " + itemView.CurrentSolPlayNft.metaplexData.data.offchainData.name);
+            //Debug.Log("Item Clicked: " + itemView.CurrentSolPlayNft.metaplexData.data.offchainData.name);
             ServiceFactory.Resolve<NftContextMenu>().Open(itemView, onNftSelected);
         }
     }

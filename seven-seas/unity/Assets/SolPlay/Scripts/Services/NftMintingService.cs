@@ -445,15 +445,6 @@ namespace SolPlay.Scripts.Services
             var res = await walletHolderService.BaseWallet.SignAndSendTransaction(tx, true, Commitment.Confirmed);
             Debug.Log(res.Result);
 
-            /*byte[] transaction = transactionBuilder.Build(signers);
-            Transaction deserializedTransaction = Transaction.Deserialize(transaction);
-            Transaction signedTransaction =
-                await walletHolderService.BaseWallet.SignTransaction(deserializedTransaction);
-
-            var transactionSignature =
-                await walletHolderService.BaseWallet.ActiveRpcClient.SendTransactionAsync(
-                    Convert.ToBase64String(signedTransaction.Serialize()), true, Commitment.Confirmed);*/
-
             if (!res.WasSuccessful)
             {
                 mintDone?.Invoke(false);
@@ -471,8 +462,6 @@ namespace SolPlay.Scripts.Services
                     }, null, TransactionService.TransactionResult.confirmed);
             }
 
-            //Debug.Log(transactionSignature.Reason);
-            //Debug.Log(transactionSignature.Result);
             return res.Result;
         }
 

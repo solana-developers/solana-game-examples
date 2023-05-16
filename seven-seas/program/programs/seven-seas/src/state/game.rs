@@ -14,7 +14,7 @@ const STATE_EMPTY: u8 = 0;
 const STATE_PLAYER: u8 = 1;
 const STATE_CHEST: u8 = 2;
 
-const TOKEN_DECIMAL_MULTIPLIER: u64 = 1000000000;
+pub const TOKEN_DECIMAL_MULTIPLIER: u64 = 1000000000;
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -82,23 +82,11 @@ pub struct Reset<'info> {
     // We must specify the space in order to initialize an account.
     // First 8 bytes are default account discriminator,
     #[account(
+        mut,
         seeds = [b"level"],
         bump,
     )]
-    pub new_game_data_account: AccountLoader<'info, GameDataAccount>,
-    // This is the PDA in which we will deposit the reward SOl and
-    // from where we send it back to the first player reaching the chest.
-    #[account(
-        seeds = [b"chestVault"],
-        bump,
-    )]
-    pub chest_vault: Box<Account<'info, ChestVaultAccount>>,
-    #[account(
-        seeds = [b"gameActions"],
-        bump,
-    )]
-    pub game_actions: Box<Account<'info, GameActionHistory>>,
-    pub system_program: Program<'info, System>,
+    pub game_data_account: AccountLoader<'info, GameDataAccount>,
 }
 
 #[account(zero_copy(unsafe))]
@@ -155,6 +143,16 @@ impl GameDataAccount {
                 }
             }
         }*/
+
+        Ok(())
+    }
+
+    pub fn reset(&mut self) -> Result<()> {
+        for x in 0..BOARD_SIZE_X {
+            for y in 0..BOARD_SIZE_Y {
+                self.board[x][y].state = STATE_EMPTY
+            }
+        }
 
         Ok(())
     }

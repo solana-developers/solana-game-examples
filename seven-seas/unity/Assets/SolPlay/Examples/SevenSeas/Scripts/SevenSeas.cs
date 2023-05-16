@@ -522,27 +522,21 @@ namespace SevenSeas
             public PublicKey NftAccount { get; set; }
 
             public PublicKey SystemProgram { get; set; }
+
+            public PublicKey PlayerTokenAccount { get; set; }
+
+            public PublicKey VaultTokenAccount { get; set; }
+
+            public PublicKey MintOfTokenBeingSent { get; set; }
+
+            public PublicKey TokenProgram { get; set; }
         }
 
         public class ResetAccounts
         {
             public PublicKey Signer { get; set; }
 
-            public PublicKey NewGameDataAccount { get; set; }
-
-            public PublicKey ChestVault { get; set; }
-
-            public PublicKey GameActions { get; set; }
-
-            public PublicKey TokenAccountOwnerPda { get; set; }
-
-            public PublicKey VaultTokenAccount { get; set; }
-
-            public PublicKey MintOfTokenBeingSent { get; set; }
-
-            public PublicKey SystemProgram { get; set; }
-
-            public PublicKey TokenProgram { get; set; }
+            public PublicKey GameDataAccount { get; set; }
         }
 
         public class SpawnPlayerAccounts
@@ -641,7 +635,7 @@ namespace SevenSeas
             public static Solana.Unity.Rpc.Models.TransactionInstruction UpgradeShip(UpgradeShipAccounts accounts, PublicKey programId)
             {
                 List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
-                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Signer, true), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.NewShip, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.NftAccount, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false)};
+                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Signer, true), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.NewShip, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.NftAccount, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.PlayerTokenAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.VaultTokenAccount, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.MintOfTokenBeingSent, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.TokenProgram, false)};
                 byte[] _data = new byte[1200];
                 int offset = 0;
                 _data.WriteU64(3599852141310396080UL, offset);
@@ -654,7 +648,7 @@ namespace SevenSeas
             public static Solana.Unity.Rpc.Models.TransactionInstruction Reset(ResetAccounts accounts, PublicKey programId)
             {
                 List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
-                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Signer, true), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.NewGameDataAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.ChestVault, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameActions, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.TokenAccountOwnerPda, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.VaultTokenAccount, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.MintOfTokenBeingSent, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.TokenProgram, false)};
+                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Signer, true), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameDataAccount, false)};
                 byte[] _data = new byte[1200];
                 int offset = 0;
                 _data.WriteU64(15488080923286262039UL, offset);

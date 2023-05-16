@@ -6,7 +6,7 @@ pub mod state;
 pub use state::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token::{burn, mint_to, Burn, Mint, MintTo, Token, TokenAccount},
+    token::{Mint, Token, TokenAccount, Transfer},
 };
 
 // This is your program's public key and it will update
@@ -35,7 +35,20 @@ pub mod seven_seas {
     }
 
     pub fn upgrade_ship(ctx: Context<UpgradeShip>) -> Result<()> {
-        // TODO: add costs in gold token
+        
+        let transfer_instruction = Transfer {
+            from: ctx.accounts.player_token_account.to_account_info(),
+            to: ctx.accounts.vault_token_account.to_account_info(),
+            authority: ctx.accounts.signer.to_account_info(),
+        };
+
+        let cpi_ctx = CpiContext::new(
+            ctx.accounts.token_program.to_account_info(),
+            transfer_instruction
+        );
+
+        anchor_spl::token::transfer(cpi_ctx, (ctx.accounts.new_ship.level as u64) * 1 * TOKEN_DECIMAL_MULTIPLIER)?;           
+
         match ctx.accounts.new_ship.level {
             1 => {
                 ctx.accounts.new_ship.health = 7;
@@ -58,9 +71,10 @@ pub mod seven_seas {
         Ok(())
     }
 
-    pub fn reset(_ctx: Context<Initialize>) -> Result<()> {
-        msg!("Initialized!");
+    pub fn reset(_ctx: Context<Reset>) -> Result<()> {
+        msg!("Reseted board!");
 
+        _ctx.accounts.game_data_account.load_mut()?.reset().unwrap();
         /*let value: u64 = _ctx.accounts.chest_vault.to_account_info().lamports();
         **_ctx.accounts.chest_vault.to_account_info().try_borrow_mut_lamports()? -= value;
         **_ctx.accounts.signer.try_borrow_mut_lamports()? += value;
@@ -116,7 +130,7 @@ pub mod seven_seas {
         Ok(())
     }
 
-    pub fn shoot(ctx: Context<MovePlayer>, _block_bump: u8) -> Result<()> {
+    pub fn shoot(ctx: Context<Shoot>, _block_bump: u8) -> Result<()> {
         let game = &mut ctx.accounts.game_data_account.load_mut()?;
 
         match game.shoot(
@@ -192,6 +206,21 @@ pub mod seven_seas {
         #[account(mut)]
         pub nft_account: AccountInfo<'info>,
         pub system_program: Program<'info, System>,
+        #[account( 
+            mut,     
+            associated_token::mint = mint_of_token_being_sent,
+            associated_token::authority = signer      
+        )]
+        pub player_token_account: Account<'info, TokenAccount>,
+        #[account(
+            mut,
+            seeds=[b"token_vault".as_ref(), mint_of_token_being_sent.key().as_ref()],
+            token::mint=mint_of_token_being_sent,
+            bump
+        )]
+        pub vault_token_account: Account<'info, TokenAccount>,
+        pub mint_of_token_being_sent: Account<'info, Mint>,
+        pub token_program: Program<'info, Token>,
     }
 
     #[account]

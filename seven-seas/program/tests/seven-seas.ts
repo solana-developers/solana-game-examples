@@ -150,6 +150,19 @@ describe("seven-seas", () => {
       program.programId
     );
 
+    let mint = new anchor.web3.PublicKey("tokNTPpdBjMeLz1pHRmWgoUJ9sQ1VqxcE431B7adeYv");
+    let [token_vault, bump2] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("token_vault", "utf8"), mint.toBuffer()],
+      program.programId
+    );
+
+    const playerTokenAccount = await getOrCreateAssociatedTokenAccount(
+      anchor.getProvider().connection,
+      signer,
+      mint,
+      signer.publicKey
+    );
+
     let tx = await program.methods.initializeShip()
     .accounts({
       newShip: shipPDA,
@@ -167,17 +180,26 @@ describe("seven-seas", () => {
       signer: signer.publicKey,
       nftAccount: signer.publicKey,
       systemProgram: anchor.web3.SystemProgram.programId,
+      vaultTokenAccount: token_vault,
+      mintOfTokenBeingSent: mint,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      playerTokenAccount: playerTokenAccount.address,    
     })
     .signers([signer])
     .rpc(confirmOptions);
     console.log("Upgrade ship transaction", tx);
         
+
     tx = await program.methods.upgradeShip()
     .accounts({
       newShip: shipPDA,
       signer: signer.publicKey,
       nftAccount: signer.publicKey,
       systemProgram: anchor.web3.SystemProgram.programId,
+      vaultTokenAccount: token_vault,
+      mintOfTokenBeingSent: mint,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      playerTokenAccount: playerTokenAccount.address,    
     })
     .signers([signer])
     .rpc(confirmOptions);

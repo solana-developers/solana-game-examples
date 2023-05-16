@@ -45,6 +45,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3452835658001934394}
   - component: {fileID: 5116658609311531930}
+  - component: {fileID: 1208287833924966295}
   m_Layer: 0
   m_Name: CannonShot_lvl2
   m_TagString: Untagged
@@ -84,6 +85,26 @@ Animation:
   m_PlayAutomatically: 1
   m_AnimatePhysics: 0
   m_CullingType: 0
+--- !u!95 &1208287833924966295
+Animator:
+  serializedVersion: 4
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5726867051447869730}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: e10015a49aa8744e9bda032b4e292bc6, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorControllerStateOnDisable: 0
 --- !u!1001 &12349780179006060
 PrefabInstance:
   m_ObjectHideFlags: 0
