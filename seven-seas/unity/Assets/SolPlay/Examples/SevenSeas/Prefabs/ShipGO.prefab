@@ -75,9 +75,9 @@ MonoBehaviour:
   Root: {fileID: 951028545895477121}
   UpgradeLevels:
   - {fileID: 1138163749874189552, guid: e8b647ff693981c49904cc8de1739130, type: 3}
-  - {fileID: 1087150559683053229, guid: 03e6498276cbb2843bd54d15a84611c3, type: 3}
-  - {fileID: 1898284681201445234, guid: 5f2bd98c776e5c943b0b8a1c52bb2b71, type: 3}
-  - {fileID: 3309757510148701361, guid: 7b0d5801c97bde745af6b11a07dad269, type: 3}
+  - {fileID: 1138163749874189552, guid: 6aa5557022e0a48a5bac5fcf69932322, type: 3}
+  - {fileID: 1138163749874189552, guid: 3fcd4616e7cd943fa8c845f80f4100ba, type: 3}
+  - {fileID: 1138163749874189552, guid: 8bd5747e2577f4d158c3c7b00929ca48, type: 3}
   TargetPosition: {x: 0, y: 0, z: 0}
   GridPosition: {x: 0, y: 0}
   LastGridPosition: {x: 0, y: 0}

@@ -28,6 +28,7 @@ namespace TinyAdventure
         public Button UpgradeButton;
         public Button InitShipButton;
         public Button ChutuluhButton;
+        public Button TiggerThreadButton;
         public TextMeshProUGUI ShipLevel;
 
         public GameObject NoSelectedNftRoot;
@@ -48,6 +49,7 @@ namespace TinyAdventure
             MoveUpButton.onClick.AddListener(OnMoveUpButtonClicked);
             BoomButton.onClick.AddListener(OnBoomButtonClicked);
             ChutuluhButton.onClick.AddListener(OnChutuluhButtonClicked);
+            TiggerThreadButton.onClick.AddListener(OnTiggerThreadButtonClicked);
             MoveDownButton.onClick.AddListener(OnMoveDownButtonClicked);
             InitializeButton.onClick.AddListener(OnInitializeButtonClicked);
             ResetButton.onClick.AddListener(OnResetButtonClicked);
@@ -272,6 +274,11 @@ namespace TinyAdventure
             ServiceFactory.Resolve<SolHunterService>().Chutuluh();
         }
 
+        private void OnTiggerThreadButtonClicked()
+        {
+            ServiceFactory.Resolve<SolHunterService>().OnThreadTick();
+        }
+        
         private void OnMoveRightButtonClicked()
         {
             ServiceFactory.Resolve<SolHunterService>().Move(SolHunterService.Direction.Right);

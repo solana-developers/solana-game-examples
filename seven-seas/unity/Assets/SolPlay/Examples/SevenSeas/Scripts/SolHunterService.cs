@@ -16,11 +16,13 @@ using SolPlay.DeeplinksNftExample.Utils;
 using SolPlay.Scripts.Services;
 using SolPlay.Scripts.Ui;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class SolHunterService : MonoBehaviour
 {
     public static PublicKey ProgramId = new PublicKey("BZdtLcjPeNCC65Y71Qo5Xhbtf1udCR6fBiPyk91x554M");
-    public static PublicKey TokenMint = new PublicKey("tokNTPpdBjMeLz1pHRmWgoUJ9sQ1VqxcE431B7adeYv");
+    public static PublicKey GoldTokenMint = new PublicKey("tokNTPpdBjMeLz1pHRmWgoUJ9sQ1VqxcE431B7adeYv");
+    public static PublicKey CannonTokenMint = new PublicKey("canLVCKhoQHhT8iJJ2PUu9NQf6uaiBkndy3Y7tKtCW8");
     //public static PublicKey TokenMint = new PublicKey("BJW8QAjTzU6c6dSj3Yix1qP71Xcj3TiG4XNZwrnWtdgP");
 
     // Local urls: 
@@ -72,9 +74,9 @@ public class SolHunterService : MonoBehaviour
     public class CthulhuAttackedMessage
     {
         public ShipBehaviour Ship;
-        public int Damage;
+        public ulong Damage;
 
-        public CthulhuAttackedMessage(ShipBehaviour ship, int damage)
+        public CthulhuAttackedMessage(ShipBehaviour ship, ulong damage)
         {
             Ship = ship;
             Damage = damage;
@@ -84,7 +86,7 @@ public class SolHunterService : MonoBehaviour
     public class ShipShotMessage
     {
         public PublicKey ShipOwner;
-        public int Damage;
+        public ulong Damage;
     }
 
     public void OnEnable()
@@ -114,7 +116,7 @@ public class SolHunterService : MonoBehaviour
         PublicKey.TryFindProgramAddress(new[]
             {
                 Encoding.UTF8.GetBytes("token_vault"),
-                TokenMint.KeyBytes
+                GoldTokenMint.KeyBytes
             },
             ProgramId, out vaultTokenAccountPDA, out var actionsBum234);
     }
@@ -187,18 +189,18 @@ public class SolHunterService : MonoBehaviour
         }
     }
 
-    public static int GetMaxHealthByLevel(Tile tile)
+    public static ulong GetMaxHealthByLevel(Tile tile)
     {
         switch (tile.ShipLevel)
         {
             case 1:
-                return 3;
+                return 100;
             case 2:
-                return 7;
+                return 120;
             case 3:
-                return 12;
+                return 300;
             case 4:
-                return 20;
+                return 500;
         }
 
         return 1;
@@ -225,7 +227,7 @@ public class SolHunterService : MonoBehaviour
         }
         catch (Exception e)
         {
-            Debug.LogError(e);
+            Debug.Log("There is no ship yet: " + e);
             return null;
         }
 
@@ -291,8 +293,22 @@ public class SolHunterService : MonoBehaviour
             return;
         }
 
-        TransactionInstruction initializeInstruction = InitializeInstruction();
+        TransactionInstruction initializeInstruction = GetInitializeInstruction();
         ServiceFactory.Resolve<TransactionService>().SendInstructionInNextBlock("Initialize", initializeInstruction,
+            walletHolderService.InGameWallet);
+    }
+
+    public void OnThreadTick()
+    {
+        var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
+        if (!walletHolderService.HasEnoughSol(true, 10000))
+        {
+            Debug.LogError("Not enough sol");
+            return;
+        }
+
+        TransactionInstruction onThreadInstruction = GetOnThreadTickInstruction();
+        ServiceFactory.Resolve<TransactionService>().SendInstructionInNextBlock("On Thread Tick", onThreadInstruction,
             walletHolderService.InGameWallet);
     }
 
@@ -370,7 +386,7 @@ public class SolHunterService : MonoBehaviour
          var baseWalletAddress = baseWallet.Account.PublicKey;
 
          var playerTokenAccount =
-             AssociatedTokenAccountProgram.DeriveAssociatedTokenAccount(baseWalletAddress, TokenMint);
+             AssociatedTokenAccountProgram.DeriveAssociatedTokenAccount(baseWalletAddress, GoldTokenMint);
 
          var tokenAccount = await baseWallet.ActiveRpcClient.GetAccountInfoAsync(playerTokenAccount);
 
@@ -379,7 +395,7 @@ public class SolHunterService : MonoBehaviour
              var createTokenAccount = AssociatedTokenAccountProgram.CreateAssociatedTokenAccount(
                  baseWalletAddress,
                  baseWalletAddress,
-                 TokenMint);
+                 GoldTokenMint);
              ServiceFactory.Resolve<TransactionService>().SendInstructionInNextBlock("Create token account",
                  createTokenAccount,
                  walletHolderService.InGameWallet,
@@ -429,7 +445,7 @@ public class SolHunterService : MonoBehaviour
         var baseWalletAddress = ServiceFactory.Resolve<WalletHolderService>().BaseWallet.Account.PublicKey;
 
         var playerTokenAccount =
-            AssociatedTokenAccountProgram.DeriveAssociatedTokenAccount(baseWalletAddress, TokenMint);
+            AssociatedTokenAccountProgram.DeriveAssociatedTokenAccount(baseWalletAddress, GoldTokenMint);
         
         ShootAccounts accounts = new ShootAccounts();
         accounts.GameDataAccount = levelAccount;
@@ -440,7 +456,7 @@ public class SolHunterService : MonoBehaviour
         accounts.VaultTokenAccount = vaultTokenAccountPDA;
         accounts.TokenAccountOwnerPda = tokenAccountOwnerPDA;
         accounts.TokenProgram = TokenProgram.ProgramIdKey;
-        accounts.MintOfTokenBeingSent = TokenMint;
+        accounts.MintOfTokenBeingSent = GoldTokenMint;
         accounts.AssociatedTokenProgram = AssociatedTokenAccountProgram.ProgramIdKey;
         accounts.SystemProgram = SystemProgram.ProgramIdKey;
 
@@ -454,7 +470,7 @@ public class SolHunterService : MonoBehaviour
         var baseWalletAddress = ServiceFactory.Resolve<WalletHolderService>().BaseWallet.Account.PublicKey;
 
         var playerTokenAccount =
-            AssociatedTokenAccountProgram.DeriveAssociatedTokenAccount(baseWalletAddress, TokenMint);
+            AssociatedTokenAccountProgram.DeriveAssociatedTokenAccount(baseWalletAddress, GoldTokenMint);
         
         CthulhuAccounts accounts = new CthulhuAccounts();
         accounts.GameDataAccount = levelAccount;
@@ -465,7 +481,7 @@ public class SolHunterService : MonoBehaviour
         accounts.VaultTokenAccount = vaultTokenAccountPDA;
         accounts.TokenAccountOwnerPda = tokenAccountOwnerPDA;
         accounts.TokenProgram = TokenProgram.ProgramIdKey;
-        accounts.MintOfTokenBeingSent = TokenMint;
+        accounts.MintOfTokenBeingSent = GoldTokenMint;
         accounts.AssociatedTokenProgram = AssociatedTokenAccountProgram.ProgramIdKey;
         accounts.SystemProgram = SystemProgram.ProgramIdKey;
 
@@ -480,7 +496,7 @@ public class SolHunterService : MonoBehaviour
         var baseWalletAddress = ServiceFactory.Resolve<WalletHolderService>().BaseWallet.Account.PublicKey;
 
         var playerTokenAccount =
-            AssociatedTokenAccountProgram.DeriveAssociatedTokenAccount(baseWalletAddress, TokenMint);
+            AssociatedTokenAccountProgram.DeriveAssociatedTokenAccount(baseWalletAddress, GoldTokenMint);
 
         MovePlayerV2Accounts accounts = new MovePlayerV2Accounts();
         accounts.GameDataAccount = levelAccount;
@@ -491,7 +507,7 @@ public class SolHunterService : MonoBehaviour
         accounts.VaultTokenAccount = vaultTokenAccountPDA;
         accounts.TokenAccountOwnerPda = tokenAccountOwnerPDA;
         accounts.TokenProgram = TokenProgram.ProgramIdKey;
-        accounts.MintOfTokenBeingSent = TokenMint;
+        accounts.MintOfTokenBeingSent = GoldTokenMint;
         accounts.AssociatedTokenProgram = AssociatedTokenAccountProgram.ProgramIdKey;
         accounts.GameActions = gameActionsAccount;
 
@@ -505,7 +521,7 @@ public class SolHunterService : MonoBehaviour
         return (byte) (InstructionBump++ % 127);
     }
 
-    private TransactionInstruction InitializeInstruction()
+    private TransactionInstruction GetInitializeInstruction()
     {
         var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
         var wallet = walletHolderService.InGameWallet;
@@ -519,11 +535,10 @@ public class SolHunterService : MonoBehaviour
         PublicKey.TryFindProgramAddress(new[]
             {
                 Encoding.UTF8.GetBytes("token_vault"),
-                TokenMint.KeyBytes
+                GoldTokenMint.KeyBytes
             },
             ProgramId, out PublicKey token_vault, out var bump2);
-
-
+        
         var accounts = new InitializeAccounts();
         accounts.Signer = wallet.Account.PublicKey;
         accounts.NewGameDataAccount = levelAccount;
@@ -532,10 +547,23 @@ public class SolHunterService : MonoBehaviour
         accounts.GameActions = gameActionsAccount;
         accounts.TokenProgram = TokenProgram.ProgramIdKey;
         accounts.VaultTokenAccount = token_vault;
-        accounts.MintOfTokenBeingSent = TokenMint;
+        accounts.MintOfTokenBeingSent = GoldTokenMint;
         accounts.TokenAccountOwnerPda = tokenAccountOwnerPda;
 
         TransactionInstruction initializeInstruction = SevenSeasProgram.Initialize(accounts, ProgramId);
+        return initializeInstruction;
+    }
+
+    private TransactionInstruction GetOnThreadTickInstruction()
+    {
+        var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
+        var wallet = walletHolderService.InGameWallet;
+        
+        var accounts = new OnThreadTickAccounts();
+        accounts.Payer = wallet.Account.PublicKey;
+        accounts.GameDataAccount = levelAccount;
+
+        TransactionInstruction initializeInstruction = SevenSeasProgram.OnThreadTick(accounts, (ulong) Random.Range(0, ulong.MaxValue),ProgramId);
         return initializeInstruction;
     }
 
@@ -560,6 +588,8 @@ public class SolHunterService : MonoBehaviour
             LoggingService.Log("Nft is still loading...", true);
             return null;
         }
+        var playerCannonTokenAccount =
+            AssociatedTokenAccountProgram.DeriveAssociatedTokenAccount(ServiceFactory.Resolve<WalletHolderService>().BaseWallet.Account.PublicKey, CannonTokenMint);
 
         SpawnPlayerAccounts accounts = new SpawnPlayerAccounts();
         accounts.GameDataAccount = levelAccount;
@@ -567,6 +597,10 @@ public class SolHunterService : MonoBehaviour
         accounts.SystemProgram = SystemProgram.ProgramIdKey;
         accounts.Payer = ServiceFactory.Resolve<WalletHolderService>().InGameWallet.Account.PublicKey;
         accounts.NftAccount = new PublicKey(ServiceFactory.Resolve<NftService>().SelectedNft.metaplexData.data.mint);
+        accounts.CannonMint = CannonTokenMint;
+        accounts.CannonTokenAccount = playerCannonTokenAccount;
+        accounts.AssociatedTokenProgram = AssociatedTokenAccountProgram.ProgramIdKey;
+        accounts.TokenProgram = TokenProgram.ProgramIdKey;
         PublicKey.TryFindProgramAddress(new[]
             {
                 Encoding.UTF8.GetBytes("ship"),
@@ -625,14 +659,14 @@ public class SolHunterService : MonoBehaviour
         PublicKey.TryFindProgramAddress(new[]
             {
                 Encoding.UTF8.GetBytes("token_vault"),
-                TokenMint.KeyBytes
+                GoldTokenMint.KeyBytes
             },
             ProgramId, out PublicKey token_vault, out var bump2);
 
         var baseWalletAddress = ServiceFactory.Resolve<WalletHolderService>().BaseWallet.Account.PublicKey;
 
         var playerTokenAccount =
-            AssociatedTokenAccountProgram.DeriveAssociatedTokenAccount(baseWalletAddress, TokenMint);
+            AssociatedTokenAccountProgram.DeriveAssociatedTokenAccount(baseWalletAddress, GoldTokenMint);
 
         accounts.NewShip = shipPda;
         accounts.Signer = ServiceFactory.Resolve<WalletHolderService>().BaseWallet.Account.PublicKey;
@@ -640,7 +674,7 @@ public class SolHunterService : MonoBehaviour
         accounts.PlayerTokenAccount = playerTokenAccount;
         accounts.VaultTokenAccount = token_vault;
         accounts.TokenProgram = TokenProgram.ProgramIdKey;
-        accounts.MintOfTokenBeingSent = TokenMint;
+        accounts.MintOfTokenBeingSent = GoldTokenMint;
 
         TransactionInstruction initializeInstruction = SevenSeasProgram.UpgradeShip(accounts, ProgramId);
         return initializeInstruction;

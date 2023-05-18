@@ -27,11 +27,11 @@ namespace SevenSeas
             public static ulong ACCOUNT_DISCRIMINATOR => 11451028881204914546UL;
             public static ReadOnlySpan<byte> ACCOUNT_DISCRIMINATOR_BYTES => new byte[]{114, 41, 245, 232, 24, 58, 234, 158};
             public static string ACCOUNT_DISCRIMINATOR_B58 => "L6Xuk4LKTnd";
-            public ushort Health { get; set; }
+            public ulong Health { get; set; }
 
             public ushort Kills { get; set; }
 
-            public ushort Cannons { get; set; }
+            public ulong Cannons { get; set; }
 
             public ushort Upgrades { get; set; }
 
@@ -50,12 +50,12 @@ namespace SevenSeas
                 }
 
                 Ship result = new Ship();
-                result.Health = _data.GetU16(offset);
-                offset += 2;
+                result.Health = _data.GetU64(offset);
+                offset += 8;
                 result.Kills = _data.GetU16(offset);
                 offset += 2;
-                result.Cannons = _data.GetU16(offset);
-                offset += 2;
+                result.Cannons = _data.GetU64(offset);
+                offset += 8;
                 result.Upgrades = _data.GetU16(offset);
                 offset += 2;
                 result.Xp = _data.GetU16(offset);
@@ -182,9 +182,9 @@ namespace SevenSeas
 
             public byte State { get; set; }
 
-            public ushort Health { get; set; }
+            public ulong Health { get; set; }
 
-            public ushort Damage { get; set; }
+            public ulong Damage { get; set; }
 
             public ushort Range { get; set; }
 
@@ -205,10 +205,10 @@ namespace SevenSeas
                 offset += 32;
                 _data.WriteU8(State, offset);
                 offset += 1;
-                _data.WriteU16(Health, offset);
-                offset += 2;
-                _data.WriteU16(Damage, offset);
-                offset += 2;
+                _data.WriteU64(Health, offset);
+                offset += 8;
+                _data.WriteU64(Damage, offset);
+                offset += 8;
                 _data.WriteU16(Range, offset);
                 offset += 2;
                 _data.WriteU64(CollectReward, offset);
@@ -232,10 +232,10 @@ namespace SevenSeas
                 offset += 32;
                 result.State = _data.GetU8(offset);
                 offset += 1;
-                result.Health = _data.GetU16(offset);
-                offset += 2;
-                result.Damage = _data.GetU16(offset);
-                offset += 2;
+                result.Health = _data.GetU64(offset);
+                offset += 8;
+                result.Damage = _data.GetU64(offset);
+                offset += 8;
                 result.Range = _data.GetU16(offset);
                 offset += 2;
                 result.CollectReward = _data.GetU64(offset);
@@ -262,7 +262,7 @@ namespace SevenSeas
 
             public PublicKey Target { get; set; }
 
-            public ushort Damage { get; set; }
+            public ulong Damage { get; set; }
 
             public int Serialize(byte[] _data, int initialOffset)
             {
@@ -275,8 +275,8 @@ namespace SevenSeas
                 offset += 32;
                 _data.WritePubKey(Target, offset);
                 offset += 32;
-                _data.WriteU16(Damage, offset);
-                offset += 2;
+                _data.WriteU64(Damage, offset);
+                offset += 8;
                 return offset - initialOffset;
             }
 
@@ -292,8 +292,8 @@ namespace SevenSeas
                 offset += 32;
                 result.Target = _data.GetPubKey(offset);
                 offset += 32;
-                result.Damage = _data.GetU16(offset);
-                offset += 2;
+                result.Damage = _data.GetU64(offset);
+                offset += 8;
                 return offset - initialOffset;
             }
         }
@@ -457,6 +457,12 @@ namespace SevenSeas
             return await SignAndSendTransaction(instr, feePayer, signingCallback);
         }
 
+        public async Task<RequestResult<string>> SendOnThreadTickAsync(OnThreadTickAccounts accounts, ulong blockBump, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
+        {
+            Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.SevenSeasProgram.OnThreadTick(accounts, blockBump, programId);
+            return await SignAndSendTransaction(instr, feePayer, signingCallback);
+        }
+
         public async Task<RequestResult<string>> SendSpawnPlayerAsync(SpawnPlayerAccounts accounts, PublicKey avatar, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
         {
             Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.SevenSeasProgram.SpawnPlayer(accounts, avatar, programId);
@@ -547,6 +553,13 @@ namespace SevenSeas
             public PublicKey GameDataAccount { get; set; }
         }
 
+        public class OnThreadTickAccounts
+        {
+            public PublicKey Payer { get; set; }
+
+            public PublicKey GameDataAccount { get; set; }
+        }
+
         public class SpawnPlayerAccounts
         {
             public PublicKey Payer { get; set; }
@@ -560,6 +573,14 @@ namespace SevenSeas
             public PublicKey NftAccount { get; set; }
 
             public PublicKey SystemProgram { get; set; }
+
+            public PublicKey CannonTokenAccount { get; set; }
+
+            public PublicKey CannonMint { get; set; }
+
+            public PublicKey TokenProgram { get; set; }
+
+            public PublicKey AssociatedTokenProgram { get; set; }
         }
 
         public class CthulhuAccounts
@@ -691,10 +712,25 @@ namespace SevenSeas
                 return new Solana.Unity.Rpc.Models.TransactionInstruction{Keys = keys, ProgramId = programId.KeyBytes, Data = resultData};
             }
 
+            public static Solana.Unity.Rpc.Models.TransactionInstruction OnThreadTick(OnThreadTickAccounts accounts, ulong blockBump, PublicKey programId)
+            {
+                List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
+                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Payer, true), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameDataAccount, false)};
+                byte[] _data = new byte[1200];
+                int offset = 0;
+                _data.WriteU64(5812526563082725654UL, offset);
+                offset += 8;
+                _data.WriteU64(blockBump, offset);
+                offset += 8;
+                byte[] resultData = new byte[offset];
+                Array.Copy(_data, resultData, offset);
+                return new Solana.Unity.Rpc.Models.TransactionInstruction{Keys = keys, ProgramId = programId.KeyBytes, Data = resultData};
+            }
+
             public static Solana.Unity.Rpc.Models.TransactionInstruction SpawnPlayer(SpawnPlayerAccounts accounts, PublicKey avatar, PublicKey programId)
             {
                 List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
-                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Payer, true), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.ChestVault, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameDataAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Ship, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.NftAccount, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false)};
+                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Payer, true), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.ChestVault, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameDataAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Ship, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.NftAccount, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.CannonTokenAccount, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.CannonMint, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.TokenProgram, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.AssociatedTokenProgram, false)};
                 byte[] _data = new byte[1200];
                 int offset = 0;
                 _data.WriteU64(3695486382544324736UL, offset);

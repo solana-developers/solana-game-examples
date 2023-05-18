@@ -9,7 +9,7 @@ public class HealthBar : MonoBehaviour
     public TextMeshProUGUI HealthText;
     public Image GreenHealth;
 
-    public void SetHealth(int health, int maxHealth)
+    public void SetHealth(ulong health, ulong maxHealth)
     {
         GreenHealth.transform.localScale = new Vector3((float) health / maxHealth, 1, 1);
         HealthText.text = health.ToString();

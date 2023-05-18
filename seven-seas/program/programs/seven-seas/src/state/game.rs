@@ -103,9 +103,9 @@ pub struct GameDataAccount {
 pub struct Tile {
     player: Pubkey,      // 32
     state: u8,           // 1
-    health: u16,         // 1
-    damage: u16,         // 1
-    range: u16,          // 1
+    health: u64,         // 2
+    damage: u64,         // 8
+    range: u16,          // 2
     collect_reward: u64, // 8
     avatar: Pubkey,      // 32 used in the client to display the avatar
     kills: u8,           // 1  
@@ -125,7 +125,7 @@ pub struct GameAction {
     action_type: u8,     // 1
     player: Pubkey,      // 32
     target: Pubkey,      // 32
-    damage: u16,         // 2   
+    damage: u64,         // 8  
 }
 
 impl GameDataAccount {
@@ -200,25 +200,37 @@ impl GameDataAccount {
                 return Err(SevenSeasError::CouldNotFindAShipToAttack.into());
             }
             Some(val) => {                
-                let mut tile = self.board[val.0][val.1];   
-                let mut test = tile.health;
-                msg!("Health before {}", test);
-                self.board[val.0][val.1].health = self.board[val.0][val.1].health.sub(1);
-                test = tile.health;
-                msg!("Health after {}", test);
+                self.increase_action_id();
 
-                if self.board[val.0][val.1].health == 0 {
-                    self.board[val.0][val.1].state = STATE_EMPTY;
+                let mut tile = &mut self.board[val.0][val.1];
+
+                let mut rng = XorShift64 {
+                    a: tile.health as u64,
+                };
+
+                let chtulu_damage: u64 = 10;
+                let damage_variant = ((chtulu_damage as f64) * 0.3).ceil() as u64;
+                let damage = chtulu_damage + (rng.next() % damage_variant);
+                let option = tile.health.checked_sub(damage);
+                match option {
+                    None => {
+                        tile.health = 0;
+                    }
+                    Some(val) => {
+                        tile.health = val;
+                    }
                 }
 
-                self.increase_action_id();
+                if tile.health == 0 {
+                    tile.state = STATE_EMPTY;
+                }
 
                 let item = GameAction {
                     action_id: self.action_id,
                     action_type: 2,
                     player: tile.player.key(),
                     target: tile.player.key(),
-                    damage: 1
+                    damage: damage
                 };
         
                 if game_actions.game_actions.len() > 20 {
@@ -227,7 +239,7 @@ impl GameDataAccount {
         
                 game_actions.game_actions.push(item);  
 
-                msg!("Attack closes enemy is as {} {}", val.0, val.1);
+                msg!("Attack closes enemy is at {} {} with damage {}", val.0, val.1, damage);
             }
         }
 
@@ -327,7 +339,7 @@ impl GameDataAccount {
     }
 
     fn attack_tile<'info>(&mut self, attacked_position: (usize, usize), 
-        damage: u16, 
+        damage: u64, 
         attacker: AccountInfo, 
         chest_vault: AccountInfo, 
         game_actions: &mut GameActionHistory,
@@ -394,6 +406,75 @@ impl GameDataAccount {
         self.board[attacked_position.0][attacked_position.1].state = STATE_EMPTY;
         **chest_vault.try_borrow_mut_lamports()? -= attacked_tile.collect_reward;
         **attacker.try_borrow_mut_lamports()? += attacked_tile.collect_reward;
+        Ok(())
+    }
+
+    pub fn move_in_direction_by_thread<'info>(
+        &mut self
+    ) -> Result<()> {
+        let mut alive_players: Vec<(usize, usize)> = Vec::new();
+
+        // Find the player on the board
+        for x in 0..BOARD_SIZE_X {
+            for y in 0..BOARD_SIZE_Y {
+                if self.board[x][y].state == STATE_PLAYER { 
+                    let new_position:(usize, usize) = (x, y);
+                    alive_players.push(new_position)
+                }
+            }
+        }
+
+        for player in alive_players {
+            if self.board[player.0][player.1].state == STATE_PLAYER {
+                let mut new_position:(usize, usize) = (player.0, player.1);
+                msg!("Player found at x:{} y:{}", player.0, player.1);
+                match self.board[player.0][player.1].look_direction {
+                    // Up
+                    0 => {
+                        if new_position.1 == 0 {
+                            new_position.1 = BOARD_SIZE_Y - 1;
+                        } else {
+                            new_position.1 -= 1;
+                        }                    
+                    }
+                    // Right
+                    1 => {
+                        if new_position.0 == BOARD_SIZE_X - 1 {
+                            new_position.0 = 0;
+                        } else {
+                            new_position.0 += 1;
+                        }                        
+                    }
+                    // Down
+                    2 => {
+                        if new_position.1 == BOARD_SIZE_Y - 1 {
+                            new_position.1 = 0;
+                        } else {
+                            new_position.1 += 1;
+                        }                    
+                    }
+                    // Left
+                    3 => {
+                        if new_position.0 == 0 {
+                            new_position.0 = BOARD_SIZE_X -1;
+                        } else {
+                            new_position.0 -= 1;
+                        }                        
+                    }
+                    _ => {
+                        return Err(SevenSeasError::WrongDirectionInput.into());
+                    }
+                }
+                
+                if self.board[new_position.0][new_position.1].state == STATE_EMPTY {
+                    msg!("Move to x:{} y:{}", new_position.0, new_position.1);
+                    self.board[new_position.0][new_position.1] = self.board[player.0][player.1];
+                    self.board[player.0][player.1].state = STATE_EMPTY;
+                }
+            }
+        }
+
+
         Ok(())
     }
 
@@ -756,6 +837,16 @@ pub struct SpawnPlayer<'info> {
     /// CHECK: change to token account later
     pub nft_account: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
+    #[account(      
+        init_if_needed,
+        payer = payer,
+        associated_token::mint = cannon_mint,
+        associated_token::authority = payer      
+    )]
+    pub cannon_token_account: Account<'info, TokenAccount>,
+    pub cannon_mint: Account<'info, Mint>,
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
 }
 
 #[account]

@@ -105,7 +105,7 @@ public class ShipBehaviour : MonoBehaviour
         }
         else
         {
-            transform.DOMove(TargetPosition, 1.5f);
+            transform.DOMove(TargetPosition, 2f).SetEase(Ease.Linear);
         }
 
         LastGridPosition = newPosition;

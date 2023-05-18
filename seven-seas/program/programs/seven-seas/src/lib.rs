@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::native_token::LAMPORTS_PER_SOL;
 pub use crate::errors::SevenSeasError;
 pub mod errors;
 pub mod state;
@@ -7,6 +6,12 @@ pub use state::*;
 use anchor_spl::{
     token::{Mint, Token, TokenAccount, Transfer},
 };
+use clockwork_sdk::state::{Thread, ThreadAccount};
+use anchor_lang::prelude::Account;
+use anchor_lang::solana_program::{
+    instruction::Instruction, native_token::LAMPORTS_PER_SOL, system_program,
+};
+use anchor_lang::InstructionData;
 
 // This is your program's public key and it will update
 // automatically when you build the project.
@@ -20,6 +25,9 @@ pub mod seven_seas {
     pub const PLAY_GAME_FEE: u64 = LAMPORTS_PER_SOL / 50; // 0.02 SOL
     pub const CHEST_REWARD: u64 = LAMPORTS_PER_SOL / 20; // 0.05 SOL
 
+    /// Seed for thread_authority PDA.
+    pub const THREAD_AUTHORITY_SEED: &[u8] = b"authority";
+
     pub fn initialize(_ctx: Context<Initialize>) -> Result<()> {
         msg!("Initialized!");
         Ok(())
@@ -27,7 +35,7 @@ pub mod seven_seas {
 
     pub fn initialize_ship(ctx: Context<InitShip>) -> Result<()> {
         msg!("Ship Initialized!");
-        ctx.accounts.new_ship.health = 3;
+        ctx.accounts.new_ship.health = 100;
         ctx.accounts.new_ship.level = 1;
         ctx.accounts.new_ship.upgrades = 1;
         ctx.accounts.new_ship.cannons = 1;
@@ -45,25 +53,26 @@ pub mod seven_seas {
             ctx.accounts.token_program.to_account_info(),
             transfer_instruction
         );
+
         let mut cost: u64 = 0;
         match ctx.accounts.new_ship.upgrades {
             0 => {
-                ctx.accounts.new_ship.health = 5;
+                ctx.accounts.new_ship.health = 100;
                 ctx.accounts.new_ship.upgrades = 1;                
                 cost = 5;
             },
             1 => {
-                ctx.accounts.new_ship.health = 7;
+                ctx.accounts.new_ship.health = 120;
                 ctx.accounts.new_ship.upgrades = 2;                
                 cost = 5;
             },
             2 => {
-                ctx.accounts.new_ship.health = 12;
+                ctx.accounts.new_ship.health = 300;
                 ctx.accounts.new_ship.upgrades = 3;                
                 cost = 200;
             },
             3 => {
-                ctx.accounts.new_ship.health = 20;
+                ctx.accounts.new_ship.health = 500;
                 ctx.accounts.new_ship.upgrades = 4;                
                 cost = 20000;
             }
@@ -97,10 +106,70 @@ pub mod seven_seas {
         Ok(())
     }
 
+    pub fn start_thread(ctx: Context<StartThread>, thread_id: Vec<u8>) -> Result<()> {
+        let system_program = &ctx.accounts.system_program;
+        let clockwork_program = &ctx.accounts.clockwork_program;
+        let payer = &ctx.accounts.payer;
+        let thread = &ctx.accounts.thread;
+        let thread_authority = &ctx.accounts.thread_authority;
+        let game_data = &mut ctx.accounts.game_data_account;
+
+        // 1️⃣ Prepare an instruction to automate.
+        //    In this case, we will automate the ThreadTick instruction.
+        let target_ix = Instruction {
+            program_id: ID,
+            accounts: crate::__client_accounts_thread_tick::ThreadTick {
+                game_data: game_data.key(),
+                thread: thread.key(),
+                thread_authority: thread_authority.key(),
+            }
+            .to_account_metas(Some(true)),
+            data: crate::instruction::OnThreadTick {}.data(),
+        };
+
+        // 2️⃣ Define a trigger for the thread.
+        let trigger = clockwork_sdk::state::Trigger::Cron {
+            schedule: format!("*/{} * * * * * *", 2).into(),
+            skippable: true,
+        };
+
+        // 3️⃣ Create a Thread via CPI
+        let bump = *ctx.bumps.get("thread_authority").unwrap();
+        clockwork_sdk::cpi::thread_create(
+            CpiContext::new_with_signer(
+                clockwork_program.to_account_info(),
+                clockwork_sdk::cpi::ThreadCreate {
+                    payer: payer.to_account_info(),
+                    system_program: system_program.to_account_info(),
+                    thread: thread.to_account_info(),
+                    authority: thread_authority.to_account_info(),
+                },
+                &[&[THREAD_AUTHORITY_SEED, &[bump]]],
+            ),
+            LAMPORTS_PER_SOL / 10, // amount (0.1 sol)
+            thread_id,              // id
+            vec![target_ix.into()], // instructions
+            trigger,                // trigger
+        )?;
+
+        Ok(())
+    }
+
+    pub fn on_thread_tick(ctx: Context<ThreadTick>) -> Result<()> {
+        let game = &mut ctx.accounts.game_data.load_mut()?;
+        game.move_in_direction_by_thread().unwrap();
+        Ok(())
+    }
+
     pub fn spawn_player(ctx: Context<SpawnPlayer>, avatar: Pubkey) -> Result<()> {
         let game = &mut ctx.accounts.game_data_account.load_mut()?;
         let ship = &mut ctx.accounts.ship;
         
+        let decimals = ctx.accounts.cannon_mint.decimals;
+        ship.cannons = ctx.accounts.cannon_token_account.amount / ((u64::pow(10, decimals as u32) as u64));
+
+        msg!("Spawned player! With {} cannons", ship.cannons);
+
         match game.spawn_player(ctx.accounts.payer.to_account_info(), avatar, ship) {
             Ok(_val) => {
                 let cpi_context = CpiContext::new(
@@ -159,7 +228,6 @@ pub mod seven_seas {
         Ok(())
     }
 
-
     pub fn shoot(ctx: Context<Shoot>, _block_bump: u8) -> Result<()> {
         let game = &mut ctx.accounts.game_data_account.load_mut()?;
 
@@ -203,6 +271,34 @@ pub mod seven_seas {
         }
         game.print().unwrap();
         Ok(())
+    }
+
+
+    #[derive(Accounts)]
+    #[instruction(thread_id: Vec<u8>)]
+    pub struct StartThread<'info> {
+        #[account(mut)]
+        pub game_data_account: AccountLoader<'info, GameDataAccount>,
+    
+        /// The Clockwork thread program.
+        #[account(address = clockwork_sdk::ID)]
+        pub clockwork_program: Program<'info, clockwork_sdk::ThreadProgram>,
+    
+        /// The signer who will pay to initialize the program.
+        /// (not to be confused with the thread executions).
+        #[account(mut)]
+        pub payer: Signer<'info>,
+    
+        #[account(address = system_program::ID)]
+        pub system_program: Program<'info, System>,
+    
+        /// Address to assign to the newly created thread.
+        #[account(mut, address = Thread::pubkey(thread_authority.key(), thread_id))]
+        pub thread: SystemAccount<'info>,
+    
+        /// The pda that will own and manage the thread.
+        #[account(seeds = [THREAD_AUTHORITY_SEED], bump)]
+        pub thread_authority: SystemAccount<'info>,
     }
 
     #[derive(Accounts)]
@@ -253,13 +349,30 @@ pub mod seven_seas {
         pub token_program: Program<'info, Token>,
     }
 
+    #[derive(Accounts)]
+    pub struct ThreadTick<'info> {
+        #[account(mut)]
+        pub game_data: AccountLoader<'info, GameDataAccount>,
+        
+        /// Verify that only this thread can execute the ThreadTick Instruction
+        #[account(signer, constraint = thread.authority.eq(&thread_authority.key()))]
+        pub thread: Account<'info, Thread>,
+
+        /// The Thread Admin
+        /// The authority that was used as a seed to derive the thread address
+        /// `thread_authority` should equal `thread.thread_authority`
+        #[account(seeds = [THREAD_AUTHORITY_SEED], bump)]
+        pub thread_authority: SystemAccount<'info>,
+    }
+
     #[account]
     pub struct Ship {
-        pub health: u16,
+        pub health: u64,
         pub kills: u16,
-        pub cannons: u16,
+        pub cannons: u64,
         pub upgrades: u16,
         pub xp: u16,
         pub level: u16
     }
+
 }

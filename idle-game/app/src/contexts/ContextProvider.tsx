@@ -29,6 +29,8 @@ const WalletContextProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const network = networkConfiguration as WalletAdapterNetwork;
   //const endpoint = useMemo(() => clusterApiUrl(network), [network]);
   const endpoint = "https://rpc-devnet.helius.xyz/?api-key=dcee9dad-fb42-4a26-b394-41b53e81d913";
+  // Use this to connect to local host
+  //const endpoint = "http://localhost:8899";
 
   console.log(network);
 
