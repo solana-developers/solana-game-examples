@@ -11,6 +11,8 @@
   "dependencies": {
     "@chakra-ui/react": "^2.6.1",
     "@coral-xyz/anchor": "^0.27.0",
+    "@emotion/react": "^11.11.0",
+    "@emotion/styled": "^11.11.0",
     "@solana/spl-token": "^0.3.7",
     "@solana/wallet-adapter-react": "^0.15.32",
     "@solana/wallet-adapter-react-ui": "^0.9.31",
@@ -22,6 +24,7 @@
     "@types/react-dom": "18.2.4",
     "eslint": "8.40.0",
     "eslint-config-next": "13.4.2",
+    "framer-motion": "^10.12.13",
     "next": "13.4.2",
     "react": "18.2.0",
     "react-dom": "18.2.0",
