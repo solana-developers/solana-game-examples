@@ -1,5 +1,3 @@
-use std::{f32::MAX, ops::Sub};
-
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
@@ -103,14 +101,14 @@ pub struct GameDataAccount {
 pub struct Tile {
     player: Pubkey,      // 32
     state: u8,           // 1
-    health: u64,         // 2
+    health: u64,         // 8
     damage: u64,         // 8
     range: u16,          // 2
     collect_reward: u64, // 8
     avatar: Pubkey,      // 32 used in the client to display the avatar
-    kills: u8,           // 1  
     look_direction: u8,  // 1 (Up, right, down, left) 
     ship_level: u16,     // 2
+    start_health: u64,   // 8
 }
 
 #[account]
@@ -165,17 +163,17 @@ impl GameDataAccount {
 
     pub fn cthulhu<'info>(
         &mut self,
-        player: AccountInfo,
+        _player: AccountInfo,
         game_actions: &mut GameActionHistory,
-        chest_vault: AccountInfo,
-        vault_token_account: AccountInfo<'info>,
-        player_token_account: AccountInfo<'info>,
-        token_account_owner_pda: AccountInfo<'info>,
-        token_program: AccountInfo<'info>,
-        token_owner_bump: u8,
+        _chest_vault: AccountInfo,
+        _vault_token_account: AccountInfo<'info>,
+        _player_token_account: AccountInfo<'info>,
+        _token_account_owner_pda: AccountInfo<'info>,
+        _token_program: AccountInfo<'info>,
+        _token_owner_bump: u8,
     ) -> Result<()> {
     
-        let mut smallestDistance: f64 = 100000.0;
+        let mut smallest_distance: f64 = 100000.0;
         let mut attacked_player_position: Option<(usize, usize)> = None;
 
         let cthulhu_position: (usize, usize) = (0, 0);
@@ -186,8 +184,8 @@ impl GameDataAccount {
                 let tile = self.board[x][y];                
                 if tile.state == STATE_PLAYER {
                     let distance = Self::euclidean_distance(&x, &cthulhu_position.0, &y, &cthulhu_position.0);
-                    if distance < smallestDistance {
-                        smallestDistance = distance;
+                    if distance < smallest_distance {
+                        smallest_distance = distance;
                         attacked_player_position = Some((x, y));
                     }                    
                 }
@@ -628,7 +626,7 @@ impl GameDataAccount {
         Ok(())
     }
 
-    pub fn spawn_player(&mut self, player: AccountInfo, avatar: Pubkey, ship: &mut Ship) -> Result<()> {
+    pub fn spawn_player(&mut self, player: AccountInfo, avatar: Pubkey, ship: &mut Ship, extra_health: u64) -> Result<()> {
         let mut empty_slots: Vec<(usize, usize)> = Vec::new();
 
         for x in 0..BOARD_SIZE_X {
@@ -674,9 +672,9 @@ impl GameDataAccount {
         self.board[random_empty_slot.0][random_empty_slot.1] = Tile {
             player: player.key.clone(),
             avatar: avatar.clone(),
-            kills: 0,
             state: STATE_PLAYER,
-            health: ship.health,
+            health: ship.health + extra_health,
+            start_health: ship.health + extra_health,
             damage: ship.cannons,
             range: range,
             collect_reward: PLAYER_KILL_REWARD,
@@ -719,9 +717,9 @@ impl GameDataAccount {
         self.board[random_empty_slot.0][random_empty_slot.1] = Tile {
             player: player.key.clone(),
             avatar: player.key.clone(),
-            kills: 0,
             state: STATE_CHEST,
             health: 1,
+            start_health: 1,
             damage: 0,
             range: 0,
             collect_reward: CHEST_REWARD,
@@ -742,12 +740,14 @@ pub struct MovePlayer<'info> {
     pub game_data_account: AccountLoader<'info, GameDataAccount>,
     #[account(mut)]
     pub player: Signer<'info>,
+    /// CHECK:
+    pub token_account_owner: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
     #[account(      
         init_if_needed,
         payer = player,
         associated_token::mint = mint_of_token_being_sent,
-        associated_token::authority = player      
+        associated_token::authority = token_account_owner      
     )]
     pub player_token_account: Account<'info, TokenAccount>,
     #[account(
@@ -789,11 +789,13 @@ pub struct Shoot<'info> {
     #[account(mut)]
     pub player: Signer<'info>,
     pub system_program: Program<'info, System>,
+    /// CHECK:
+    pub token_account_owner: AccountInfo<'info>,
     #[account(      
         init_if_needed,
         payer = player,
         associated_token::mint = mint_of_token_being_sent,
-        associated_token::authority = player      
+        associated_token::authority = token_account_owner      
     )]
     pub player_token_account: Account<'info, TokenAccount>,
     #[account(
@@ -818,8 +820,11 @@ pub struct Shoot<'info> {
 
 #[derive(Accounts)]
 pub struct SpawnPlayer<'info> {
+    /// CHECK: needs to sign for every move later. Would be better if both are signers
     #[account(mut)]
-    pub payer: Signer<'info>,
+    pub player: AccountInfo<'info>,
+    #[account(mut)]
+    pub token_account_owner: Signer<'info>,
     #[account(
         mut,
         seeds = [b"chestVault"],
@@ -839,12 +844,20 @@ pub struct SpawnPlayer<'info> {
     pub system_program: Program<'info, System>,
     #[account(      
         init_if_needed,
-        payer = payer,
+        payer = token_account_owner,
         associated_token::mint = cannon_mint,
-        associated_token::authority = payer      
+        associated_token::authority = token_account_owner      
     )]
     pub cannon_token_account: Account<'info, TokenAccount>,
     pub cannon_mint: Account<'info, Mint>,
+    #[account(      
+        init_if_needed,
+        payer = token_account_owner,
+        associated_token::mint = rum_mint,
+        associated_token::authority = token_account_owner      
+    )]
+    pub rum_token_account: Account<'info, TokenAccount>,
+    pub rum_mint: Account<'info, Mint>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
 }

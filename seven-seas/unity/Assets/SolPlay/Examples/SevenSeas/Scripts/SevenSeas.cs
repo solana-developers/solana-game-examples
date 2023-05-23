@@ -39,6 +39,8 @@ namespace SevenSeas
 
             public ushort Level { get; set; }
 
+            public ulong StartHealth { get; set; }
+
             public static Ship Deserialize(ReadOnlySpan<byte> _data)
             {
                 int offset = 0;
@@ -62,6 +64,8 @@ namespace SevenSeas
                 offset += 2;
                 result.Level = _data.GetU16(offset);
                 offset += 2;
+                result.StartHealth = _data.GetU64(offset);
+                offset += 8;
                 return result;
             }
         }
@@ -192,11 +196,11 @@ namespace SevenSeas
 
             public PublicKey Avatar { get; set; }
 
-            public byte Kills { get; set; }
-
             public byte LookDirection { get; set; }
 
             public ushort ShipLevel { get; set; }
+
+            public ulong StartHealth { get; set; }
 
             public int Serialize(byte[] _data, int initialOffset)
             {
@@ -215,12 +219,12 @@ namespace SevenSeas
                 offset += 8;
                 _data.WritePubKey(Avatar, offset);
                 offset += 32;
-                _data.WriteU8(Kills, offset);
-                offset += 1;
                 _data.WriteU8(LookDirection, offset);
                 offset += 1;
                 _data.WriteU16(ShipLevel, offset);
                 offset += 2;
+                _data.WriteU64(StartHealth, offset);
+                offset += 8;
                 return offset - initialOffset;
             }
 
@@ -242,12 +246,12 @@ namespace SevenSeas
                 offset += 8;
                 result.Avatar = _data.GetPubKey(offset);
                 offset += 32;
-                result.Kills = _data.GetU8(offset);
-                offset += 1;
                 result.LookDirection = _data.GetU8(offset);
                 offset += 1;
                 result.ShipLevel = _data.GetU16(offset);
                 offset += 2;
+                result.StartHealth = _data.GetU64(offset);
+                offset += 8;
                 return offset - initialOffset;
             }
         }
@@ -457,9 +461,27 @@ namespace SevenSeas
             return await SignAndSendTransaction(instr, feePayer, signingCallback);
         }
 
-        public async Task<RequestResult<string>> SendOnThreadTickAsync(OnThreadTickAccounts accounts, ulong blockBump, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
+        public async Task<RequestResult<string>> SendStartThreadAsync(StartThreadAccounts accounts, byte[] threadId, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
         {
-            Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.SevenSeasProgram.OnThreadTick(accounts, blockBump, programId);
+            Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.SevenSeasProgram.StartThread(accounts, threadId, programId);
+            return await SignAndSendTransaction(instr, feePayer, signingCallback);
+        }
+
+        public async Task<RequestResult<string>> SendPauseThreadAsync(PauseThreadAccounts accounts, byte[] threadId, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
+        {
+            Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.SevenSeasProgram.PauseThread(accounts, threadId, programId);
+            return await SignAndSendTransaction(instr, feePayer, signingCallback);
+        }
+
+        public async Task<RequestResult<string>> SendResumeThreadAsync(ResumeThreadAccounts accounts, byte[] threadId, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
+        {
+            Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.SevenSeasProgram.ResumeThread(accounts, threadId, programId);
+            return await SignAndSendTransaction(instr, feePayer, signingCallback);
+        }
+
+        public async Task<RequestResult<string>> SendOnThreadTickAsync(OnThreadTickAccounts accounts, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
+        {
+            Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.SevenSeasProgram.OnThreadTick(accounts, programId);
             return await SignAndSendTransaction(instr, feePayer, signingCallback);
         }
 
@@ -553,16 +575,57 @@ namespace SevenSeas
             public PublicKey GameDataAccount { get; set; }
         }
 
-        public class OnThreadTickAccounts
+        public class StartThreadAccounts
+        {
+            public PublicKey GameDataAccount { get; set; }
+
+            public PublicKey ClockworkProgram { get; set; }
+
+            public PublicKey Payer { get; set; }
+
+            public PublicKey SystemProgram { get; set; }
+
+            public PublicKey Thread { get; set; }
+
+            public PublicKey ThreadAuthority { get; set; }
+        }
+
+        public class PauseThreadAccounts
         {
             public PublicKey Payer { get; set; }
 
-            public PublicKey GameDataAccount { get; set; }
+            public PublicKey ClockworkProgram { get; set; }
+
+            public PublicKey Thread { get; set; }
+
+            public PublicKey ThreadAuthority { get; set; }
+        }
+
+        public class ResumeThreadAccounts
+        {
+            public PublicKey Payer { get; set; }
+
+            public PublicKey ClockworkProgram { get; set; }
+
+            public PublicKey Thread { get; set; }
+
+            public PublicKey ThreadAuthority { get; set; }
+        }
+
+        public class OnThreadTickAccounts
+        {
+            public PublicKey GameData { get; set; }
+
+            public PublicKey Thread { get; set; }
+
+            public PublicKey ThreadAuthority { get; set; }
         }
 
         public class SpawnPlayerAccounts
         {
-            public PublicKey Payer { get; set; }
+            public PublicKey Player { get; set; }
+
+            public PublicKey TokenAccountOwner { get; set; }
 
             public PublicKey ChestVault { get; set; }
 
@@ -577,6 +640,10 @@ namespace SevenSeas
             public PublicKey CannonTokenAccount { get; set; }
 
             public PublicKey CannonMint { get; set; }
+
+            public PublicKey RumTokenAccount { get; set; }
+
+            public PublicKey RumMint { get; set; }
 
             public PublicKey TokenProgram { get; set; }
 
@@ -594,6 +661,8 @@ namespace SevenSeas
             public PublicKey Player { get; set; }
 
             public PublicKey SystemProgram { get; set; }
+
+            public PublicKey TokenAccountOwner { get; set; }
 
             public PublicKey PlayerTokenAccount { get; set; }
 
@@ -620,6 +689,8 @@ namespace SevenSeas
 
             public PublicKey SystemProgram { get; set; }
 
+            public PublicKey TokenAccountOwner { get; set; }
+
             public PublicKey PlayerTokenAccount { get; set; }
 
             public PublicKey VaultTokenAccount { get; set; }
@@ -640,6 +711,8 @@ namespace SevenSeas
             public PublicKey GameDataAccount { get; set; }
 
             public PublicKey Player { get; set; }
+
+            public PublicKey TokenAccountOwner { get; set; }
 
             public PublicKey SystemProgram { get; set; }
 
@@ -712,15 +785,64 @@ namespace SevenSeas
                 return new Solana.Unity.Rpc.Models.TransactionInstruction{Keys = keys, ProgramId = programId.KeyBytes, Data = resultData};
             }
 
-            public static Solana.Unity.Rpc.Models.TransactionInstruction OnThreadTick(OnThreadTickAccounts accounts, ulong blockBump, PublicKey programId)
+            public static Solana.Unity.Rpc.Models.TransactionInstruction StartThread(StartThreadAccounts accounts, byte[] threadId, PublicKey programId)
             {
                 List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
-                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Payer, true), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameDataAccount, false)};
+                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameDataAccount, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.ClockworkProgram, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Payer, true), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Thread, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.ThreadAuthority, false)};
+                byte[] _data = new byte[1200];
+                int offset = 0;
+                _data.WriteU64(15046500361448809729UL, offset);
+                offset += 8;
+                _data.WriteS32(threadId.Length, offset);
+                offset += 4;
+                _data.WriteSpan(threadId, offset);
+                offset += threadId.Length;
+                byte[] resultData = new byte[offset];
+                Array.Copy(_data, resultData, offset);
+                return new Solana.Unity.Rpc.Models.TransactionInstruction{Keys = keys, ProgramId = programId.KeyBytes, Data = resultData};
+            }
+
+            public static Solana.Unity.Rpc.Models.TransactionInstruction PauseThread(PauseThreadAccounts accounts, byte[] threadId, PublicKey programId)
+            {
+                List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
+                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Payer, true), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.ClockworkProgram, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Thread, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.ThreadAuthority, false)};
+                byte[] _data = new byte[1200];
+                int offset = 0;
+                _data.WriteU64(8210672603296534645UL, offset);
+                offset += 8;
+                _data.WriteS32(threadId.Length, offset);
+                offset += 4;
+                _data.WriteSpan(threadId, offset);
+                offset += threadId.Length;
+                byte[] resultData = new byte[offset];
+                Array.Copy(_data, resultData, offset);
+                return new Solana.Unity.Rpc.Models.TransactionInstruction{Keys = keys, ProgramId = programId.KeyBytes, Data = resultData};
+            }
+
+            public static Solana.Unity.Rpc.Models.TransactionInstruction ResumeThread(ResumeThreadAccounts accounts, byte[] threadId, PublicKey programId)
+            {
+                List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
+                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Payer, true), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.ClockworkProgram, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Thread, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.ThreadAuthority, false)};
+                byte[] _data = new byte[1200];
+                int offset = 0;
+                _data.WriteU64(5675786826980878817UL, offset);
+                offset += 8;
+                _data.WriteS32(threadId.Length, offset);
+                offset += 4;
+                _data.WriteSpan(threadId, offset);
+                offset += threadId.Length;
+                byte[] resultData = new byte[offset];
+                Array.Copy(_data, resultData, offset);
+                return new Solana.Unity.Rpc.Models.TransactionInstruction{Keys = keys, ProgramId = programId.KeyBytes, Data = resultData};
+            }
+
+            public static Solana.Unity.Rpc.Models.TransactionInstruction OnThreadTick(OnThreadTickAccounts accounts, PublicKey programId)
+            {
+                List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
+                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameData, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.Thread, true), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.ThreadAuthority, false)};
                 byte[] _data = new byte[1200];
                 int offset = 0;
                 _data.WriteU64(5812526563082725654UL, offset);
-                offset += 8;
-                _data.WriteU64(blockBump, offset);
                 offset += 8;
                 byte[] resultData = new byte[offset];
                 Array.Copy(_data, resultData, offset);
@@ -730,7 +852,7 @@ namespace SevenSeas
             public static Solana.Unity.Rpc.Models.TransactionInstruction SpawnPlayer(SpawnPlayerAccounts accounts, PublicKey avatar, PublicKey programId)
             {
                 List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
-                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Payer, true), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.ChestVault, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameDataAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Ship, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.NftAccount, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.CannonTokenAccount, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.CannonMint, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.TokenProgram, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.AssociatedTokenProgram, false)};
+                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Player, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.TokenAccountOwner, true), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.ChestVault, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameDataAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Ship, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.NftAccount, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.CannonTokenAccount, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.CannonMint, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.RumTokenAccount, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.RumMint, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.TokenProgram, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.AssociatedTokenProgram, false)};
                 byte[] _data = new byte[1200];
                 int offset = 0;
                 _data.WriteU64(3695486382544324736UL, offset);
@@ -745,7 +867,7 @@ namespace SevenSeas
             public static Solana.Unity.Rpc.Models.TransactionInstruction Cthulhu(CthulhuAccounts accounts, byte blockBump, PublicKey programId)
             {
                 List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
-                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.ChestVault, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameDataAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameActions, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Player, true), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.PlayerTokenAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.VaultTokenAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.TokenAccountOwnerPda, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.MintOfTokenBeingSent, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.TokenProgram, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.AssociatedTokenProgram, false)};
+                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.ChestVault, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameDataAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameActions, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Player, true), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.TokenAccountOwner, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.PlayerTokenAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.VaultTokenAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.TokenAccountOwnerPda, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.MintOfTokenBeingSent, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.TokenProgram, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.AssociatedTokenProgram, false)};
                 byte[] _data = new byte[1200];
                 int offset = 0;
                 _data.WriteU64(1430635477224443476UL, offset);
@@ -760,7 +882,7 @@ namespace SevenSeas
             public static Solana.Unity.Rpc.Models.TransactionInstruction Shoot(ShootAccounts accounts, byte blockBump, PublicKey programId)
             {
                 List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
-                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.ChestVault, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameDataAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameActions, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Player, true), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.PlayerTokenAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.VaultTokenAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.TokenAccountOwnerPda, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.MintOfTokenBeingSent, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.TokenProgram, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.AssociatedTokenProgram, false)};
+                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.ChestVault, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameDataAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameActions, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Player, true), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.TokenAccountOwner, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.PlayerTokenAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.VaultTokenAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.TokenAccountOwnerPda, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.MintOfTokenBeingSent, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.TokenProgram, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.AssociatedTokenProgram, false)};
                 byte[] _data = new byte[1200];
                 int offset = 0;
                 _data.WriteU64(7423935530772343593UL, offset);
@@ -775,7 +897,7 @@ namespace SevenSeas
             public static Solana.Unity.Rpc.Models.TransactionInstruction MovePlayerV2(MovePlayerV2Accounts accounts, byte direction, byte blockBump, PublicKey programId)
             {
                 List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
-                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.ChestVault, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameDataAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Player, true), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.PlayerTokenAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.VaultTokenAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.TokenAccountOwnerPda, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.MintOfTokenBeingSent, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.TokenProgram, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.AssociatedTokenProgram, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameActions, false)};
+                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.ChestVault, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameDataAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Player, true), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.TokenAccountOwner, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.PlayerTokenAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.VaultTokenAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.TokenAccountOwnerPda, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.MintOfTokenBeingSent, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.TokenProgram, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.AssociatedTokenProgram, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameActions, false)};
                 byte[] _data = new byte[1200];
                 int offset = 0;
                 _data.WriteU64(15560957635555335921UL, offset);

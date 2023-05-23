@@ -3,6 +3,7 @@ using NativeWebSocket;
 using SolHunter;
 using SevenSeas.Accounts;
 using Solana.Unity.SDK.Nft;
+using SolPlay.Examples.SevenSeas.Scripts;
 using SolPlay.Scripts.Services;
 using SolPlay.Scripts.Ui;
 using TMPro;
@@ -11,7 +12,7 @@ using UnityEngine.UI;
 
 namespace TinyAdventure
 {
-    public class SolHunterScreen : MonoBehaviour
+    public class SevenSeasScreen : MonoBehaviour
     {
         public Button GetDataButton;
         public Button MoveRightButton;
@@ -28,7 +29,9 @@ namespace TinyAdventure
         public Button UpgradeButton;
         public Button InitShipButton;
         public Button ChutuluhButton;
-        public Button TiggerThreadButton;
+        public Button StartThreadButton;
+        public Button PauseThreadButton;
+        public Button ResumeThreadButton;
         public TextMeshProUGUI ShipLevel;
 
         public GameObject NoSelectedNftRoot;
@@ -49,7 +52,9 @@ namespace TinyAdventure
             MoveUpButton.onClick.AddListener(OnMoveUpButtonClicked);
             BoomButton.onClick.AddListener(OnBoomButtonClicked);
             ChutuluhButton.onClick.AddListener(OnChutuluhButtonClicked);
-            TiggerThreadButton.onClick.AddListener(OnTiggerThreadButtonClicked);
+            StartThreadButton.onClick.AddListener(OnStartThreadButtonClicked);
+            PauseThreadButton.onClick.AddListener(OnPauseThreadButtonClicked);
+            ResumeThreadButton.onClick.AddListener(OnResumeThreadButtonClicked);
             MoveDownButton.onClick.AddListener(OnMoveDownButtonClicked);
             InitializeButton.onClick.AddListener(OnInitializeButtonClicked);
             ResetButton.onClick.AddListener(OnResetButtonClicked);
@@ -63,16 +68,16 @@ namespace TinyAdventure
 
         private void Start()
         {
-            MessageRouter.AddHandler<SolHunterService.SolHunterGameDataChangedMessage>(OnGameDataChangedMessage);
-            MessageRouter.AddHandler<SolHunterService.SolHunterShipDataChangedMessage>(OnShipDataChangedMessage);
+            MessageRouter.AddHandler<SevenSeasService.SolHunterGameDataChangedMessage>(OnGameDataChangedMessage);
+            MessageRouter.AddHandler<SevenSeasService.SolHunterShipDataChangedMessage>(OnShipDataChangedMessage);
             MessageRouter.AddHandler<NftSelectedMessage>(OnNftSelectedMessage);
             MessageRouter.AddHandler<NftLoadedMessage>(OnNftJsonLoadedMessage);
             MessageRouter.AddHandler<NftLoadingFinishedMessage>(OnNftLoadingFinishedMessage);
             MessageRouter.AddHandler<WalletLoggedInMessage>(OnWalletLoggedInMessage);
 
-            for (int x = 0; x < SolHunterService.TILE_COUNT_X; x++)
+            for (int x = 0; x < SevenSeasService.TILE_COUNT_X; x++)
             {
-                for (int y = 0; y < SolHunterService.TILE_COUNT_Y; y++)
+                for (int y = 0; y < SevenSeasService.TILE_COUNT_Y; y++)
                 {
                     SolHunterTile solHunterTile = Instantiate(TilePrefab.gameObject, TilesRoot.transform)
                         .GetComponent<SolHunterTile>();
@@ -83,7 +88,7 @@ namespace TinyAdventure
             UpdateContent();
         }
 
-        private void OnShipDataChangedMessage(SolHunterService.SolHunterShipDataChangedMessage message)
+        private void OnShipDataChangedMessage(SevenSeasService.SolHunterShipDataChangedMessage message)
         {
             UpgradeButton.gameObject.SetActive(message != null);
             InitShipButton.gameObject.SetActive(message == null);
@@ -92,7 +97,7 @@ namespace TinyAdventure
 
         private async void OnWalletLoggedInMessage(WalletLoggedInMessage message)
         {
-            var res = await ServiceFactory.Resolve<SolHunterService>().GetGameData();
+            var res = await ServiceFactory.Resolve<SevenSeasService>().GetGameData();
             if (res == null)
             {
                 InitializeButton.gameObject.SetActive(true);
@@ -106,7 +111,7 @@ namespace TinyAdventure
 
         private void OnNftJsonLoadedMessage(NftLoadedMessage message)
         {
-            var solHunterService = ServiceFactory.Resolve<SolHunterService>();
+            var solHunterService = ServiceFactory.Resolve<SevenSeasService>();
             var nftService = ServiceFactory.Resolve<NftService>();
             var playerAvatar = solHunterService.TryGetSpawnedPlayerAvatar();
             Nft solPlayNft = nftService.GetNftByMintAddress(playerAvatar);
@@ -126,7 +131,7 @@ namespace TinyAdventure
                 return;
             }
 
-            var solHunterService = ServiceFactory.Resolve<SolHunterService>();
+            var solHunterService = ServiceFactory.Resolve<SevenSeasService>();
             if (solHunterService.IsPlayerSpawned())
             {
                 SetNftGraphic();
@@ -168,35 +173,35 @@ namespace TinyAdventure
 
         private async void OnUpgradeButtonClicked()
         {
-            var ship = await ServiceFactory.Resolve<SolHunterService>().GetShipData();
+            var ship = await ServiceFactory.Resolve<SevenSeasService>().GetShipData();
 
             if (ship != null)
             {
-                ServiceFactory.Resolve<SolHunterService>().UpgradeShip();
+                ServiceFactory.Resolve<SevenSeasService>().UpgradeShip();
                 Debug.Log("Ship level " + ship.Level);    
             }
             else
             {
                 Debug.Log("Player has no ship yet");
-                ServiceFactory.Resolve<SolHunterService>().InitShip();
+                ServiceFactory.Resolve<SevenSeasService>().InitShip();
             }
         }
         
         private void OnInitShipButtonClicked()
         {
-            ServiceFactory.Resolve<SolHunterService>().InitShip();
+            ServiceFactory.Resolve<SevenSeasService>().InitShip();
         }
         
         private async void OnNftSelectedMessage(NftSelectedMessage message)
         {
             SetNftGraphic();
             UpdateContent();
-            await ServiceFactory.Resolve<SolHunterService>().GetShipData();
+            await ServiceFactory.Resolve<SevenSeasService>().GetShipData();
         }
 
         private void SetNftGraphic()
         {
-            var solHunterService = ServiceFactory.Resolve<SolHunterService>();
+            var solHunterService = ServiceFactory.Resolve<SevenSeasService>();
             var nftService = ServiceFactory.Resolve<NftService>();
 
             var playerAvatar = solHunterService.TryGetSpawnedPlayerAvatar();
@@ -238,7 +243,7 @@ namespace TinyAdventure
                 .OpenPopup(UiService.ScreenType.NftListPopup, new NftListPopupUiData(false, baseWallet));
         }
 
-        private void OnGameDataChangedMessage(SolHunterService.SolHunterGameDataChangedMessage message)
+        private void OnGameDataChangedMessage(SevenSeasService.SolHunterGameDataChangedMessage message)
         {
             UpdateGameDataView(message.GameDataAccount);
             UpdateContent();
@@ -246,57 +251,65 @@ namespace TinyAdventure
 
         private void OnInitializeButtonClicked()
         {
-            ServiceFactory.Resolve<SolHunterService>().Initialize();
+            ServiceFactory.Resolve<SevenSeasService>().Initialize();
         }
 
         private void OnResetButtonClicked()
         {
-            ServiceFactory.Resolve<SolHunterService>().Reset();
+            ServiceFactory.Resolve<SevenSeasService>().Reset();
         }
 
         private void OnSpawnPlayerButtonClicked()
         {
-            ServiceFactory.Resolve<SolHunterService>().SpawnPlayerAndChest();
+            ServiceFactory.Resolve<SevenSeasService>().SpawnPlayerAndChest();
         }
 
         private void OnMoveUpButtonClicked()
         {
-            ServiceFactory.Resolve<SolHunterService>().Move(SolHunterService.Direction.Up);
+            ServiceFactory.Resolve<SevenSeasService>().Move(SevenSeasService.Direction.Up);
         }
 
         private void OnBoomButtonClicked()
         {
-            ServiceFactory.Resolve<SolHunterService>().Shoot();
+            ServiceFactory.Resolve<SevenSeasService>().Shoot();
         }
 
         private void OnChutuluhButtonClicked()
         {
-            ServiceFactory.Resolve<SolHunterService>().Chutuluh();
+            ServiceFactory.Resolve<SevenSeasService>().Chutuluh();
         }
 
-        private void OnTiggerThreadButtonClicked()
+        private void OnStartThreadButtonClicked()
         {
-            ServiceFactory.Resolve<SolHunterService>().OnThreadTick();
+            ServiceFactory.Resolve<ClockWorkService>().StartThread();
+        }
+        private void OnPauseThreadButtonClicked()
+        {
+            ServiceFactory.Resolve<ClockWorkService>().PauseThread();
+        }
+        private void OnResumeThreadButtonClicked()
+        {
+            ServiceFactory.Resolve<ClockWorkService>().ResumeThread();
         }
         
         private void OnMoveRightButtonClicked()
         {
-            ServiceFactory.Resolve<SolHunterService>().Move(SolHunterService.Direction.Right);
+            ServiceFactory.Resolve<SevenSeasService>().Move(SevenSeasService.Direction.Right);
         }
 
         private void OnMoveDownButtonClicked()
         {
-            ServiceFactory.Resolve<SolHunterService>().Move(SolHunterService.Direction.Down);
+            ServiceFactory.Resolve<SevenSeasService>().Move(SevenSeasService.Direction.Down);
         }
 
         private void OnMoveLeftButtonClicked()
         {
-            ServiceFactory.Resolve<SolHunterService>().Move(SolHunterService.Direction.Left);
+            ServiceFactory.Resolve<SevenSeasService>().Move(SevenSeasService.Direction.Left);
         }
 
         private async void OnGetDataButtonClicked()
         {
-            GameDataAccount gameData = await ServiceFactory.Resolve<SolHunterService>().GetGameData();
+            GameDataAccount gameData = await ServiceFactory.Resolve<SevenSeasService>().GetGameData();
             UpdateGameDataView(gameData);
         }
 

@@ -40,7 +40,7 @@ public class ShipBehaviour : MonoBehaviour
         TargetPosition = transform.position;
         GridPosition = startPosition;
         LastGridPosition = startPosition;
-        HealthBar.SetHealth(tile.Health, SolHunterService.GetMaxHealthByLevel(tile));
+        HealthBar.SetHealth(tile.Health, tile.StartHealth);
         switch (tile.LookDirection)
         {
             case 0:
@@ -92,7 +92,7 @@ public class ShipBehaviour : MonoBehaviour
     public void SetNewTargetPosition(Vector2 newPosition, Tile tile)
     {
         currentTile = tile;
-        HealthBar.SetHealth(tile.Health, SolHunterService.GetMaxHealthByLevel(tile));
+        HealthBar.SetHealth(tile.Health, tile.StartHealth);
         PublicKey.text = tile.Player.ToString();
         SetNftAvatar(tile.Avatar);
         TargetPosition = new Vector3((10 * newPosition.x) + 5f, 1.4f, (10 * newPosition.y) - 5f);

@@ -17,19 +17,21 @@ import { Keypair } from "@solana/web3.js";
 import { ClockworkProvider } from "@clockwork-xyz/sdk";
 import { publicKey } from "@project-serum/anchor/dist/cjs/utils";
 
-let goldTokenMint = new anchor.web3.PublicKey("tokNTPpdBjMeLz1pHRmWgoUJ9sQ1VqxcE431B7adeYv");
-let cannonTokenMint = new anchor.web3.PublicKey("canLVCKhoQHhT8iJJ2PUu9NQf6uaiBkndy3Y7tKtCW8");
+let goldTokenMint = new anchor.web3.PublicKey("goLdQwNaZToyavwkbuPJzTt5XPNR3H7WQBGenWtzPH3");
+let cannonTokenMint = new anchor.web3.PublicKey("boomkN8rQpbgGAKcWvR3yyVVkjucNYcq7gTav78NQAG");
+let rumTokenMint = new anchor.web3.PublicKey("rumwqxXmjKAmSdkfkc5qDpHTpETYJRyXY22DWYUmWDt");
+const threadId = "thread-wind";
 
 describe("seven-seas", () => {
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
+  const clockworkProvider = ClockworkProvider.fromAnchorProvider(provider);
 
   const program = anchor.workspace.SevenSeas as Program<SevenSeas>;
   const player = anchor.web3.Keypair.generate();
   let tokenOwner = new Uint8Array(JSON.parse(fs.readFileSync("ownSX1SCfotCS3TMmkZtnrGPdjsVwf5E9sAG94eNQS2.json").toString()));
   let tokenOwnerKeypair = Keypair.fromSecretKey(tokenOwner);
-  const clockworkProvider = ClockworkProvider.fromAnchorProvider(provider);
 
   console.log("Local signer is: ", player.publicKey.toBase58());
 
@@ -52,7 +54,7 @@ describe("seven-seas", () => {
 
     res = await anchor.getProvider().connection.confirmTransaction(airdropTx);
 
-    let key = new Uint8Array(JSON.parse(fs.readFileSync("tokNTPpdBjMeLz1pHRmWgoUJ9sQ1VqxcE431B7adeYv.json").toString()));
+    let key = new Uint8Array(JSON.parse(fs.readFileSync("goLdQwNaZToyavwkbuPJzTt5XPNR3H7WQBGenWtzPH3.json").toString()));
     let tokenKeypair = Keypair.fromSecretKey(key);
 
     const gold_mint = await createMint(
@@ -64,7 +66,7 @@ describe("seven-seas", () => {
       tokenKeypair    
     );
 
-    let cannon_key = new Uint8Array(JSON.parse(fs.readFileSync("canLVCKhoQHhT8iJJ2PUu9NQf6uaiBkndy3Y7tKtCW8.json").toString()));
+    let cannon_key = new Uint8Array(JSON.parse(fs.readFileSync("boomkN8rQpbgGAKcWvR3yyVVkjucNYcq7gTav78NQAG.json").toString()));
     let cannonTokenKeypair = Keypair.fromSecretKey(cannon_key);
 
     const cannon_mint = await createMint(
@@ -76,6 +78,18 @@ describe("seven-seas", () => {
       cannonTokenKeypair    
     );
     
+    let rum_key = new Uint8Array(JSON.parse(fs.readFileSync("rumwqxXmjKAmSdkfkc5qDpHTpETYJRyXY22DWYUmWDt.json").toString()));
+    let rumTokenKeypair = Keypair.fromSecretKey(rum_key);
+
+    const rum_mint = await createMint(
+      anchor.getProvider().connection,
+      tokenOwnerKeypair,
+      tokenOwnerKeypair.publicKey,
+      tokenOwnerKeypair.publicKey,
+      9, // We are using 9 decimals to match the CLI decimal default exactly, 
+      rumTokenKeypair    
+    );
+
     let [tokenAccountOwnerPda, bump] = await anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("token_account_owner_pda", "utf8")],
       program.programId
@@ -106,6 +120,13 @@ describe("seven-seas", () => {
       tokenOwnerKeypair.publicKey
     );
 
+    const playerRumTokenAccount = await getOrCreateAssociatedTokenAccount(
+      anchor.getProvider().connection,
+      player,
+      rum_mint,
+      tokenOwnerKeypair.publicKey
+    );
+
     console.log("SenderTokeAccount: " + playerGoldTokenAccount.address.toBase58());
     console.log("VaultAccount: " + token_vault);
     console.log("TokenAccountOwnerPda: " + tokenAccountOwnerPda);
@@ -131,6 +152,18 @@ describe("seven-seas", () => {
     );
     console.log("mint sig: " + mintCannonsToPlayerResult);
     await anchor.getProvider().connection.confirmTransaction(mintCannonsToPlayerResult, "confirmed");
+
+    const mintRumToPlayerResult = await mintTo(
+      anchor.getProvider().connection,
+      player,
+      rum_mint,
+      playerRumTokenAccount.address,
+      tokenOwnerKeypair,
+      10000000 * mintDecimals // 10000000 Token with 9 decimals
+    );
+
+    console.log("mint sig: " + mintRumToPlayerResult);
+    await anchor.getProvider().connection.confirmTransaction(mintRumToPlayerResult, "confirmed");
 
     let tokenAccountInfo = await getAccount(anchor.getProvider().connection, playerGoldTokenAccount.address);
       console.log(
@@ -182,7 +215,9 @@ describe("seven-seas", () => {
     console.log("mint sig: " + mintToProgramResult);
     await anchor.getProvider().connection.confirmTransaction(mintToProgramResult, "confirmed");
 
-    StartThread();
+    // await StartThread();
+    // await PauseThread();
+    // await ResumeThread();
   });
 
   it("Init Ship!", async () => {    
@@ -316,18 +351,29 @@ describe("seven-seas", () => {
 
     console.log("player cannon account: " + playerCannonTokenAccount.address.toString());
 
+    const playerRumTokenAccount = await getOrCreateAssociatedTokenAccount(
+      anchor.getProvider().connection,
+      player,
+      rumTokenMint,
+      player.publicKey
+    );
+    console.log("player rum account: " + playerRumTokenAccount.address.toString());
+
     const tx = await program.methods.spawnPlayer(avatarPubkey.publicKey)
     .accounts({
-      payer: player.publicKey,
+      player: player.publicKey,
+      tokenAccountOwner: player.publicKey,
       gameDataAccount: level,
       chestVault: chestVault,
       nftAccount: player.publicKey,
       ship: shipPDA,
       systemProgram: anchor.web3.SystemProgram.programId,
       cannonTokenAccount: playerCannonTokenAccount.address,
+      cannonMint: cannonTokenMint,
+      rumTokenAccount: playerRumTokenAccount.address,
+      rumMint: rumTokenMint,
       tokenProgram: TOKEN_PROGRAM_ID,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-      cannonMint: cannonTokenMint,
     })
     .signers([player]);
     let result = await tx.rpc();
@@ -366,10 +412,12 @@ describe("seven-seas", () => {
       [Buffer.from("token_vault", "utf8"), goldTokenMint.toBuffer()],
       program.programId
     );
+
     const [gameActions] = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("gameActions")],
       program.programId
     );
+
     const playerTokenAccount = await getOrCreateAssociatedTokenAccount(
       anchor.getProvider().connection,
       player,
@@ -382,6 +430,7 @@ describe("seven-seas", () => {
       player: player.publicKey,
       gameDataAccount: level,
       chestVault: chestVault,
+      tokenAccountOwner: player.publicKey,
       systemProgram: anchor.web3.SystemProgram.programId,
       tokenAccountOwnerPda: tokenAccountOwnerPda,
       vaultTokenAccount: token_vault,
@@ -428,30 +477,29 @@ describe("seven-seas", () => {
       program.programId
     );
     
-    let mint = new anchor.web3.PublicKey("tokNTPpdBjMeLz1pHRmWgoUJ9sQ1VqxcE431B7adeYv");
-
     let [token_vault, bump2] = await anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("token_vault", "utf8"), mint.toBuffer()],
+      [Buffer.from("token_vault", "utf8"), goldTokenMint.toBuffer()],
       program.programId
     );
 
     const playerTokenAccount = await getOrCreateAssociatedTokenAccount(
       anchor.getProvider().connection,
       player,
-      mint,
+      goldTokenMint,
       player.publicKey
     );
 
     const tx = await program.methods.shoot(0)
     .accounts({
       player: player.publicKey,
+      tokenAccountOwner: player.publicKey,
       gameDataAccount: level,
       chestVault: chestVault,
       gameActions: gameActions,
       tokenAccountOwnerPda: tokenAccountOwnerPda,
       vaultTokenAccount: token_vault,
       playerTokenAccount: playerTokenAccount.address,
-      mintOfTokenBeingSent: mint,
+      mintOfTokenBeingSent: goldTokenMint,
       tokenProgram: TOKEN_PROGRAM_ID,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
     })
@@ -507,6 +555,7 @@ describe("seven-seas", () => {
     const tx = await program.methods.cthulhu(0)
     .accounts({
       player: player.publicKey,
+      tokenAccountOwner: player.publicKey,
       gameDataAccount: level,
       chestVault: chestVault,
       gameActions: gameActions,
@@ -523,21 +572,12 @@ describe("seven-seas", () => {
   });
 
   async function StartThread() {
-    console.log(new Date(), "requesting airdrop");
-    let airdropTx = await anchor.getProvider().connection.requestAirdrop(
-      player.publicKey,
-      5 * anchor.web3.LAMPORTS_PER_SOL
-    );
-    const res = await anchor.getProvider().connection.confirmTransaction(airdropTx);
-    const clockworkProvider = ClockworkProvider.fromAnchorProvider(provider);
-
 
     const [level] = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("level")],
       program.programId
     );
 
-    const threadId = "thread-" + new Date().getTime() / 1000;
     const [threadAuthority] = publicKey.findProgramAddressSync(
         [anchor.utils.bytes.utf8.encode("authority")], // 👈 make sure it matches on the prog side
         program.programId
@@ -552,6 +592,48 @@ describe("seven-seas", () => {
       threadAuthority: threadAuthority,
       clockworkProgram: clockworkProvider.threadProgram.programId,
       systemProgram: anchor.web3.SystemProgram.programId,
+    })
+    .signers([player])
+    .rpc();
+    console.log("Create thread instruction", tx);
+  };
+
+  async function PauseThread() {
+    console.log(new Date(), "requesting airdrop");
+
+    const [threadAuthority] = publicKey.findProgramAddressSync(
+        [anchor.utils.bytes.utf8.encode("authority")], // 👈 make sure it matches on the prog side
+        program.programId
+    );
+    const [threadAddress, threadBump] = clockworkProvider.getThreadPDA(threadAuthority, threadId)
+
+    const tx = await program.methods.pauseThread(Buffer.from(threadId))
+    .accounts({
+      payer: player.publicKey,
+      thread: threadAddress,
+      threadAuthority: threadAuthority,
+      clockworkProgram: clockworkProvider.threadProgram.programId,
+    })
+    .signers([player])
+    .rpc();
+    console.log("Pause thread instruction", tx);
+  };
+
+  async function ResumeThread() {
+    const clockworkProvider = ClockworkProvider.fromAnchorProvider(provider);
+
+    const [threadAuthority] = publicKey.findProgramAddressSync(
+        [anchor.utils.bytes.utf8.encode("authority")], // 👈 make sure it matches on the prog side
+        program.programId
+    );
+    const [threadAddress, threadBump] = clockworkProvider.getThreadPDA(threadAuthority, threadId)
+
+    const tx = await program.methods.resumeThread(Buffer.from(threadId))
+    .accounts({
+      payer: player.publicKey,
+      thread: threadAddress,
+      threadAuthority: threadAuthority,
+      clockworkProgram: clockworkProvider.threadProgram.programId,
     })
     .signers([player])
     .rpc();

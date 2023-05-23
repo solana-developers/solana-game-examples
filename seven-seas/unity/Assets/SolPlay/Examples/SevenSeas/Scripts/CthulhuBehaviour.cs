@@ -17,10 +17,10 @@ public class CthulhuBehaviour : MonoBehaviour
     
     void Start()
     {
-       MessageRouter.AddHandler<SolHunterService.CthulhuAttackedMessage>(OnCthuluhMessage); 
+       MessageRouter.AddHandler<SevenSeasService.CthulhuAttackedMessage>(OnCthuluhMessage); 
     }
 
-    private void OnCthuluhMessage(SolHunterService.CthulhuAttackedMessage message)
+    private void OnCthuluhMessage(SevenSeasService.CthulhuAttackedMessage message)
     {
         var attackBullet = Instantiate(AttackBullet);
         attackBullet.transform.position = BulletStartPoint.transform.position;

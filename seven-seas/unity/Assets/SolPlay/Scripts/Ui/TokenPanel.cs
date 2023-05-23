@@ -67,7 +67,7 @@ namespace SolPlay.Scripts.Ui
             if (wallet != null && wallet.Account.PublicKey != null)
             {
                 _associatedTokenAddress =
-                    AssociatedTokenAccountProgram.DeriveAssociatedTokenAccount(ingamewallet.Account.PublicKey, new PublicKey(TokenMintAdress));
+                    AssociatedTokenAccountProgram.DeriveAssociatedTokenAccount(wallet.Account.PublicKey, new PublicKey(TokenMintAdress));
             }
             
             if (_associatedTokenAddress == null)

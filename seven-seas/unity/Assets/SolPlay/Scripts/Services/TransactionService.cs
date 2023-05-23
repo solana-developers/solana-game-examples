@@ -311,14 +311,24 @@ namespace SolPlay.Scripts.Services
             TransactionInstruction instruction,
             WalletBase wallet,
             Action<RequestResult<string>> onTransactionDone = null, 
-            Action<TransactionMetaSlotInfo> onError = null, 
+            Action<TransactionMetaSlotInfo> onError = null,
+            Commitment commitment = Commitment.Confirmed)
+        {
+            SendInstructionInNextBlockInternal(transactionName, new List<TransactionInstruction>(){instruction}, wallet, onTransactionDone, onError, commitment);
+        }
+        
+        public void SendInstructionsInNextBlock(string transactionName, 
+            List<TransactionInstruction> instruction,
+            WalletBase wallet,
+            Action<RequestResult<string>> onTransactionDone = null, 
+            Action<TransactionMetaSlotInfo> onError = null,
             Commitment commitment = Commitment.Confirmed)
         {
             SendInstructionInNextBlockInternal(transactionName, instruction, wallet, onTransactionDone, onError, commitment);
         }
 
         private async void SendInstructionInNextBlockInternal(string transactionName,
-            TransactionInstruction instruction,
+            List<TransactionInstruction> instruction,
             WalletBase wallet, 
             Action<RequestResult<string>> onTransactionDone = null,
             Action<TransactionMetaSlotInfo> onError = null,
@@ -374,7 +384,7 @@ namespace SolPlay.Scripts.Services
             transactionInfoObject.OnError?.Invoke(message);
         }
 
-        public async void SendSingleInstruction(string transactionName, TransactionInstruction instruction,
+        public async void SendSingleInstruction(string transactionName, List<TransactionInstruction> instruction,
             TransactionInfoSystem.TransactionInfoObject transactionInfoObject, WalletBase wallet,
             Action<RequestResult<string>> onTransactionDone = null, 
             Action<TransactionMetaSlotInfo> onError = null,
@@ -405,7 +415,10 @@ namespace SolPlay.Scripts.Services
             transaction.RecentBlockHash = blockHash;
             transaction.Signatures = new List<SignaturePubKeyPair>();
             transaction.Instructions = new List<TransactionInstruction>();
-            transaction.Instructions.Add(instruction);
+            foreach (var instr in instruction)
+            {
+                transaction.Instructions.Add(instr);
+            }
 
             Transaction signedTransaction = await wallet.SignTransaction(transaction);
 

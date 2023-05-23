@@ -6,7 +6,7 @@ pub use state::*;
 use anchor_spl::{
     token::{Mint, Token, TokenAccount, Transfer},
 };
-use clockwork_sdk::state::{Thread, ThreadAccount};
+use clockwork_sdk::state::{Thread};
 use anchor_lang::prelude::Account;
 use anchor_lang::solana_program::{
     instruction::Instruction, native_token::LAMPORTS_PER_SOL, system_program,
@@ -15,7 +15,7 @@ use anchor_lang::InstructionData;
 
 // This is your program's public key and it will update
 // automatically when you build the project.
-declare_id!("BZdtLcjPeNCC65Y71Qo5Xhbtf1udCR6fBiPyk91x554M");
+declare_id!("2a4NcnkF5zf14JQXHAv39AsRf7jMFj13wKmTL6ZcDQNd");
 
 #[program]
 pub mod seven_seas {
@@ -36,6 +36,7 @@ pub mod seven_seas {
     pub fn initialize_ship(ctx: Context<InitShip>) -> Result<()> {
         msg!("Ship Initialized!");
         ctx.accounts.new_ship.health = 100;
+        ctx.accounts.new_ship.start_health = 100;
         ctx.accounts.new_ship.level = 1;
         ctx.accounts.new_ship.upgrades = 1;
         ctx.accounts.new_ship.cannons = 1;
@@ -54,7 +55,7 @@ pub mod seven_seas {
             transfer_instruction
         );
 
-        let mut cost: u64 = 0;
+        let cost: u64;
         match ctx.accounts.new_ship.upgrades {
             0 => {
                 ctx.accounts.new_ship.health = 100;
@@ -146,10 +147,52 @@ pub mod seven_seas {
                 },
                 &[&[THREAD_AUTHORITY_SEED, &[bump]]],
             ),
-            LAMPORTS_PER_SOL / 10, // amount (0.1 sol)
+            LAMPORTS_PER_SOL * 2, // amount of sol for the thread which pays the transaction fees
             thread_id,              // id
             vec![target_ix.into()], // instructions
             trigger,                // trigger
+        )?;
+
+        Ok(())
+    }
+
+    pub fn pause_thread(ctx: Context<ChangeThread>, _thread_id: Vec<u8>) -> Result<()> {
+        let clockwork_program = &ctx.accounts.clockwork_program;
+        let thread = &ctx.accounts.thread;
+        let thread_authority = &ctx.accounts.thread_authority;
+
+        // Pause Thread
+        let bump = *ctx.bumps.get("thread_authority").unwrap();
+        clockwork_sdk::cpi::thread_pause(
+            CpiContext::new_with_signer(
+                clockwork_program.to_account_info(),
+                clockwork_sdk::cpi::ThreadPause {
+                    thread: thread.to_account_info(),
+                    authority: thread_authority.to_account_info(),
+                },
+                &[&[THREAD_AUTHORITY_SEED, &[bump]]],
+            )
+        )?;
+
+        Ok(())
+    }
+
+    pub fn resume_thread(ctx: Context<ChangeThread>, _thread_id: Vec<u8>) -> Result<()> {
+        let clockwork_program = &ctx.accounts.clockwork_program;
+        let thread = &ctx.accounts.thread;
+        let thread_authority = &ctx.accounts.thread_authority;
+
+        // Resume Thread
+        let bump = *ctx.bumps.get("thread_authority").unwrap();
+        clockwork_sdk::cpi::thread_resume(
+            CpiContext::new_with_signer(
+                clockwork_program.to_account_info(),
+                clockwork_sdk::cpi::ThreadResume {
+                    thread: thread.to_account_info(),
+                    authority: thread_authority.to_account_info(),
+                },
+                &[&[THREAD_AUTHORITY_SEED, &[bump]]],
+            )
         )?;
 
         Ok(())
@@ -168,14 +211,16 @@ pub mod seven_seas {
         let decimals = ctx.accounts.cannon_mint.decimals;
         ship.cannons = ctx.accounts.cannon_token_account.amount / ((u64::pow(10, decimals as u32) as u64));
 
+        let extra_health = ctx.accounts.rum_token_account.amount / ((u64::pow(10, decimals as u32) as u64));
+
         msg!("Spawned player! With {} cannons", ship.cannons);
 
-        match game.spawn_player(ctx.accounts.payer.to_account_info(), avatar, ship) {
+        match game.spawn_player(ctx.accounts.player.to_account_info(), avatar, ship, extra_health) {
             Ok(_val) => {
                 let cpi_context = CpiContext::new(
                     ctx.accounts.system_program.to_account_info().clone(),
                     anchor_lang::system_program::Transfer {
-                        from: ctx.accounts.payer.to_account_info().clone(),
+                        from: ctx.accounts.token_account_owner.to_account_info().clone(),
                         to: ctx.accounts.chest_vault.to_account_info().clone(),
                     },
                 );
@@ -188,12 +233,12 @@ pub mod seven_seas {
                 panic!("Error: {}", err);
             }
         }
-        match game.spawn_chest(ctx.accounts.payer.to_account_info()) {
+        match game.spawn_chest(ctx.accounts.player.to_account_info()) {
             Ok(_val) => {
                 let cpi_context = CpiContext::new(
                     ctx.accounts.system_program.to_account_info().clone(),
                     anchor_lang::system_program::Transfer {
-                        from: ctx.accounts.payer.to_account_info().clone(),
+                        from: ctx.accounts.token_account_owner.to_account_info().clone(),
                         to: ctx.accounts.chest_vault.to_account_info().clone(),
                     },
                 );
@@ -302,6 +347,26 @@ pub mod seven_seas {
     }
 
     #[derive(Accounts)]
+    #[instruction(thread_id: Vec<u8>)]
+    pub struct ChangeThread<'info> {
+        #[account(mut)]
+        pub payer: Signer<'info>,
+    
+        /// The Clockwork thread program.
+        #[account(address = clockwork_sdk::ID)]
+        pub clockwork_program: Program<'info, clockwork_sdk::ThreadProgram>,
+
+        /// Address to assign to the newly created thread.
+        /// CHECK: is this the correct account type?
+        #[account(mut, address = Thread::pubkey(thread_authority.key(), thread_id))]
+        pub thread: AccountInfo<'info>,
+    
+        /// The pda that will own and manage the thread.
+        #[account(seeds = [THREAD_AUTHORITY_SEED], bump)]
+        pub thread_authority: SystemAccount<'info>,
+    }
+
+    #[derive(Accounts)]
     pub struct InitShip<'info> {
         #[account(mut)]
         pub signer: Signer<'info>,
@@ -372,7 +437,8 @@ pub mod seven_seas {
         pub cannons: u64,
         pub upgrades: u16,
         pub xp: u16,
-        pub level: u16
+        pub level: u16,
+        pub start_health: u64,
     }
 
 }

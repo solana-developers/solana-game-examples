@@ -21,11 +21,11 @@ public class ShipManager : MonoBehaviour
 
     private void Start()
     {
-        MessageRouter.AddHandler<SolHunterService.SolHunterGameDataChangedMessage>(OnGameDataChangedMessage);   
-        MessageRouter.AddHandler<SolHunterService.ShipShotMessage>(OnShipShotMessage);   
+        MessageRouter.AddHandler<SevenSeasService.SolHunterGameDataChangedMessage>(OnGameDataChangedMessage);   
+        MessageRouter.AddHandler<SevenSeasService.ShipShotMessage>(OnShipShotMessage);   
     }
 
-    private void OnShipShotMessage(SolHunterService.ShipShotMessage obj)
+    private void OnShipShotMessage(SevenSeasService.ShipShotMessage obj)
     {
         if (Ships.ContainsKey(obj.ShipOwner))
         {
@@ -33,7 +33,7 @@ public class ShipManager : MonoBehaviour
         }
     }
 
-    private void OnGameDataChangedMessage(SolHunterService.SolHunterGameDataChangedMessage obj)
+    private void OnGameDataChangedMessage(SevenSeasService.SolHunterGameDataChangedMessage obj)
     {
         InitWithData(obj.GameDataAccount.Board);
     }
@@ -62,7 +62,7 @@ public class ShipManager : MonoBehaviour
             for (int x = 0; x < length; x++)
             {
                 Tile tile = board[x][y];
-                if (tile.State == SolHunterService.STATE_PLAYER)
+                if (tile.State == SevenSeasService.STATE_PLAYER)
                 {
                     if (!Ships.ContainsKey(tile.Player))
                     {
@@ -75,7 +75,7 @@ public class ShipManager : MonoBehaviour
                     }
                 }
 
-                if (tile.State == SolHunterService.STATE_CHEST)
+                if (tile.State == SevenSeasService.STATE_CHEST)
                 {
                     var key = x + "_" + y;
                     if (!Chests.ContainsKey(key))
@@ -105,7 +105,7 @@ public class ShipManager : MonoBehaviour
                 for (int x = 0; x < length; x++)
                 {
                     Tile tile = board[x][y];
-                    if (tile.State == SolHunterService.STATE_PLAYER && tile.Player == ship.Key)
+                    if (tile.State == SevenSeasService.STATE_PLAYER && tile.Player == ship.Key)
                     {
                         found = true;
                         break;
@@ -146,7 +146,7 @@ public class ShipManager : MonoBehaviour
                 for (int x = 0; x < length; x++)
                 {
                     Tile tile = board[x][y];
-                    if (tile.State == SolHunterService.STATE_CHEST && x+"_"+y == chest.Key)
+                    if (tile.State == SevenSeasService.STATE_CHEST && x+"_"+y == chest.Key)
                     {
                         found = true;
                         break;

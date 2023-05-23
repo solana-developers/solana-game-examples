@@ -18,14 +18,14 @@ namespace SolHunter
 
         public async void SetData(Tile tile)
         {
-            if (tile.State == SolHunterService.STATE_EMPTY)
+            if (tile.State == SevenSeasService.STATE_EMPTY)
             {
                 TileInfo.text = "";
                 NftItemView.gameObject.SetActive(false);
                 return;
             }
 
-            if (tile.State == SolHunterService.STATE_CHEST)
+            if (tile.State == SevenSeasService.STATE_CHEST)
             {
                 NftItemView.gameObject.SetActive(false);
                 TileInfo.text = "Chest\n<color=green>(0.05Sol)</color>";
