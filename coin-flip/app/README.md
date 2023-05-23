@@ -1,38 +1,32 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Setting Up and Running the Application
 
-## Getting Started
+Follow the steps below to install dependencies and run the application.
 
-First, run the development server:
+## Install Dependencies
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
+First, you need to install the necessary dependencies. Run the following command:
+
+```
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+This command installs all the dependencies listed in the `package.json` file.
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+## Run the Application
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+After installing the dependencies, you can start the application by running:
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+```
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+This command starts the application in development mode.
 
-## Learn More
+## Using Your Own Coin Flip Program
 
-To learn more about Next.js, take a look at the following resources:
+If you've deployed your own version of the coin flip program to devnet and would like to use it, update the `programId` in the `utils/anchor.ts` file. Replace `YOUR_PROGRAM_ID` with the id of your deployed program.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+```
+// Coin flip game program ID
+const programId = new PublicKey("YOUR_PROGRAM_ID")
+```
