@@ -14,6 +14,8 @@ const STATE_EMPTY: u8 = 0;
 const STATE_PLAYER: u8 = 1;
 const STATE_CHEST: u8 = 2;
 
+const CHEST_COIN_REWARD: u64 = 10;
+
 pub const TOKEN_DECIMAL_MULTIPLIER: u64 = 1000000000;
 
 #[derive(Accounts)]
@@ -590,7 +592,19 @@ impl GameDataAccount {
                             transfer_instruction,
                             signer,
                         );
-                        anchor_spl::token::transfer(cpi_ctx, 10*TOKEN_DECIMAL_MULTIPLIER)?;
+                        anchor_spl::token::transfer(cpi_ctx, CHEST_COIN_REWARD*TOKEN_DECIMAL_MULTIPLIER)?;
+
+                        self.increase_action_id();
+
+                        let item = GameAction {
+                            action_id: self.action_id,
+                            action_type: 3,
+                            player: player.key(),
+                            target: player.key(),
+                            damage: CHEST_COIN_REWARD
+                        };
+                        game_actions.game_actions.push(item);
+
                         msg!("Collected Chest");
                     } else if new_tile.state == STATE_PLAYER {
                         self.attack_tile((new_player_position.0,new_player_position.1),

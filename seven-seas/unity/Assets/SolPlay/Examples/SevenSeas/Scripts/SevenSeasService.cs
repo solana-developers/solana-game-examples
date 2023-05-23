@@ -58,8 +58,9 @@ public class SevenSeasService : MonoBehaviour
     // with the same block hash. Since the would result in the same hash one would be dropped. So we just increase this byte 
     // and send it the with instruction. 
     private int InstructionBump;
-    private Dictionary<ulong, GameAction> alreadyPreformedGameActions = new Dictionary<ulong, GameAction>(); 
-
+    private Dictionary<ulong, GameAction> alreadyPrerformedGameActions = new Dictionary<ulong, GameAction>();
+    private bool HasPlayerInitialAnimations = false;
+    
     public class SolHunterGameDataChangedMessage
     {
         public GameDataAccount GameDataAccount;
@@ -128,6 +129,7 @@ public class SevenSeasService : MonoBehaviour
     private void OnSocketConnected(SocketServerConnectedMessage message)
     {
         GetGameData();
+        GetGameActions();
         ServiceFactory.Resolve<SolPlayWebSocketService>().SubscribeToPubKeyData(gameDataAccount, result =>
         {
             GameDataAccount gameDataAccount =
@@ -149,9 +151,20 @@ public class SevenSeasService : MonoBehaviour
 
     private void OnNewGameActions(GameActionHistory gameActionHistory)
     {
+        if (!HasPlayerInitialAnimations)
+        {
+            foreach (GameAction gameAction in gameActionHistory.GameActions)
+            {
+                alreadyPrerformedGameActions.Add(gameAction.ActionId, gameAction);
+            }
+
+            HasPlayerInitialAnimations = true;
+            return;
+        }
+        
         foreach (GameAction gameAction in gameActionHistory.GameActions)
         {
-            if (!alreadyPreformedGameActions.ContainsKey(gameAction.ActionId))
+            if (!alreadyPrerformedGameActions.ContainsKey(gameAction.ActionId))
             {
                 // Ship shot
                 if (gameAction.ActionType == 0)
@@ -183,7 +196,17 @@ public class SevenSeasService : MonoBehaviour
                     }
                 }
                 
-                alreadyPreformedGameActions.Add(gameAction.ActionId, gameAction);
+                // Chest collected
+                if (gameAction.ActionType == 3)
+                {
+                    if (ServiceFactory.Resolve<ShipManager>()
+                        .TryGetShipByOwner(gameAction.Target, out ShipBehaviour ship))
+                    {
+                        MessageRouter.RaiseMessage(new BlimpSystem.Show3DBlimpMessage("+"+gameAction.Damage, ship.transform.position, BlimpSystem.BlimpType.CoinBlimp));   
+                    }
+                }
+                
+                alreadyPrerformedGameActions.Add(gameAction.ActionId, gameAction);
             }
         }
     }
@@ -254,6 +277,21 @@ public class SevenSeasService : MonoBehaviour
             GameDataAccount = gameDataAccount
         });
         return gameDataAccount;
+    }
+
+    public async Task<GameActionHistory> GetGameActions()
+    {
+        var gameData = await ServiceFactory.Resolve<WalletHolderService>().InGameWallet.ActiveRpcClient
+            .GetAccountInfoAsync(this.gameActionsAccount, Commitment.Confirmed, BinaryEncoding.JsonParsed);
+        if (gameData == null ||gameData.Result == null || gameData.Result.Value == null || !gameData.WasSuccessful)
+        {
+            return null;
+        }
+        GameActionHistory gameActionsHistory =
+            GameActionHistory.Deserialize(Convert.FromBase64String(gameData.Result.Value.Data[0]));
+        
+        OnNewGameActions(gameActionsHistory);
+        return gameActionsHistory;
     }
 
     private void SetCachedGameData(GameDataAccount gameDataAccount)

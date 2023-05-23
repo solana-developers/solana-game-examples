@@ -24668,6 +24668,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3717849123567025178, guid: bc76dbd9ca62145069ac709427e99206, type: 3}
+      propertyPath: CoinBlimpPrefab
+      value: 
+      objectReference: {fileID: 3937335489223350052, guid: b958869b3fd00410e9984deea6ee4389, type: 3}
+    - target: {fileID: 3717849123567025178, guid: bc76dbd9ca62145069ac709427e99206, type: 3}
       propertyPath: DamageBlimpPrefab
       value: 
       objectReference: {fileID: 3937335489223350052, guid: d344c11aa41bd4a6091876a4e889da0e, type: 3}

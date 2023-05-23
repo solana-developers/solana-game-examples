@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Frictionless;
 using SevenSeas.Types;
 using Solana.Unity.Wallet;
+using SolPlay.Scripts.Services;
 using SolPlay.Scripts.Ui;
 using UnityEngine;
 
@@ -175,7 +176,8 @@ public class ShipManager : MonoBehaviour
     private ShipBehaviour SpawnShip(Vector2 startPosition, Tile tile)
     {
         var newShip = Instantiate(ShipPrefab);
-        newShip.Init(startPosition, tile);
+        var walletPubKey = ServiceFactory.Resolve<WalletHolderService>().InGameWallet.Account.PublicKey;
+        newShip.Init(startPosition, tile, walletPubKey == tile.Player);
         return newShip;
     }
     

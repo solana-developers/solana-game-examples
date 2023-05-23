@@ -1,5 +1,7 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using Frictionless;
 using SevenSeas.Types;
@@ -14,31 +16,29 @@ using UnityEngine.UI;
 public class ShipBehaviour : MonoBehaviour
 {
     public List<GameObject> ShotPrefabs;
-    public GameObject Root;
 
     public List<GameObject> UpgradeLevels;
     
     public Vector3 TargetPosition;
-    public Vector2 GridPosition;
     public Vector2 LastGridPosition;
     public Vector3 LastPosition;
     public Vector3 UpVector = Vector3.left;
-    public Animator Animator;
     public HealthBar HealthBar;
     public TextMeshProUGUI PublicKey;
     public RawImage Avatar;
     public GameObject RotationRoot;
+    public GameObject SelectionCircleRoot;
     public Tile currentTile;
-
+    public GameObject SelectionCircelFX;
+    
     public float ScrenShakePower = 3;
     public float ScrenShakeDuration = 0.05f;
     
-    public void Init(Vector2 startPosition, Tile tile)
+    public void Init(Vector2 startPosition, Tile tile, bool isPlayer)
     {
         currentTile = tile;
         transform.position = new Vector3(10 * startPosition.x + 5f, 1.4f, (10 * startPosition.y) - 5f);
         TargetPosition = transform.position;
-        GridPosition = startPosition;
         LastGridPosition = startPosition;
         HealthBar.SetHealth(tile.Health, tile.StartHealth);
         switch (tile.LookDirection)
@@ -55,6 +55,11 @@ public class ShipBehaviour : MonoBehaviour
             case 3:
                 RotationRoot.transform.rotation = Quaternion.Euler(0, 270, 0);
                 break;
+        }
+
+        if (isPlayer)
+        {
+            Instantiate(SelectionCircelFX, SelectionCircleRoot.transform);
         }
 
         var model = Instantiate(UpgradeLevels[tile.ShipLevel - 1], RotationRoot.transform);
@@ -109,14 +114,11 @@ public class ShipBehaviour : MonoBehaviour
         }
 
         LastGridPosition = newPosition;
-        GridPosition = newPosition;
     }
 
     private async void SetNftAvatar(PublicKey avatarPublicKey)
     {
-        Avatar.gameObject.SetActive(false);
         var avatarNft = ServiceFactory.Resolve<NftService>().GetNftByMintAddress(avatarPublicKey);
-        var wallet = ServiceFactory.Resolve<WalletHolderService>().BaseWallet;
 
         if (avatarNft == null)
         {
@@ -125,9 +127,17 @@ public class ShipBehaviour : MonoBehaviour
 
         if (avatarNft == null)
         {
-            /*avatarNft = await Nft.TryGetNftData(avatarPublicKey, wallet.ActiveRpcClient).AsUniTask();
-            Avatar.texture = avatarNft.metaplexData.nftImage.file;
-            Avatar.gameObject.SetActive(true);*/
+            try
+            {
+                var rpc = ServiceFactory.Resolve<WalletHolderService>().BaseWallet.ActiveRpcClient;
+                avatarNft = await Nft.TryGetNftData(new PublicKey("4PHi4i2tnNazWuj8v9kA7QMUwyaQhTKkqQAJrnjTszQP"), rpc).AsUniTask();
+                Avatar.texture = avatarNft.metaplexData.nftImage.file;
+                Avatar.gameObject.SetActive(true);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError(e);
+            }
         }
     }
 

@@ -12,7 +12,8 @@ namespace SolPlay.Scripts.Ui
             TextWithBackground,
             Boost,
             Score,
-            DamageBlimp
+            DamageBlimp,
+            CoinBlimp,
         }
 
         public class ShowLogMessage
@@ -59,6 +60,7 @@ namespace SolPlay.Scripts.Ui
         public TextBlimp BoostBlimpPrefab;
         public TextBlimp ScoreBlimpPrefab;
         public TextBlimp3D DamageBlimpPrefab;
+        public TextBlimp3D CoinBlimpPrefab;
         public GameObject LogMessageRoot;
         public GameObject BlimpRoot;
 
@@ -72,7 +74,17 @@ namespace SolPlay.Scripts.Ui
 
         private void OnShow3DBlimpMessage(Show3DBlimpMessage message)
         {
-            TextBlimp3D textBlimp  = Instantiate(DamageBlimpPrefab);
+            TextBlimp3D textBlimpPrefab = null;
+            switch (message.BlimpType)
+            {
+                case BlimpType.CoinBlimp:
+                    textBlimpPrefab = CoinBlimpPrefab;
+                    break;
+                case BlimpType.DamageBlimp:
+                    textBlimpPrefab = DamageBlimpPrefab;
+                    break;
+            }
+            TextBlimp3D textBlimp  = Instantiate(textBlimpPrefab);
             textBlimp.SetData(message.BlimpText);
             textBlimp.transform.position = message.Position;
             StartCoroutine(DestroyDelayed(textBlimp.gameObject));
