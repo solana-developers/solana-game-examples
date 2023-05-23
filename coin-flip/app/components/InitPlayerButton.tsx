@@ -52,7 +52,7 @@ const InitPlayerButton = () => {
       }
 
       // Intructions to create the VRF account
-      const [VrfAccount, TransactionObject] =
+      const [VrfAccount, createVrfAccountInstruction] =
         await sbv2.VrfAccount.createInstructions(
           switchboard?.program, // switchboard program
           publicKey, // payer
@@ -65,7 +65,7 @@ const InitPlayerButton = () => {
         )
 
       // Instructions to create the VRF permission account
-      const [PermissionAccount, TransactionObject2] =
+      const [PermissionAccount, createPermissionAccountInstructions] =
         sbv2.PermissionAccount.createInstruction(
           switchboard.program, // switchboard program
           publicKey, // payer
@@ -88,8 +88,8 @@ const InitPlayerButton = () => {
 
       // Create a transaction with all the instructions
       const tx = new Transaction().add(
-        ...TransactionObject.ixns,
-        ...TransactionObject2.ixns,
+        ...createVrfAccountInstruction.ixns,
+        ...createPermissionAccountInstructions.ixns,
         instruction
       )
 
