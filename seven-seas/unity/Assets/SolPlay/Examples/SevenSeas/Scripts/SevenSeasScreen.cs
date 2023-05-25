@@ -2,7 +2,10 @@ using Frictionless;
 using NativeWebSocket;
 using SolHunter;
 using SevenSeas.Accounts;
+using Solana.Unity.Programs;
+using Solana.Unity.Rpc.Types;
 using Solana.Unity.SDK.Nft;
+using Solana.Unity.Wallet;
 using SolPlay.Examples.SevenSeas.Scripts;
 using SolPlay.Scripts.Services;
 using SolPlay.Scripts.Ui;
@@ -32,11 +35,15 @@ namespace TinyAdventure
         public Button StartThreadButton;
         public Button PauseThreadButton;
         public Button ResumeThreadButton;
+        public Button AdminButton;
         public TextMeshProUGUI ShipLevel;
+        public TextMeshProUGUI UpgradeButtonText;
 
         public GameObject NoSelectedNftRoot;
         public GameObject NoPlayerSpawnedRoot;
         public GameObject GameRunningRoot;
+        public GameObject UpgradeShipRoot;
+        public GameObject AdminRoot;
 
         public SolHunterTile TilePrefab;
         public GameObject TilesRoot;
@@ -64,6 +71,17 @@ namespace TinyAdventure
             OpenInGameWalletPopup.onClick.AddListener(OnInGameWalletButtonClicked);
             UpgradeButton.onClick.AddListener(OnUpgradeButtonClicked);
             InitShipButton.onClick.AddListener(OnInitShipButtonClicked);
+            // We currently dont need the init ship button. It will be initialized with the first deploy ship
+            // Like this the player will have less choices to make
+            InitShipButton.gameObject.SetActive(false);
+            UpgradeShipRoot.gameObject.SetActive(false);
+            AdminButton.onClick.AddListener(OnAdminButtonClicked);
+            AdminRoot.gameObject.SetActive(false);
+        }
+
+        private void OnAdminButtonClicked()
+        {
+            AdminRoot.gameObject.SetActive(!AdminRoot.gameObject.activeSelf);
         }
 
         private void Start()
@@ -90,9 +108,7 @@ namespace TinyAdventure
 
         private void OnShipDataChangedMessage(SevenSeasService.SolHunterShipDataChangedMessage message)
         {
-            UpgradeButton.gameObject.SetActive(message != null);
-            InitShipButton.gameObject.SetActive(message == null);
-            ShipLevel.text = "Level: " + message.Ship.Upgrades;
+            UpdateContent();
         }
 
         private async void OnWalletLoggedInMessage(WalletLoggedInMessage message)
@@ -121,7 +137,7 @@ namespace TinyAdventure
             }
         }
 
-        private void UpdateContent()
+        private async void UpdateContent()
         {
             if (ServiceFactory.Resolve<SolPlayWebSocketService>().GetState() != WebSocketState.Open)
             {
@@ -131,8 +147,39 @@ namespace TinyAdventure
                 return;
             }
 
-            var solHunterService = ServiceFactory.Resolve<SevenSeasService>();
-            if (solHunterService.IsPlayerSpawned())
+            var sevenSeasService = ServiceFactory.Resolve<SevenSeasService>();
+            UpgradeShipRoot.gameObject.SetActive(sevenSeasService.CurrentShipData != null);
+            UpgradeButton.gameObject.SetActive(sevenSeasService.CurrentShipData != null);
+            InitShipButton.gameObject.SetActive(sevenSeasService.CurrentShipData == null);
+            if (sevenSeasService.CurrentShipData != null)
+            {
+                ShipLevel.text = "Ship Level: " + sevenSeasService.CurrentShipData.Upgrades;
+                var shipUpgradeCost = sevenSeasService.GetShipUpgradeCost(sevenSeasService.CurrentShipData.Upgrades);
+                UpgradeButtonText.text = "Upgrade: " + shipUpgradeCost;
+                var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
+                if (!walletHolderService.IsLoggedIn)
+                {
+                    return;
+                } 
+                var wallet = walletHolderService.BaseWallet;
+                if (wallet != null && wallet.Account.PublicKey != null)
+                {
+                    var _associatedTokenAddress =
+                        AssociatedTokenAccountProgram.DeriveAssociatedTokenAccount(wallet.Account.PublicKey, SevenSeasService.GoldTokenMint);
+                    var tokenBalance = await wallet.ActiveRpcClient.GetTokenAccountBalanceAsync(_associatedTokenAddress, Commitment.Confirmed);
+                    if (tokenBalance.Result != null)
+                    {
+                        UpgradeButton.interactable = shipUpgradeCost * Mathf.Pow(10, tokenBalance.Result.Value.Decimals) <= tokenBalance.Result.Value.AmountUlong;
+                    }
+                }
+            }
+            else
+            {
+                ShipLevel.text = "Ship Level: " + 1;
+                UpgradeButtonText.text = "Upgrade: 5" + sevenSeasService.GetShipUpgradeCost(0);
+            }
+
+            if (sevenSeasService.IsPlayerSpawned())
             {
                 SetNftGraphic();
                 GameRunningRoot.gameObject.SetActive(true);
@@ -150,7 +197,7 @@ namespace TinyAdventure
                 return;
             }
 
-            if (!solHunterService.IsPlayerSpawned())
+            if (!sevenSeasService.IsPlayerSpawned())
             {
                 GameRunningRoot.gameObject.SetActive(false);
                 NoPlayerSpawnedRoot.gameObject.SetActive(true);

@@ -24,7 +24,8 @@ public class SevenSeasService : MonoBehaviour
     public static PublicKey GoldTokenMint = new PublicKey("goLdQwNaZToyavwkbuPJzTt5XPNR3H7WQBGenWtzPH3");
     public static PublicKey CannonTokenMint = new PublicKey("boomkN8rQpbgGAKcWvR3yyVVkjucNYcq7gTav78NQAG");
     public static PublicKey RumTokenMint = new PublicKey("rumwqxXmjKAmSdkfkc5qDpHTpETYJRyXY22DWYUmWDt");
-    
+
+    public static PublicKey ProgramGoldTokenPDA = new PublicKey("3SPDb9gFpkXxFkmn2NvqFvdSGDHDZuM1ByYetkuJDu7C");
     // Local urls: 
     // https://rpc-devnet.helius.xyz/?api-key=ac3a68f3-50cd-4346-8504-56a01b3f233e
     // http://localhost:8899
@@ -46,6 +47,7 @@ public class SevenSeasService : MonoBehaviour
     public static int TILE_COUNT_Y = 10;
 
     public GameDataAccount CurrentGameData;
+    public Ship CurrentShipData;
 
     public PublicKey gameDataAccount;
 
@@ -130,6 +132,7 @@ public class SevenSeasService : MonoBehaviour
     {
         GetGameData();
         GetGameActions();
+        GetShipData();
         ServiceFactory.Resolve<SolPlayWebSocketService>().SubscribeToPubKeyData(gameDataAccount, result =>
         {
             GameDataAccount gameDataAccount =
@@ -144,7 +147,7 @@ public class SevenSeasService : MonoBehaviour
         {
             GameActionHistory gameActionHistory =
                 GameActionHistory.Deserialize(Convert.FromBase64String(result.result.value.data[0]));
-            Debug.Log("Actions len: " + gameActionHistory.GameActions.Length);
+            //Debug.Log("Actions len: " + gameActionHistory.GameActions.Length);
             OnNewGameActions(gameActionHistory);
         });
     }
@@ -211,27 +214,14 @@ public class SevenSeasService : MonoBehaviour
         }
     }
 
-    public static ulong GetMaxHealthByLevel(Tile tile)
-    {
-        switch (tile.ShipLevel)
-        {
-            case 1:
-                return 100;
-            case 2:
-                return 120;
-            case 3:
-                return 300;
-            case 4:
-                return 500;
-        }
-
-        return 1;
-    }
-
     public async Task<Ship> GetShipData()
     {
         var baseWallet = ServiceFactory.Resolve<WalletHolderService>().BaseWallet;
         var selectedNft = ServiceFactory.Resolve<NftService>().SelectedNft;
+        if (selectedNft == null)
+        {
+            return null;
+        }
         PublicKey.TryFindProgramAddress(new[]
             {
                 Encoding.UTF8.GetBytes("ship"),
@@ -246,6 +236,7 @@ public class SevenSeasService : MonoBehaviour
         try
         {
             shipAccount = await client.GetShipAsync(shipPDA, Commitment.Confirmed);
+            CurrentShipData = shipAccount.ParsedResult;
         }
         catch (Exception e)
         {
@@ -324,7 +315,7 @@ public class SevenSeasService : MonoBehaviour
     public void Initialize()
     {
         var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
-        if (!walletHolderService.HasEnoughSol(true, 300000000))
+        if (!walletHolderService.HasEnoughSol(false, 300000000))
         {
             Debug.LogError("Not enough sol");
             return;
@@ -332,20 +323,20 @@ public class SevenSeasService : MonoBehaviour
 
         TransactionInstruction initializeInstruction = GetInitializeInstruction();
         ServiceFactory.Resolve<TransactionService>().SendInstructionInNextBlock("Initialize", initializeInstruction,
-            walletHolderService.InGameWallet);
+            walletHolderService.BaseWallet);
     }
 
     public void Reset()
     {
         var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
-        if (!walletHolderService.HasEnoughSol(true, 300000000))
+        if (!walletHolderService.HasEnoughSol(false, 300000))
         {
             return;
         }
 
         TransactionInstruction initializeInstruction = GetResetInstruction();
         ServiceFactory.Resolve<TransactionService>().SendInstructionInNextBlock("Reset", initializeInstruction,
-            walletHolderService.InGameWallet);
+            walletHolderService.BaseWallet);
     }
 
     public void Move(Direction direction)
@@ -378,7 +369,7 @@ public class SevenSeasService : MonoBehaviour
     {
         long costForSpawn = (long) 10000;
         var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
-        if (!walletHolderService.HasEnoughSol(true, costForSpawn))
+        if (!walletHolderService.HasEnoughSol(false, costForSpawn))
         {
             return;
         }
@@ -400,12 +391,13 @@ public class SevenSeasService : MonoBehaviour
      {
          long costForSpawn = (long) (0.11f * SolanaUtils.SolToLamports);
          var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
-         if (!walletHolderService.HasEnoughSol(true, costForSpawn))
+         if (!walletHolderService.HasEnoughSol(false, costForSpawn))
          {
              return;
          }
-
+         
          var baseWallet = ServiceFactory.Resolve<WalletHolderService>().BaseWallet;
+         var ingameWallet = ServiceFactory.Resolve<WalletHolderService>().InGameWallet;
          var baseWalletAddress = baseWallet.Account.PublicKey;
 
          var playerTokenAccount =
@@ -421,6 +413,15 @@ public class SevenSeasService : MonoBehaviour
                  baseWalletAddress,
                  GoldTokenMint);
              instructions.Add(createTokenAccount);*/
+         }
+         
+         // If the player doesnt have much sol left in his auto approve wallet fill it up automatically
+         long autoApproveCost = (long) (0.01f * SolanaUtils.SolToLamports);
+         if (walletHolderService.InGameWalletSolBalance < autoApproveCost)
+         {
+             var transactionInstruction = SystemProgram.Transfer(baseWallet.Account.PublicKey,
+                 ingameWallet.Account.PublicKey, (ulong) (long) (0.05f * SolanaUtils.SolToLamports));
+             instructions.Add(transactionInstruction);
          }
 
          LoggingService.Log("Spawn player and chest", true);
@@ -580,10 +581,9 @@ public class SevenSeasService : MonoBehaviour
     private TransactionInstruction GetResetInstruction()
     {
         var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
-        var wallet = walletHolderService.InGameWallet;
 
         var accounts = new ResetAccounts();
-        accounts.Signer = wallet.Account.PublicKey;
+        accounts.Signer = walletHolderService.BaseWallet.Account.PublicKey;
         accounts.GameDataAccount = gameDataAccount;
 
         TransactionInstruction resetInstruction = SevenSeasProgram.Reset(accounts, ProgramId);
@@ -752,5 +752,22 @@ public class SevenSeasService : MonoBehaviour
         TransactionInstruction initializeInstruction = GetChutuluhInstruction();
         ServiceFactory.Resolve<TransactionService>().SendInstructionInNextBlock($"Chutuluh",
             initializeInstruction, walletHolderService.InGameWallet);
+    }
+
+    public int GetShipUpgradeCost(ushort upgrades)
+    {
+        switch (upgrades)
+        {
+            case 0:
+                return 5;
+            case 1:
+                return 200;
+            case 2:
+                return 1500;
+            case 3:
+                return 25000;
+            default:
+                return 9999999;
+        }
     }
 }

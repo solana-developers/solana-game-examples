@@ -61,7 +61,7 @@ namespace SolPlay.Scripts.Services
             while (true)
             {
                 UpdateRecentBlockHash();
-                yield return new WaitForSeconds(15f);
+                yield return new WaitForSeconds(5f);
             }
         }
 
@@ -72,7 +72,6 @@ namespace SolPlay.Scripts.Services
             if (blockHash.WasSuccessful)
             {
                 latestBlockHash = blockHash.Result.Value.Blockhash;
-                Debug.Log("Latest block hash " + latestBlockHash);
             }
         }
 
@@ -464,14 +463,6 @@ namespace SolPlay.Scripts.Services
                 await wallet.SignAndSendTransaction(transferSolTransaction,
                     true, Commitment.Confirmed);
 
-            Debug.Log(requestResult.ErrorData);
-            Debug.Log(requestResult.WasSuccessful);
-            Debug.Log(requestResult.HttpStatusCode);
-            Debug.Log(requestResult.WasHttpRequestSuccessful);
-            Debug.Log(requestResult.Result);
-            Debug.Log(requestResult.Reason);
-            Debug.Log(requestResult.RawRpcResponse);
-            
             CheckSignatureStatus(requestResult.Result);
 
             return requestResult;

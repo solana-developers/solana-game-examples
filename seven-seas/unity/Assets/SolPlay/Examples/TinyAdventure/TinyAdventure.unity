@@ -123,6 +123,63 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &7584538 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1665109048261681710, guid: 1b4fdc6f1968a43d68ee82dc0c862785, type: 3}
+  m_PrefabInstance: {fileID: 121978677}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7584541
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7584538}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b75a4e92c14884ea6bf3e46d07a33eb0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  rpcCluster: 1
+  customRpc: http://localhost:8090
+  webSocketsRpc: ws://localhost:8899
+  autoConnectOnStartup: 0
+  web3AuthWalletOptions:
+    appName: Web3Auth Sample App
+    logoLight: 
+    logoDark: 
+    defaultLanguage: en
+    dark: 1
+    themeName: primary
+    themeColor: '#123456'
+    redirectUrl: torusapp://com.torus.Web3AuthUnity/auth
+    clientId: BAwFgL-r7wzQKmtcdiz2uHJKNZdK7gzEf2q-m55xfzSZOw8jLOyIi4AVvvzaEQO5nv2dFLEmf9LBkF8kaq3aErg
+    network: 1
+  solanaWalletAdapterOptions:
+    solanaMobileWalletAdapterOptions:
+      identityUri: https://solana.unity-sdk.gg/
+      iconUri: /favicon.ico
+      name: Solana.Unity-SDK
+      keepConnectionAlive: 1
+    solanaWalletAdapterWebGLOptions:
+      walletAdapterButtonPrefab: {fileID: 0}
+      walletAdapterUIPrefab: {fileID: 0}
+    phantomWalletOptions:
+      phantomApiVersion: v1
+      appMetaDataUrl: https://github.com/garbles-labs/Solana.Unity-SDK
+      deeplinkUrlScheme: unitydl
+--- !u!114 &7584542
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7584538}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fbd7daddfbeaa44729a122a269ac8fb5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &57817228
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -324,6 +381,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1665109046784520929, guid: 1b4fdc6f1968a43d68ee82dc0c862785, type: 3}
+      propertyPath: DevnetLoginRPCUrl
+      value: http://localhost:8090
+      objectReference: {fileID: 0}
     - target: {fileID: 1665109046784520929, guid: 1b4fdc6f1968a43d68ee82dc0c862785, type: 3}
       propertyPath: DevnetWalletCluster
       value: 1

@@ -11,4 +11,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/SolPlay/Examples/SevenSeas/SevenSeas.unity
     guid: 6f61575f6f3464b04aead34be4d89430
+  - enabled: 0
+    path: Assets/SolPlay/Examples/TinyAdventure/TinyAdventure.unity
+    guid: 70b81db668d85478ab0e4325776df049
   m_configObjects: {}

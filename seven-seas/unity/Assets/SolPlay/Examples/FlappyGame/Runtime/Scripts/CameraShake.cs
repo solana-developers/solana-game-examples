@@ -3,7 +3,6 @@ using UnityEngine;
 
 namespace SolPlay.FlappyGame.Runtime.Scripts
 {
-    [ExecuteInEditMode]
     public class CameraShake : MonoBehaviour {
 
         public static CameraShake instance;
@@ -15,22 +14,40 @@ namespace SolPlay.FlappyGame.Runtime.Scripts
     
         public float CameraSize = 10.65f;
         public float Minimum = 5;
-    
+        public float FixedOffset = 0;
+
+        private Camera Camera;
+        private Vector3 StartPosition;
+        
         void Awake()
         {
             instance = this;
             instance._originalPos = instance.gameObject.transform.localPosition;
+            Camera = GetComponent<Camera>();
+            StartPosition = Camera.gameObject.transform.position;
         }
 
-        void Update() {
+        void Update()
+        {
+            
             // Calculate a fake delta time, so we can Shake while game is paused.
             _timeAtCurrentFrame = Time.realtimeSinceStartup;
             _fakeDelta = _timeAtCurrentFrame - _timeAtLastFrame;
             _timeAtLastFrame = _timeAtCurrentFrame; 
-            /*
-            //GetComponent<Camera>().orthographicSize = CameraSize / Screen.width * Screen.height;
-            var orthographicSize = 1 / ((CameraSize / 1000) * Screen.width);        
-            GetComponent<Camera>().orthographicSize = Mathf.Max(Minimum, orthographicSize);*/
+
+            if (Screen.width < Screen.height)
+            {
+                Camera.gameObject.transform.position = StartPosition + new Vector3(0, 20, 0);
+            }
+            else
+            {
+                Camera.gameObject.transform.position = StartPosition;
+            }
+            //Camera.orthographicSize = CameraSize / Screen.width * Screen.height;
+            //var orthographicSize = ((CameraSize / 1000) * Screen.width);        
+            //Camera.orthographicSize = Mathf.Max(Minimum, orthographicSize);
+            
+            //Camera.fieldOfView = 1 / (Screen.width / FixedOffset);
         }
 
         public static void Shake (float duration, float amount) {

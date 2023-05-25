@@ -153,7 +153,7 @@ namespace SolPlay.Scripts.Services
             return (bytes) =>
             {
                 var message = System.Text.Encoding.UTF8.GetString(bytes);
-                Debug.Log("SocketMessage:" + message);
+                //Debug.Log("SocketMessage:" + message);
                 WebSocketErrorResponse errorResponse = JsonConvert.DeserializeObject<WebSocketErrorResponse>(message);
                 if (!string.IsNullOrEmpty(errorResponse.error))
                 {

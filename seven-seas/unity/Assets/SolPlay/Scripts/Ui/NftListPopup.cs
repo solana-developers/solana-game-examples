@@ -97,9 +97,22 @@ namespace SolPlay.Scripts.Ui
             {
                 MinitingBlocker.gameObject.SetActive(true);
             }
-
-            // Mint a baloon beaver
+            
+            
+            // Mint a pirate sship
             var signature = await ServiceFactory.Resolve<NftMintingService>()
+                .MintNftWithMetaData(
+                    "https://shdw-drive.genesysgo.net/QZNGUVnJgkw6sGQddwZVZkhyUWSUXAjXF9HQAjiVZ55/DummyPirateShipMetaData.json",
+                    "Simple Pirate Ship", "Pirate", b =>
+                    {
+                        if (MinitingBlocker != null)
+                        {
+                            MinitingBlocker.gameObject.SetActive(false);
+                        }
+                    });
+            
+            // Mint a baloon beaver
+           /* var signature = await ServiceFactory.Resolve<NftMintingService>()
                 .MintNftWithMetaData(
                     "https://shdw-drive.genesysgo.net/2TvgCDMEcSGnfuSUZNHvKpHL9Z5hLn19YqvgeUpS6rSs/manifest.json",
                     "Balloon Beaver", "Beaver", b =>
@@ -109,7 +122,7 @@ namespace SolPlay.Scripts.Ui
                             MinitingBlocker.gameObject.SetActive(false);
                         }
                     });
-
+*/
             // Mint a solandy
             /*LoggingService.Log("Start minting a 'SolAndy' nft", true);
             var signature = await ServiceFactory.Resolve<NftMintingService>().MintNftWithMetaData("https://shdw-drive.genesysgo.net/4JaYMUSY8f56dFzmdhuzE1QUqhkJYhsC6wZPaWg9Zx7f/manifest.json", "SolAndy", "SolPlay");

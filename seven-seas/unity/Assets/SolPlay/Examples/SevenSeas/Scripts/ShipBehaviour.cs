@@ -62,7 +62,7 @@ public class ShipBehaviour : MonoBehaviour
             Instantiate(SelectionCircelFX, SelectionCircleRoot.transform);
         }
 
-        var model = Instantiate(UpgradeLevels[tile.ShipLevel - 1], RotationRoot.transform);
+        var model = Instantiate(UpgradeLevels[tile.ShipLevel], RotationRoot.transform);
         model.name = "model";
     }
 
@@ -130,21 +130,25 @@ public class ShipBehaviour : MonoBehaviour
             try
             {
                 var rpc = ServiceFactory.Resolve<WalletHolderService>().BaseWallet.ActiveRpcClient;
-                avatarNft = await Nft.TryGetNftData(new PublicKey("4PHi4i2tnNazWuj8v9kA7QMUwyaQhTKkqQAJrnjTszQP"), rpc).AsUniTask();
-                Avatar.texture = avatarNft.metaplexData.nftImage.file;
-                Avatar.gameObject.SetActive(true);
+                avatarNft = await Nft.TryGetNftData(avatarPublicKey, rpc).AsUniTask();
             }
             catch (Exception e)
             {
-                Debug.LogError(e);
+                //Debug.LogError(e);
             }
+        }
+
+        if (avatarNft != null)
+        {
+            Avatar.texture = avatarNft.metaplexData.nftImage.file;
+            Avatar.gameObject.SetActive(true);
         }
     }
 
     public void Shoot()
     {
         CameraShake.Shake(ScrenShakeDuration, ScrenShakePower);
-        var shootInstance = Instantiate(ShotPrefabs[currentTile.ShipLevel - 1]);
+        var shootInstance = Instantiate(ShotPrefabs[currentTile.ShipLevel]);
         shootInstance.transform.position = RotationRoot.transform.position;
         shootInstance.transform.rotation = RotationRoot.transform.rotation;
         StartCoroutine(KillDelayed(shootInstance));

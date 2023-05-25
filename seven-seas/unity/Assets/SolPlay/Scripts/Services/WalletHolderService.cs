@@ -30,8 +30,12 @@ namespace SolPlay.Scripts.Services
             IsInGameWallet = isInGameWallet;
         }
     }
+    
     public class WalletHolderService : MonoBehaviour, IMultiSceneSingleton
     {
+        // These are the custom urls to connect to local host with socket
+        //customRpc: http://localhost:8899/
+        //webSocketsRpc: ws://localhost:8090/
         public RpcCluster DevnetWalletCluster = RpcCluster.DevNet;
 
         public string DevnetLoginRPCUrl = "";

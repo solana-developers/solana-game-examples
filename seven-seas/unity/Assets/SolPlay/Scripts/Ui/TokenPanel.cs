@@ -63,7 +63,7 @@ namespace SolPlay.Scripts.Ui
                 return;
             } 
             var wallet = walletHolderService.BaseWallet;
-            var ingamewallet = walletHolderService.InGameWallet;
+
             if (wallet != null && wallet.Account.PublicKey != null)
             {
                 _associatedTokenAddress =
