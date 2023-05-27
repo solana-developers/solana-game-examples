@@ -13,16 +13,28 @@ const messages: Record<string, string> = {
   initialize: "Initializing",
   moveLeft: "Going left",
   moveRight: "Going right",
-}
+};
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const { instruction } = req.body
+  let instruction: string | string[] = req.query.instruction || req.body.instruction;
 
-  const message = messages[instruction]
+  if (!instruction) {
+    return res.status(400).json({ message: "Invalid instruction" });
+  }
 
+  if (Array.isArray(instruction)) {
+    instruction = instruction[0];
+  }
+
+  const message = messages[instruction];
+
+  if (!message) {
+    return res.status(400).json({ message: "Invalid instruction" });
+  }
+  
   let transaction: Transaction
 
   switch (instruction) {

@@ -526,8 +526,8 @@ impl GameDataAccount {
                     if tile.player == player.key.clone() {
                         player_position = Some((x, y));
                     }
-                    // Printing the whole board eats too much compute
-                    //msg!("{} {}", tile.player, tile.state);
+                    // Printing the whole board eats too much compute, only use locally
+                    // msg!("{} {}", tile.player, tile.state);
                 }
             }
         }
