@@ -12,12 +12,12 @@ using SolPlay.Scripts.Services;
 using TinyAdventureTwo.Program;
 using TinyAdventureTwo.Accounts;
 using UnityEngine;
-using InitializeAccounts = TinyAdventureTwo.Program.InitializeAccounts;
 using MoveRightAccounts = TinyAdventureTwo.Program.MoveRightAccounts;
 
 public class TinyAdventureTwoService : MonoBehaviour
 {
-    public static PublicKey ProgramId = new PublicKey("3UqUVArdz16iFtw8ushL4qU32qY9yB46aTwuxGPeWaRa");
+    //public static PublicKey ProgramId = new PublicKey("3UqUVArdz16iFtw8ushL4qU32qY9yB46aTwuxGPeWaRa");
+    public static PublicKey ProgramId = new PublicKey("7Sw57PQdnwHM9wBC52kyVyMyPr9kmHR54QW5yVkqiYKr");
 
     private PublicKey gameDataAccount;
     private PublicKey chestVaultAccount;
@@ -142,7 +142,7 @@ public class TinyAdventureTwoService : MonoBehaviour
         MoveRightAccounts account = new MoveRightAccounts();
         account.GameDataAccount = gameDataAccount;
         account.ChestVault = chestVaultAccount;
-        account.Signer = wallet.Account.PublicKey;
+        account.Player = wallet.Account.PublicKey;
         account.SystemProgram = SystemProgram.ProgramIdKey;
 
         TransactionInstruction initializeInstruction = TinyAdventureTwoProgram.MoveRight(account, password, ProgramId);
@@ -157,7 +157,7 @@ public class TinyAdventureTwoService : MonoBehaviour
         ResetLevelAndSpawnChestAccounts accounts = new ResetLevelAndSpawnChestAccounts();
         accounts.GameDataAccount = gameDataAccount;
         accounts.ChestVault = chestVaultAccount;
-        accounts.Signer = wallet.Account.PublicKey;
+        accounts.Payer = wallet.Account.PublicKey;
         accounts.SystemProgram = SystemProgram.ProgramIdKey;
 
         TransactionInstruction initializeInstruction = TinyAdventureTwoProgram.ResetLevelAndSpawnChest(accounts, ProgramId);
@@ -169,13 +169,13 @@ public class TinyAdventureTwoService : MonoBehaviour
         var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
         var wallet = walletHolderService.BaseWallet;
 
-        InitializeAccounts account = new InitializeAccounts();
+        InitializeLevelOneAccounts account = new InitializeLevelOneAccounts();
         account.Signer = wallet.Account.PublicKey;
         account.NewGameDataAccount = gameDataAccount;
         account.ChestVault = chestVaultAccount;
         account.SystemProgram = SystemProgram.ProgramIdKey;
 
-        TransactionInstruction initializeInstruction = TinyAdventureTwoProgram.Initialize(account, ProgramId);
+        TransactionInstruction initializeInstruction = TinyAdventureTwoProgram.InitializeLevelOne(account, ProgramId);
         return initializeInstruction;
     }
 }

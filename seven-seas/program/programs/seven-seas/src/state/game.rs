@@ -98,7 +98,6 @@ impl GameDataAccount {
                 self.board[x][y].state = STATE_EMPTY
             }
         }
-
         Ok(())
     }
 
@@ -414,7 +413,6 @@ impl GameDataAccount {
                 damage: damage,
             };
             self.add_new_game_action(game_actions, item);
-
         }
         Ok(())
     }

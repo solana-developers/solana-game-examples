@@ -45,12 +45,12 @@ namespace TinyAdventureTwo
             }
         }
 
-        public partial class ChestVault
+        public partial class ChestVaultAccount
         {
-            public static ulong ACCOUNT_DISCRIMINATOR => 4941121310321095136UL;
-            public static ReadOnlySpan<byte> ACCOUNT_DISCRIMINATOR_BYTES => new byte[]{224, 49, 205, 13, 167, 99, 146, 68};
-            public static string ACCOUNT_DISCRIMINATOR_B58 => "eVy8mstv7Py";
-            public static ChestVault Deserialize(ReadOnlySpan<byte> _data)
+            public static ulong ACCOUNT_DISCRIMINATOR => 9406927803919968769UL;
+            public static ReadOnlySpan<byte> ACCOUNT_DISCRIMINATOR_BYTES => new byte[]{1, 42, 101, 100, 255, 30, 140, 130};
+            public static string ACCOUNT_DISCRIMINATOR_B58 => "CJrgsQPtJV";
+            public static ChestVaultAccount Deserialize(ReadOnlySpan<byte> _data)
             {
                 int offset = 0;
                 ulong accountHashValue = _data.GetU64(offset);
@@ -60,7 +60,7 @@ namespace TinyAdventureTwo
                     return null;
                 }
 
-                ChestVault result = new ChestVault();
+                ChestVaultAccount result = new ChestVaultAccount();
                 return result;
             }
         }
@@ -91,15 +91,15 @@ namespace TinyAdventureTwo
             return new Solana.Unity.Programs.Models.ProgramAccountsResultWrapper<List<GameDataAccount>>(res, resultingAccounts);
         }
 
-        public async Task<Solana.Unity.Programs.Models.ProgramAccountsResultWrapper<List<ChestVault>>> GetChestVaultsAsync(string programAddress, Commitment commitment = Commitment.Finalized)
+        public async Task<Solana.Unity.Programs.Models.ProgramAccountsResultWrapper<List<ChestVaultAccount>>> GetChestVaultAccountsAsync(string programAddress, Commitment commitment = Commitment.Finalized)
         {
-            var list = new List<Solana.Unity.Rpc.Models.MemCmp>{new Solana.Unity.Rpc.Models.MemCmp{Bytes = ChestVault.ACCOUNT_DISCRIMINATOR_B58, Offset = 0}};
+            var list = new List<Solana.Unity.Rpc.Models.MemCmp>{new Solana.Unity.Rpc.Models.MemCmp{Bytes = ChestVaultAccount.ACCOUNT_DISCRIMINATOR_B58, Offset = 0}};
             var res = await RpcClient.GetProgramAccountsAsync(programAddress, commitment, memCmpList: list);
             if (!res.WasSuccessful || !(res.Result?.Count > 0))
-                return new Solana.Unity.Programs.Models.ProgramAccountsResultWrapper<List<ChestVault>>(res);
-            List<ChestVault> resultingAccounts = new List<ChestVault>(res.Result.Count);
-            resultingAccounts.AddRange(res.Result.Select(result => ChestVault.Deserialize(Convert.FromBase64String(result.Account.Data[0]))));
-            return new Solana.Unity.Programs.Models.ProgramAccountsResultWrapper<List<ChestVault>>(res, resultingAccounts);
+                return new Solana.Unity.Programs.Models.ProgramAccountsResultWrapper<List<ChestVaultAccount>>(res);
+            List<ChestVaultAccount> resultingAccounts = new List<ChestVaultAccount>(res.Result.Count);
+            resultingAccounts.AddRange(res.Result.Select(result => ChestVaultAccount.Deserialize(Convert.FromBase64String(result.Account.Data[0]))));
+            return new Solana.Unity.Programs.Models.ProgramAccountsResultWrapper<List<ChestVaultAccount>>(res, resultingAccounts);
         }
 
         public async Task<Solana.Unity.Programs.Models.AccountResultWrapper<GameDataAccount>> GetGameDataAccountAsync(string accountAddress, Commitment commitment = Commitment.Finalized)
@@ -111,13 +111,13 @@ namespace TinyAdventureTwo
             return new Solana.Unity.Programs.Models.AccountResultWrapper<GameDataAccount>(res, resultingAccount);
         }
 
-        public async Task<Solana.Unity.Programs.Models.AccountResultWrapper<ChestVault>> GetChestVaultAsync(string accountAddress, Commitment commitment = Commitment.Finalized)
+        public async Task<Solana.Unity.Programs.Models.AccountResultWrapper<ChestVaultAccount>> GetChestVaultAccountAsync(string accountAddress, Commitment commitment = Commitment.Finalized)
         {
             var res = await RpcClient.GetAccountInfoAsync(accountAddress, commitment);
             if (!res.WasSuccessful)
-                return new Solana.Unity.Programs.Models.AccountResultWrapper<ChestVault>(res);
-            var resultingAccount = ChestVault.Deserialize(Convert.FromBase64String(res.Result.Value.Data[0]));
-            return new Solana.Unity.Programs.Models.AccountResultWrapper<ChestVault>(res, resultingAccount);
+                return new Solana.Unity.Programs.Models.AccountResultWrapper<ChestVaultAccount>(res);
+            var resultingAccount = ChestVaultAccount.Deserialize(Convert.FromBase64String(res.Result.Value.Data[0]));
+            return new Solana.Unity.Programs.Models.AccountResultWrapper<ChestVaultAccount>(res, resultingAccount);
         }
 
         public async Task<SubscriptionState> SubscribeGameDataAccountAsync(string accountAddress, Action<SubscriptionState, Solana.Unity.Rpc.Messages.ResponseValue<Solana.Unity.Rpc.Models.AccountInfo>, GameDataAccount> callback, Commitment commitment = Commitment.Finalized)
@@ -132,21 +132,21 @@ namespace TinyAdventureTwo
             return res;
         }
 
-        public async Task<SubscriptionState> SubscribeChestVaultAsync(string accountAddress, Action<SubscriptionState, Solana.Unity.Rpc.Messages.ResponseValue<Solana.Unity.Rpc.Models.AccountInfo>, ChestVault> callback, Commitment commitment = Commitment.Finalized)
+        public async Task<SubscriptionState> SubscribeChestVaultAccountAsync(string accountAddress, Action<SubscriptionState, Solana.Unity.Rpc.Messages.ResponseValue<Solana.Unity.Rpc.Models.AccountInfo>, ChestVaultAccount> callback, Commitment commitment = Commitment.Finalized)
         {
             SubscriptionState res = await StreamingRpcClient.SubscribeAccountInfoAsync(accountAddress, (s, e) =>
             {
-                ChestVault parsingResult = null;
+                ChestVaultAccount parsingResult = null;
                 if (e.Value?.Data?.Count > 0)
-                    parsingResult = ChestVault.Deserialize(Convert.FromBase64String(e.Value.Data[0]));
+                    parsingResult = ChestVaultAccount.Deserialize(Convert.FromBase64String(e.Value.Data[0]));
                 callback(s, e, parsingResult);
             }, commitment);
             return res;
         }
 
-        public async Task<RequestResult<string>> SendInitializeAsync(InitializeAccounts accounts, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
+        public async Task<RequestResult<string>> SendInitializeLevelOneAsync(InitializeLevelOneAccounts accounts, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
         {
-            Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.TinyAdventureTwoProgram.Initialize(accounts, programId);
+            Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.TinyAdventureTwoProgram.InitializeLevelOne(accounts, programId);
             return await SignAndSendTransaction(instr, feePayer, signingCallback);
         }
 
@@ -170,7 +170,7 @@ namespace TinyAdventureTwo
 
     namespace Program
     {
-        public class InitializeAccounts
+        public class InitializeLevelOneAccounts
         {
             public PublicKey NewGameDataAccount { get; set; }
 
@@ -183,35 +183,35 @@ namespace TinyAdventureTwo
 
         public class ResetLevelAndSpawnChestAccounts
         {
+            public PublicKey Payer { get; set; }
+
             public PublicKey ChestVault { get; set; }
 
             public PublicKey GameDataAccount { get; set; }
-
-            public PublicKey Signer { get; set; }
 
             public PublicKey SystemProgram { get; set; }
         }
 
         public class MoveRightAccounts
         {
-            public PublicKey GameDataAccount { get; set; }
-
             public PublicKey ChestVault { get; set; }
 
-            public PublicKey Signer { get; set; }
+            public PublicKey GameDataAccount { get; set; }
+
+            public PublicKey Player { get; set; }
 
             public PublicKey SystemProgram { get; set; }
         }
 
         public static class TinyAdventureTwoProgram
         {
-            public static Solana.Unity.Rpc.Models.TransactionInstruction Initialize(InitializeAccounts accounts, PublicKey programId)
+            public static Solana.Unity.Rpc.Models.TransactionInstruction InitializeLevelOne(InitializeLevelOneAccounts accounts, PublicKey programId)
             {
                 List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
                 {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.NewGameDataAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.ChestVault, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Signer, true), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false)};
                 byte[] _data = new byte[1200];
                 int offset = 0;
-                _data.WriteU64(17121445590508351407UL, offset);
+                _data.WriteU64(17344740784559472625UL, offset);
                 offset += 8;
                 byte[] resultData = new byte[offset];
                 Array.Copy(_data, resultData, offset);
@@ -221,7 +221,7 @@ namespace TinyAdventureTwo
             public static Solana.Unity.Rpc.Models.TransactionInstruction ResetLevelAndSpawnChest(ResetLevelAndSpawnChestAccounts accounts, PublicKey programId)
             {
                 List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
-                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.ChestVault, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameDataAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Signer, true), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false)};
+                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Payer, true), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.ChestVault, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameDataAccount, false), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false)};
                 byte[] _data = new byte[1200];
                 int offset = 0;
                 _data.WriteU64(3341080949523873196UL, offset);
@@ -234,7 +234,7 @@ namespace TinyAdventureTwo
             public static Solana.Unity.Rpc.Models.TransactionInstruction MoveRight(MoveRightAccounts accounts, string password, PublicKey programId)
             {
                 List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
-                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameDataAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.ChestVault, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Signer, true), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false)};
+                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.ChestVault, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameDataAccount, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Player, true), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false)};
                 byte[] _data = new byte[1200];
                 int offset = 0;
                 _data.WriteU64(10990983061962034633UL, offset);

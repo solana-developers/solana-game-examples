@@ -141,8 +141,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   rpcCluster: 1
-  customRpc: http://localhost:8090
-  webSocketsRpc: ws://localhost:8899
+  customRpc: https://rpc.helius.xyz/?api-key=dcee9dad-fb42-4a26-b394-41b53e81d913
+  webSocketsRpc: 
   autoConnectOnStartup: 0
   web3AuthWalletOptions:
     appName: Web3Auth Sample App
@@ -383,11 +383,23 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1665109046784520929, guid: 1b4fdc6f1968a43d68ee82dc0c862785, type: 3}
       propertyPath: DevnetLoginRPCUrl
-      value: http://localhost:8090
+      value: https://rpc.helius.xyz/?api-key=dcee9dad-fb42-4a26-b394-41b53e81d913
       objectReference: {fileID: 0}
     - target: {fileID: 1665109046784520929, guid: 1b4fdc6f1968a43d68ee82dc0c862785, type: 3}
       propertyPath: DevnetWalletCluster
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1665109046784520929, guid: 1b4fdc6f1968a43d68ee82dc0c862785, type: 3}
+      propertyPath: WebGlWalletOptions.walletAdapterUIPrefab
+      value: 
+      objectReference: {fileID: 8029027132386834937, guid: 84cec7499f44a4acdaf738624c9403d7, type: 3}
+    - target: {fileID: 1665109046784520929, guid: 1b4fdc6f1968a43d68ee82dc0c862785, type: 3}
+      propertyPath: WebGlWalletOptions.walletAdapterButtonPrefab
+      value: 
+      objectReference: {fileID: 2788795083137714619, guid: afab34f3045ab4dd582079b6c04d3708, type: 3}
+    - target: {fileID: 1665109046997100281, guid: 1b4fdc6f1968a43d68ee82dc0c862785, type: 3}
+      propertyPath: LoadNftsOnStartUp
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1665109047506567878, guid: 1b4fdc6f1968a43d68ee82dc0c862785, type: 3}
       propertyPath: m_Name
