@@ -147,18 +147,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e467b9af29084366a426eab927cd6f80, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  DevnetWalletCluster: 3
   DevnetLoginRPCUrl: https://rpc-devnet.helius.xyz/?api-key=dcee9dad-fb42-4a26-b394-41b53e81d913
-  MainnetWalletCluster: 3
   MainNetRpcUrl: https://rpc.helius.xyz/?api-key=dcee9dad-fb42-4a26-b394-41b53e81d913
   PhantomWalletOptions:
     phantomApiVersion: v1
     appMetaDataUrl: https://solplay.de
     deeplinkUrlScheme: solplay
+  WebGlWalletOptions:
+    solanaMobileWalletAdapterOptions:
+      identityUri: https://solana.unity-sdk.gg/
+      iconUri: /favicon.ico
+      name: Solana.Unity-SDK
+      keepConnectionAlive: 1
+    solanaWalletAdapterWebGLOptions:
+      walletAdapterButtonPrefab: {fileID: 2788795083137714619, guid: afab34f3045ab4dd582079b6c04d3708, type: 3}
+      walletAdapterUIPrefab: {fileID: 8029027132386834937, guid: 84cec7499f44a4acdaf738624c9403d7, type: 3}
+    phantomWalletOptions:
+      phantomApiVersion: v1
+      appMetaDataUrl: https://github.com/garbles-labs/Solana.Unity-SDK
+      deeplinkUrlScheme: unitydl
   AutomaticallyConnectWebSocket: 1
   BaseWalletSolBalance: 0
   InGameWalletSolBalance: 0
-  IsDevNetLogin: 0
+  TwoWalletSetup: 0
 --- !u!1 &1665109046997100280
 GameObject:
   m_ObjectHideFlags: 0

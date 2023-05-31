@@ -66,6 +66,11 @@ namespace SolPlay.Scripts.Services
         {
             var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
             MetaPlexNFts.Clear();
+            object privateFieldValue = walletHolderService.BaseWallet.GetType().BaseType
+                .GetField("CustomRpcUri", BindingFlags.NonPublic | BindingFlags.Instance)
+                .GetValue(walletHolderService.BaseWallet);
+            Web3.Instance.customRpc = privateFieldValue.ToString();
+            Debug.Log(privateFieldValue);
             Web3.Instance.WalletBase = walletHolderService.BaseWallet;
             Web3.OnNFTsUpdate += nfts =>
             {

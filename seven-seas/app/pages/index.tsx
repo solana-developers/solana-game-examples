@@ -52,6 +52,7 @@ export default function Home() {
 
   const [loadingInitialize, setLoadingInitialize] = useState(false)
   const [loadingRight, setLoadingRight] = useState(false)
+  const [loadingInitShip, setInitShip] = useState(false)
   const [loadingLeft, setLoadingLeft] = useState(false)
 
   const [playerPosition, setPlayerPosition] = useState("........")
@@ -82,6 +83,7 @@ export default function Home() {
 
   async function handleClickInitialize() {
     if (publicKey) {
+      // TODO: add initialize accounts
       const transaction = program.methods
         .initialize()
         .accounts({
@@ -133,37 +135,23 @@ export default function Home() {
     }
   }
 
-  async function handleInitShipRight() {
+  async function handleInitShip() {
     if (publicKey) {
       const [shipPDA] = PublicKey.findProgramAddressSync(
         [Buffer.from("ship"), publicKey.toBuffer()],
         program.programId
       );
   
-      let [token_vault, bump2] = PublicKey.findProgramAddressSync(
-        [Buffer.from("token_vault", "utf8"), goldTokenMint.toBuffer()],
-        program.programId
-      );
-
-      const playerTokenAccount = await getAssociatedTokenAddressSync(
-        goldTokenMint,
-        publicKey,
-        true,
-        TOKEN_PROGRAM_ID,
-        ASSOCIATED_TOKEN_PROGRAM_ID
-    );
-  
-      let tx = await program.methods.initializeShip()
+      let tx = program.methods.initializeShip()
       .accounts({
         newShip: shipPDA,
         signer: publicKey,
         nftAccount: publicKey,
-        systemProgram: SystemProgram.programId,
-      });
+        systemProgram: SystemProgram.programId
+      }).transaction();
       console.log("Init ship transaction", tx);
   
-
-      await sendAndConfirmTransaction(() => transaction, setLoadingRight)
+      await sendAndConfirmTransaction(() => tx, setInitShip)
     } else {
       try {
         const response = await fetch("/api/sendTransaction", {
@@ -181,7 +169,7 @@ export default function Home() {
 
   async function handleClickLeft() {
     if (publicKey) {
-      // TODO: add random block bump. Extract into function
+      // TODO: add random block bump. Extract into function. Add accounts
       const transaction = program.methods
         .movePlayerV2(3, 999)
         .accounts({
@@ -296,8 +284,8 @@ export default function Home() {
             </Button>
             <Button
               width="100px"
-              isLoading={loadingRight}
-              onClick={handleClickRight}
+              isLoading={loadingInitShip}
+              onClick={handleInitShip}
             >
               Init Ship
             </Button>

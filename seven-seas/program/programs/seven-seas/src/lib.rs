@@ -1,14 +1,12 @@
-use anchor_lang::prelude::*;
 pub use crate::errors::SevenSeasError;
+use anchor_lang::prelude::*;
 pub mod errors;
 pub mod state;
 pub use state::*;
 pub mod instructions;
 
 use anchor_lang::prelude::Account;
-use anchor_lang::solana_program::{
-    native_token::LAMPORTS_PER_SOL,
-};
+use anchor_lang::solana_program::native_token::LAMPORTS_PER_SOL;
 use instructions::*;
 
 // This is your program's public key and it will update
@@ -16,8 +14,10 @@ use instructions::*;
 declare_id!("2a4NcnkF5zf14JQXHAv39AsRf7jMFj13wKmTL6ZcDQNd");
 
 pub const PLAYER_KILL_REWARD: u64 = LAMPORTS_PER_SOL / 20; // 0.05 SOL
-pub const PLAY_GAME_FEE: u64 = LAMPORTS_PER_SOL / 50; // 0.02 SOL
 pub const CHEST_REWARD: u64 = LAMPORTS_PER_SOL / 20; // 0.05 SOL
+
+//pub const PLAY_GAME_FEE: u64 = LAMPORTS_PER_SOL / 50; // 0.02 SOL
+pub const PLAY_GAME_FEE: u64 = 0; // 0.00 SOL
 
 /// Seed for thread_authority PDA.
 pub const THREAD_AUTHORITY_SEED: &[u8] = b"authority";
@@ -75,5 +75,4 @@ pub mod seven_seas {
     pub fn move_player_v2(ctx: Context<MovePlayer>, direction: u8, _block_bump: u8) -> Result<()> {
         instructions::move_player_v2(ctx, direction)
     }
-
 }

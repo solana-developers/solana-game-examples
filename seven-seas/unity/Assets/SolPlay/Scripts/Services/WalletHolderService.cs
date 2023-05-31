@@ -36,16 +36,12 @@ namespace SolPlay.Scripts.Services
         // These are the custom urls to connect to local host with socket
         //customRpc: http://localhost:8899/
         //webSocketsRpc: ws://localhost:8090/
-        public RpcCluster DevnetWalletCluster = RpcCluster.DevNet;
 
         public string DevnetLoginRPCUrl = "";
-
-        public RpcCluster MainnetWalletCluster = RpcCluster.DevNet;
-
         public string MainNetRpcUrl = "";
 
         public PhantomWalletOptions PhantomWalletOptions;
-        public SolanaWalletAdapterWebGLOptions WebGlWalletOptions;
+        public SolanaWalletAdapterOptions WebGlWalletOptions;
 
         [NonSerialized] public WalletBase BaseWallet;
 
@@ -53,13 +49,11 @@ namespace SolPlay.Scripts.Services
         public bool AutomaticallyConnectWebSocket = true;
         public long BaseWalletSolBalance;
         public long InGameWalletSolBalance;
-        public WalletType walletType;
 
-        public SolanaWalletAdapterWebGL DeeplinkWallet;
-        public SolanaWalletAdapterWebGL WalletAdapterWebGL;
+        public SolanaWalletAdapter DeeplinkWallet;
 
         public InGameWallet InGameWallet;
-        public bool IsDevNetLogin;
+        public bool TwoWalletSetup;
 
         private void Awake()
         {
@@ -72,39 +66,52 @@ namespace SolPlay.Scripts.Services
             ServiceFactory.RegisterSingleton(this);
         }
 
+        public enum Network
+        {
+            Mainnet,
+            Devnet,
+            LocalNet
+        }
 
-        public async Task<Account> Login(WalletType walletType,bool devNetLogin)
+        public async Task<Account> Login(Network devNetLogin, bool singleWalletSetup)
         {
             string rpcUrl = null;
             RpcCluster cluster = RpcCluster.DevNet;
-            
-            if (devNetLogin)
+
+            switch (devNetLogin)
             {
-                rpcUrl = DevnetLoginRPCUrl;
-                cluster = DevnetWalletCluster;
-            }
-            else
-            {
-                rpcUrl = MainNetRpcUrl;
-                cluster = MainnetWalletCluster;
+                case Network.Mainnet:
+                    rpcUrl = MainNetRpcUrl;
+                    cluster = RpcCluster.MainNet;
+                    break;
+                case Network.Devnet:
+                    rpcUrl = DevnetLoginRPCUrl;
+                    cluster = RpcCluster.DevNet; 
+                    break;
+                case Network.LocalNet:
+                    rpcUrl = "http://localhost:8899/";
+                    cluster = RpcCluster.DevNet; 
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(devNetLogin), devNetLogin, null);
             }
 
-            if (Application.platform == RuntimePlatform.WebGLPlayer)
+            if (Application.platform == RuntimePlatform.WebGLPlayer || Application.platform == RuntimePlatform.Android || Application.platform == RuntimePlatform.IPhonePlayer)
             {
-                DeeplinkWallet = new SolanaWalletAdapterWebGL(WebGlWalletOptions, cluster, rpcUrl, null, true);
+                DeeplinkWallet = new SolanaWalletAdapter(WebGlWalletOptions, cluster, rpcUrl, null, true);
             }
 
             InGameWallet = new InGameWallet(cluster, rpcUrl, null, true);
 
-            IsDevNetLogin = devNetLogin;
-            
-            if (devNetLogin)
+            TwoWalletSetup = singleWalletSetup;
+
+            var newMnemonic = new Mnemonic(WordList.English, WordCount.Twelve);
+
+            var account = await InGameWallet.Login("1234") ??
+                          await InGameWallet.CreateAccount(newMnemonic.ToString(), "1234");
+
+            if (singleWalletSetup)
             {
-                var newMnemonic = new Mnemonic(WordList.English, WordCount.Twelve);
-
-                var account = await InGameWallet.Login("1234") ??
-                              await InGameWallet.CreateAccount(newMnemonic.ToString(), "1234");
-
                 BaseWallet = InGameWallet;
 
                 // Copy this private key if you want to import your wallet into phantom. Dont share it with anyone.
@@ -118,24 +125,8 @@ namespace SolPlay.Scripts.Services
             }
             else
             {
-#if (UNITY_IOS || UNITY_ANDROID || UNITY_WEBGL)
-                switch (walletType)
-                {
-                    case WalletType.Phantom:
-                        BaseWallet = DeeplinkWallet;
-                        break;
-                    case WalletType.Backpack:
-                        //BaseWallet = xnftWallet;
-                        break;
-                }
-                //BaseWallet = DeeplinkWallet;
-
+                BaseWallet = DeeplinkWallet;
                 await BaseWallet.Login();
-#endif
-                var newMnemonic = new Mnemonic(WordList.English, WordCount.Twelve);
-
-                var account = await InGameWallet.Login("1234") ??
-                              await InGameWallet.CreateAccount(newMnemonic.ToString(), "1234");
             }
 
             IsLoggedIn = true;
@@ -171,14 +162,13 @@ namespace SolPlay.Scripts.Services
                 Debug.Log("Logged in InGameWallet: " + InGameWallet.Account.PublicKey + " balance: " + ingameSolBalance.Result.Value);
             }
 
-
             return BaseWallet.Account;
         }
 
         private void SubscribeToWalletAccountChanges()
         {
             //ServiceFactory.Resolve<SolPlayWebSocketService>().SubscribeToBlocks();
-            if (IsDevNetLogin)
+            if (TwoWalletSetup)
             {
                 ServiceFactory.Resolve<SolPlayWebSocketService>().SubscribeToPubKeyData(BaseWallet.Account.PublicKey,
                     result =>

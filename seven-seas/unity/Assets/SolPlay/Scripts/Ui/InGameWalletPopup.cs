@@ -41,7 +41,7 @@ public class InGameWalletPopup : BasePopup
             return;
         }
 
-        var isDevNetLogin = ServiceFactory.Resolve<WalletHolderService>().IsDevNetLogin;
+        var isDevNetLogin = ServiceFactory.Resolve<WalletHolderService>().TwoWalletSetup;
         AirdropButton.gameObject.SetActive(isDevNetLogin);
         DepositButton.interactable = !isDevNetLogin;
         WithdrawButton.interactable = !isDevNetLogin;

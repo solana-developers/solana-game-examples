@@ -292,8 +292,8 @@ impl GameDataAccount {
                 let item = GameAction {
                     action_id: self.action_id,
                     action_type: GAME_ACTION_SHIP_SHOT,
-                    player: player_tile.player.key(),
-                    target: player_tile.player.key(),
+                    player: player.key(),
+                    target: player.key(),
                     damage: player_tile.damage,
                 };
                 self.add_new_game_action(game_actions, item);

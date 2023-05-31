@@ -174,7 +174,7 @@ public class SevenSeasService : MonoBehaviour
                 {
                     MessageRouter.RaiseMessage(new ShipShotMessage()
                     {
-                        ShipOwner = ServiceFactory.Resolve<WalletHolderService>().InGameWallet.Account.PublicKey,
+                        ShipOwner = gameAction.Player,
                         Damage = gameAction.Damage
                     });
                 }

@@ -141,7 +141,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   rpcCluster: 1
-  customRpc: https://rpc.helius.xyz/?api-key=dcee9dad-fb42-4a26-b394-41b53e81d913
+  customRpc: https://rpc-devnet.helius.xyz/?api-key=dcee9dad-fb42-4a26-b394-41b53e81d913
   webSocketsRpc: 
   autoConnectOnStartup: 0
   web3AuthWalletOptions:
@@ -383,7 +383,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1665109046784520929, guid: 1b4fdc6f1968a43d68ee82dc0c862785, type: 3}
       propertyPath: DevnetLoginRPCUrl
-      value: https://rpc.helius.xyz/?api-key=dcee9dad-fb42-4a26-b394-41b53e81d913
+      value: https://rpc-devnet.helius.xyz/?api-key=dcee9dad-fb42-4a26-b394-41b53e81d913
       objectReference: {fileID: 0}
     - target: {fileID: 1665109046784520929, guid: 1b4fdc6f1968a43d68ee82dc0c862785, type: 3}
       propertyPath: DevnetWalletCluster
@@ -3059,8 +3059,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b49233f6bdd6e4595990b68ad018fea4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  PhantomLoginButton: {fileID: 6926694631276982815}
+  DevnetLoginButton: {fileID: 0}
   DevnetInGameWalletButton: {fileID: 6926694629650244505}
+  LocalhostInGameWalletButton: {fileID: 0}
+  MainNetButton: {fileID: 6926694631276982815}
   ConnectedRoot: {fileID: 1923276698}
   NotConnectedRoot: {fileID: 6926694630835016833}
   TabBarRoot: {fileID: 0}
