@@ -62,7 +62,8 @@ public class ShipBehaviour : MonoBehaviour
             Instantiate(SelectionCircelFX, SelectionCircleRoot.transform);
         }
 
-        var model = Instantiate(UpgradeLevels[tile.ShipLevel], RotationRoot.transform);
+        int shipLevel = Math.Clamp((int) tile.ShipLevel - 1, 0, 3);
+        var model = Instantiate(UpgradeLevels[shipLevel], RotationRoot.transform);
         model.name = "model";
     }
 
@@ -148,7 +149,9 @@ public class ShipBehaviour : MonoBehaviour
     public void Shoot()
     {
         CameraShake.Shake(ScrenShakeDuration, ScrenShakePower);
-        var shootInstance = Instantiate(ShotPrefabs[currentTile.ShipLevel]);
+        int shipLevel = Math.Clamp((int) currentTile.ShipLevel - 1, 0, 3);
+
+        var shootInstance = Instantiate(ShotPrefabs[shipLevel]);
         shootInstance.transform.position = RotationRoot.transform.position;
         shootInstance.transform.rotation = RotationRoot.transform.rotation;
         StartCoroutine(KillDelayed(shootInstance));
