@@ -5,7 +5,6 @@ using SevenSeas.Accounts;
 using Solana.Unity.Programs;
 using Solana.Unity.Rpc.Types;
 using Solana.Unity.SDK.Nft;
-using Solana.Unity.Wallet;
 using SolPlay.Examples.SevenSeas.Scripts;
 using SolPlay.Scripts.Services;
 using SolPlay.Scripts.Ui;
@@ -36,6 +35,7 @@ namespace TinyAdventure
         public Button PauseThreadButton;
         public Button ResumeThreadButton;
         public Button AdminButton;
+        public Button ResetShipButton;
         public TextMeshProUGUI ShipLevel;
         public TextMeshProUGUI UpgradeButtonText;
 
@@ -71,6 +71,7 @@ namespace TinyAdventure
             OpenInGameWalletPopup.onClick.AddListener(OnInGameWalletButtonClicked);
             UpgradeButton.onClick.AddListener(OnUpgradeButtonClicked);
             InitShipButton.onClick.AddListener(OnInitShipButtonClicked);
+            ResetShipButton.onClick.AddListener(OnResetShipButtonClicked);
             // We currently dont need the init ship button. It will be initialized with the first deploy ship
             // Like this the player will have less choices to make
             InitShipButton.gameObject.SetActive(false);
@@ -306,6 +307,11 @@ namespace TinyAdventure
             ServiceFactory.Resolve<SevenSeasService>().Reset();
         }
 
+        private void OnResetShipButtonClicked()
+        {
+            ServiceFactory.Resolve<SevenSeasService>().ResetShip();
+        }
+        
         private void OnSpawnPlayerButtonClicked()
         {
             ServiceFactory.Resolve<SevenSeasService>().SpawnPlayerAndChest();

@@ -35,6 +35,20 @@ pub struct Reset<'info> {
     pub game_data_account: AccountLoader<'info, GameDataAccount>,
 }
 
+#[derive(Accounts)]
+pub struct ResetShip<'info> {
+    #[account(mut)]
+    pub signer: Signer<'info>,
+    // We must specify the space in order to initialize an account.
+    // First 8 bytes are default account discriminator,
+    #[account(
+        mut,
+        seeds = [b"level"],
+        bump,
+    )]
+    pub game_data_account: AccountLoader<'info, GameDataAccount>,
+}
+
 #[account(zero_copy(unsafe))]
 #[repr(packed)]
 #[derive(Default)]
@@ -96,6 +110,17 @@ impl GameDataAccount {
         for x in 0..BOARD_SIZE_X {
             for y in 0..BOARD_SIZE_Y {
                 self.board[x][y].state = STATE_EMPTY
+            }
+        }
+        Ok(())
+    }
+
+    pub fn reset_ship(&mut self, ship_owner: Pubkey) -> Result<()> {
+        for x in 0..BOARD_SIZE_X {
+            for y in 0..BOARD_SIZE_Y {
+                if self.board[x][y].player == ship_owner {
+                    self.board[x][y].state = STATE_EMPTY
+                }
             }
         }
         Ok(())

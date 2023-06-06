@@ -222,6 +222,7 @@ public class SevenSeasService : MonoBehaviour
         {
             return null;
         }
+        
         PublicKey.TryFindProgramAddress(new[]
             {
                 Encoding.UTF8.GetBytes("ship"),
@@ -336,6 +337,19 @@ public class SevenSeasService : MonoBehaviour
 
         TransactionInstruction initializeInstruction = GetResetInstruction();
         ServiceFactory.Resolve<TransactionService>().SendInstructionInNextBlock("Reset", initializeInstruction,
+            walletHolderService.BaseWallet);
+    }
+
+    public void ResetShip()
+    {
+        var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
+        if (!walletHolderService.HasEnoughSol(false, 10000))
+        {
+            return;
+        }
+
+        TransactionInstruction initializeInstruction = GetResetShipInstruction();
+        ServiceFactory.Resolve<TransactionService>().SendInstructionInNextBlock("Reset Ship", initializeInstruction,
             walletHolderService.BaseWallet);
     }
 
@@ -587,6 +601,18 @@ public class SevenSeasService : MonoBehaviour
         accounts.GameDataAccount = gameDataAccount;
 
         TransactionInstruction resetInstruction = SevenSeasProgram.Reset(accounts, ProgramId);
+        return resetInstruction;
+    }
+
+    private TransactionInstruction GetResetShipInstruction()
+    {
+        var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
+
+        var accounts = new ResetShipAccounts();
+        accounts.Signer = walletHolderService.BaseWallet.Account.PublicKey;
+        accounts.GameDataAccount = gameDataAccount;
+
+        TransactionInstruction resetInstruction = SevenSeasProgram.ResetShip(accounts, ProgramId);
         return resetInstruction;
     }
 

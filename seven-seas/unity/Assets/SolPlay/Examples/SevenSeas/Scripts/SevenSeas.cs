@@ -22,54 +22,6 @@ namespace SevenSeas
 {
     namespace Accounts
     {
-        public partial class Ship
-        {
-            public static ulong ACCOUNT_DISCRIMINATOR => 11451028881204914546UL;
-            public static ReadOnlySpan<byte> ACCOUNT_DISCRIMINATOR_BYTES => new byte[]{114, 41, 245, 232, 24, 58, 234, 158};
-            public static string ACCOUNT_DISCRIMINATOR_B58 => "L6Xuk4LKTnd";
-            public ulong Health { get; set; }
-
-            public ushort Kills { get; set; }
-
-            public ulong Cannons { get; set; }
-
-            public ushort Upgrades { get; set; }
-
-            public ushort Xp { get; set; }
-
-            public ushort Level { get; set; }
-
-            public ulong StartHealth { get; set; }
-
-            public static Ship Deserialize(ReadOnlySpan<byte> _data)
-            {
-                int offset = 0;
-                ulong accountHashValue = _data.GetU64(offset);
-                offset += 8;
-                if (accountHashValue != ACCOUNT_DISCRIMINATOR)
-                {
-                    return null;
-                }
-
-                Ship result = new Ship();
-                result.Health = _data.GetU64(offset);
-                offset += 8;
-                result.Kills = _data.GetU16(offset);
-                offset += 2;
-                result.Cannons = _data.GetU64(offset);
-                offset += 8;
-                result.Upgrades = _data.GetU16(offset);
-                offset += 2;
-                result.Xp = _data.GetU16(offset);
-                offset += 2;
-                result.Level = _data.GetU16(offset);
-                offset += 2;
-                result.StartHealth = _data.GetU64(offset);
-                offset += 8;
-                return result;
-            }
-        }
-
         public partial class GameDataAccount
         {
             public static ulong ACCOUNT_DISCRIMINATOR => 2830422829680616787UL;
@@ -158,6 +110,54 @@ namespace SevenSeas
                 }
 
                 ChestVaultAccount result = new ChestVaultAccount();
+                return result;
+            }
+        }
+
+        public partial class Ship
+        {
+            public static ulong ACCOUNT_DISCRIMINATOR => 11451028881204914546UL;
+            public static ReadOnlySpan<byte> ACCOUNT_DISCRIMINATOR_BYTES => new byte[]{114, 41, 245, 232, 24, 58, 234, 158};
+            public static string ACCOUNT_DISCRIMINATOR_B58 => "L6Xuk4LKTnd";
+            public ulong Health { get; set; }
+
+            public ushort Kills { get; set; }
+
+            public ulong Cannons { get; set; }
+
+            public ushort Upgrades { get; set; }
+
+            public ushort Xp { get; set; }
+
+            public ushort Level { get; set; }
+
+            public ulong StartHealth { get; set; }
+
+            public static Ship Deserialize(ReadOnlySpan<byte> _data)
+            {
+                int offset = 0;
+                ulong accountHashValue = _data.GetU64(offset);
+                offset += 8;
+                if (accountHashValue != ACCOUNT_DISCRIMINATOR)
+                {
+                    return null;
+                }
+
+                Ship result = new Ship();
+                result.Health = _data.GetU64(offset);
+                offset += 8;
+                result.Kills = _data.GetU16(offset);
+                offset += 2;
+                result.Cannons = _data.GetU64(offset);
+                offset += 8;
+                result.Upgrades = _data.GetU16(offset);
+                offset += 2;
+                result.Xp = _data.GetU16(offset);
+                offset += 2;
+                result.Level = _data.GetU16(offset);
+                offset += 2;
+                result.StartHealth = _data.GetU64(offset);
+                offset += 8;
                 return result;
             }
         }
@@ -309,17 +309,6 @@ namespace SevenSeas
         {
         }
 
-        public async Task<Solana.Unity.Programs.Models.ProgramAccountsResultWrapper<List<Ship>>> GetShipsAsync(string programAddress, Commitment commitment = Commitment.Finalized)
-        {
-            var list = new List<Solana.Unity.Rpc.Models.MemCmp>{new Solana.Unity.Rpc.Models.MemCmp{Bytes = Ship.ACCOUNT_DISCRIMINATOR_B58, Offset = 0}};
-            var res = await RpcClient.GetProgramAccountsAsync(programAddress, commitment, memCmpList: list);
-            if (!res.WasSuccessful || !(res.Result?.Count > 0))
-                return new Solana.Unity.Programs.Models.ProgramAccountsResultWrapper<List<Ship>>(res);
-            List<Ship> resultingAccounts = new List<Ship>(res.Result.Count);
-            resultingAccounts.AddRange(res.Result.Select(result => Ship.Deserialize(Convert.FromBase64String(result.Account.Data[0]))));
-            return new Solana.Unity.Programs.Models.ProgramAccountsResultWrapper<List<Ship>>(res, resultingAccounts);
-        }
-
         public async Task<Solana.Unity.Programs.Models.ProgramAccountsResultWrapper<List<GameDataAccount>>> GetGameDataAccountsAsync(string programAddress, Commitment commitment = Commitment.Finalized)
         {
             var list = new List<Solana.Unity.Rpc.Models.MemCmp>{new Solana.Unity.Rpc.Models.MemCmp{Bytes = GameDataAccount.ACCOUNT_DISCRIMINATOR_B58, Offset = 0}};
@@ -353,13 +342,15 @@ namespace SevenSeas
             return new Solana.Unity.Programs.Models.ProgramAccountsResultWrapper<List<ChestVaultAccount>>(res, resultingAccounts);
         }
 
-        public async Task<Solana.Unity.Programs.Models.AccountResultWrapper<Ship>> GetShipAsync(string accountAddress, Commitment commitment = Commitment.Finalized)
+        public async Task<Solana.Unity.Programs.Models.ProgramAccountsResultWrapper<List<Ship>>> GetShipsAsync(string programAddress, Commitment commitment = Commitment.Finalized)
         {
-            var res = await RpcClient.GetAccountInfoAsync(accountAddress, commitment);
-            if (!res.WasSuccessful)
-                return new Solana.Unity.Programs.Models.AccountResultWrapper<Ship>(res);
-            var resultingAccount = Ship.Deserialize(Convert.FromBase64String(res.Result.Value.Data[0]));
-            return new Solana.Unity.Programs.Models.AccountResultWrapper<Ship>(res, resultingAccount);
+            var list = new List<Solana.Unity.Rpc.Models.MemCmp>{new Solana.Unity.Rpc.Models.MemCmp{Bytes = Ship.ACCOUNT_DISCRIMINATOR_B58, Offset = 0}};
+            var res = await RpcClient.GetProgramAccountsAsync(programAddress, commitment, memCmpList: list);
+            if (!res.WasSuccessful || !(res.Result?.Count > 0))
+                return new Solana.Unity.Programs.Models.ProgramAccountsResultWrapper<List<Ship>>(res);
+            List<Ship> resultingAccounts = new List<Ship>(res.Result.Count);
+            resultingAccounts.AddRange(res.Result.Select(result => Ship.Deserialize(Convert.FromBase64String(result.Account.Data[0]))));
+            return new Solana.Unity.Programs.Models.ProgramAccountsResultWrapper<List<Ship>>(res, resultingAccounts);
         }
 
         public async Task<Solana.Unity.Programs.Models.AccountResultWrapper<GameDataAccount>> GetGameDataAccountAsync(string accountAddress, Commitment commitment = Commitment.Finalized)
@@ -389,16 +380,13 @@ namespace SevenSeas
             return new Solana.Unity.Programs.Models.AccountResultWrapper<ChestVaultAccount>(res, resultingAccount);
         }
 
-        public async Task<SubscriptionState> SubscribeShipAsync(string accountAddress, Action<SubscriptionState, Solana.Unity.Rpc.Messages.ResponseValue<Solana.Unity.Rpc.Models.AccountInfo>, Ship> callback, Commitment commitment = Commitment.Finalized)
+        public async Task<Solana.Unity.Programs.Models.AccountResultWrapper<Ship>> GetShipAsync(string accountAddress, Commitment commitment = Commitment.Finalized)
         {
-            SubscriptionState res = await StreamingRpcClient.SubscribeAccountInfoAsync(accountAddress, (s, e) =>
-            {
-                Ship parsingResult = null;
-                if (e.Value?.Data?.Count > 0)
-                    parsingResult = Ship.Deserialize(Convert.FromBase64String(e.Value.Data[0]));
-                callback(s, e, parsingResult);
-            }, commitment);
-            return res;
+            var res = await RpcClient.GetAccountInfoAsync(accountAddress, commitment);
+            if (!res.WasSuccessful)
+                return new Solana.Unity.Programs.Models.AccountResultWrapper<Ship>(res);
+            var resultingAccount = Ship.Deserialize(Convert.FromBase64String(res.Result.Value.Data[0]));
+            return new Solana.Unity.Programs.Models.AccountResultWrapper<Ship>(res, resultingAccount);
         }
 
         public async Task<SubscriptionState> SubscribeGameDataAccountAsync(string accountAddress, Action<SubscriptionState, Solana.Unity.Rpc.Messages.ResponseValue<Solana.Unity.Rpc.Models.AccountInfo>, GameDataAccount> callback, Commitment commitment = Commitment.Finalized)
@@ -437,6 +425,18 @@ namespace SevenSeas
             return res;
         }
 
+        public async Task<SubscriptionState> SubscribeShipAsync(string accountAddress, Action<SubscriptionState, Solana.Unity.Rpc.Messages.ResponseValue<Solana.Unity.Rpc.Models.AccountInfo>, Ship> callback, Commitment commitment = Commitment.Finalized)
+        {
+            SubscriptionState res = await StreamingRpcClient.SubscribeAccountInfoAsync(accountAddress, (s, e) =>
+            {
+                Ship parsingResult = null;
+                if (e.Value?.Data?.Count > 0)
+                    parsingResult = Ship.Deserialize(Convert.FromBase64String(e.Value.Data[0]));
+                callback(s, e, parsingResult);
+            }, commitment);
+            return res;
+        }
+
         public async Task<RequestResult<string>> SendInitializeAsync(InitializeAccounts accounts, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
         {
             Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.SevenSeasProgram.Initialize(accounts, programId);
@@ -458,6 +458,12 @@ namespace SevenSeas
         public async Task<RequestResult<string>> SendResetAsync(ResetAccounts accounts, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
         {
             Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.SevenSeasProgram.Reset(accounts, programId);
+            return await SignAndSendTransaction(instr, feePayer, signingCallback);
+        }
+
+        public async Task<RequestResult<string>> SendResetShipAsync(ResetShipAccounts accounts, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
+        {
+            Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.SevenSeasProgram.ResetShip(accounts, programId);
             return await SignAndSendTransaction(instr, feePayer, signingCallback);
         }
 
@@ -569,6 +575,13 @@ namespace SevenSeas
         }
 
         public class ResetAccounts
+        {
+            public PublicKey Signer { get; set; }
+
+            public PublicKey GameDataAccount { get; set; }
+        }
+
+        public class ResetShipAccounts
         {
             public PublicKey Signer { get; set; }
 
@@ -779,6 +792,19 @@ namespace SevenSeas
                 byte[] _data = new byte[1200];
                 int offset = 0;
                 _data.WriteU64(15488080923286262039UL, offset);
+                offset += 8;
+                byte[] resultData = new byte[offset];
+                Array.Copy(_data, resultData, offset);
+                return new Solana.Unity.Rpc.Models.TransactionInstruction{Keys = keys, ProgramId = programId.KeyBytes, Data = resultData};
+            }
+
+            public static Solana.Unity.Rpc.Models.TransactionInstruction ResetShip(ResetShipAccounts accounts, PublicKey programId)
+            {
+                List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
+                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Signer, true), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameDataAccount, false)};
+                byte[] _data = new byte[1200];
+                int offset = 0;
+                _data.WriteU64(9955096133398885290UL, offset);
                 offset += 8;
                 byte[] resultData = new byte[offset];
                 Array.Copy(_data, resultData, offset);

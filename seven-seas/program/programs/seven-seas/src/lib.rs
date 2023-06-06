@@ -43,6 +43,13 @@ pub mod seven_seas {
         _ctx.accounts.game_data_account.load_mut()?.reset()
     }
 
+    pub fn reset_ship(_ctx: Context<ResetShip>) -> Result<()> {
+        _ctx.accounts
+            .game_data_account
+            .load_mut()?
+            .reset_ship(_ctx.accounts.signer.key())
+    }
+
     pub fn start_thread(ctx: Context<StartThread>, thread_id: Vec<u8>) -> Result<()> {
         instructions::start_thread(ctx, thread_id)
     }
