@@ -337,7 +337,7 @@ public class SevenSeasService : MonoBehaviour
 
         TransactionInstruction initializeInstruction = GetResetInstruction();
         ServiceFactory.Resolve<TransactionService>().SendInstructionInNextBlock("Reset", initializeInstruction,
-            walletHolderService.BaseWallet);
+            walletHolderService.InGameWallet);
     }
 
     public void ResetShip()
@@ -597,7 +597,7 @@ public class SevenSeasService : MonoBehaviour
         var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
 
         var accounts = new ResetAccounts();
-        accounts.Signer = walletHolderService.BaseWallet.Account.PublicKey;
+        accounts.Signer = walletHolderService.InGameWallet.Account.PublicKey;
         accounts.GameDataAccount = gameDataAccount;
 
         TransactionInstruction resetInstruction = SevenSeasProgram.Reset(accounts, ProgramId);

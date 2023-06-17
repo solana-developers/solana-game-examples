@@ -23,13 +23,12 @@ namespace SolPlay.FlappyGame.Runtime.Scripts
         {
             instance = this;
             instance._originalPos = instance.gameObject.transform.localPosition;
-            Camera = GetComponent<Camera>();
+            Camera = GetComponentInChildren<Camera>();
             StartPosition = Camera.gameObject.transform.position;
         }
 
         void Update()
         {
-            
             // Calculate a fake delta time, so we can Shake while game is paused.
             _timeAtCurrentFrame = Time.realtimeSinceStartup;
             _fakeDelta = _timeAtCurrentFrame - _timeAtLastFrame;

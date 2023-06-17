@@ -118,7 +118,7 @@ impl GameDataAccount {
     pub fn reset_ship(&mut self, ship_owner: Pubkey) -> Result<()> {
         for x in 0..BOARD_SIZE_X {
             for y in 0..BOARD_SIZE_Y {
-                if self.board[x][y].player == ship_owner {
+                if self.board[x][y].player == ship_owner && self.board[x][y].state == STATE_PLAYER {
                     self.board[x][y].state = STATE_EMPTY
                 }
             }
@@ -248,12 +248,13 @@ impl GameDataAccount {
                 msg!("Player position x:{} y:{}", val.0, val.1);
                 let player_tile: Tile = self.board[val.0][val.1];
                 let range_usize: usize = usize::from(player_tile.range);
+                let damage = player_tile.damage + 2;
                 for range in 1..range_usize + 1 {
                     // Shoot left
                     if player_tile.look_direction % 2 == 0 && val.0 >= range {
                         self.attack_tile(
                             (val.0 - range, val.1),
-                            player_tile.damage,
+                            damage,
                             player.clone(),
                             chest_vault.clone(),
                             game_actions,
@@ -269,7 +270,7 @@ impl GameDataAccount {
                     if player_tile.look_direction % 2 == 0 && val.0 < BOARD_SIZE_X - range {
                         self.attack_tile(
                             (val.0 + range, val.1),
-                            player_tile.damage,
+                            damage,
                             player.clone(),
                             chest_vault.clone(),
                             game_actions,
@@ -285,7 +286,7 @@ impl GameDataAccount {
                     if player_tile.look_direction % 2 == 1 && val.1 < BOARD_SIZE_Y - range {
                         self.attack_tile(
                             (val.0, val.1 + range),
-                            player_tile.damage,
+                            damage,
                             player.clone(),
                             chest_vault.clone(),
                             game_actions,
@@ -301,7 +302,7 @@ impl GameDataAccount {
                     if player_tile.look_direction % 2 == 1 && val.1 >= range {
                         self.attack_tile(
                             (val.0, val.1 - range),
-                            player_tile.damage,
+                            damage,
                             player.clone(),
                             chest_vault.clone(),
                             game_actions,
@@ -319,7 +320,7 @@ impl GameDataAccount {
                     action_type: GAME_ACTION_SHIP_SHOT,
                     player: player.key(),
                     target: player.key(),
-                    damage: player_tile.damage,
+                    damage: damage,
                 };
                 self.add_new_game_action(game_actions, item);
             }

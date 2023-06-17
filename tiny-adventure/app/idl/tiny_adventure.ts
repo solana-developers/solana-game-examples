@@ -1,127 +1,127 @@
 export type TinyAdventure = {
-  version: "0.1.0"
-  name: "tiny_adventure"
-  instructions: [
+  "version": "0.1.0",
+  "name": "tiny_adventure",
+  "instructions": [
     {
-      name: "initialize"
-      accounts: [
+      "name": "initialize",
+      "accounts": [
         {
-          name: "newGameDataAccount"
-          isMut: true
-          isSigner: false
+          "name": "newGameDataAccount",
+          "isMut": true,
+          "isSigner": false
         },
         {
-          name: "signer"
-          isMut: true
-          isSigner: true
+          "name": "signer",
+          "isMut": true,
+          "isSigner": true
         },
         {
-          name: "systemProgram"
-          isMut: false
-          isSigner: false
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
         }
-      ]
-      args: []
+      ],
+      "args": []
     },
     {
-      name: "moveLeft"
-      accounts: [
+      "name": "moveLeft",
+      "accounts": [
         {
-          name: "gameDataAccount"
-          isMut: true
-          isSigner: false
+          "name": "gameDataAccount",
+          "isMut": true,
+          "isSigner": false
         }
-      ]
-      args: []
+      ],
+      "args": []
     },
     {
-      name: "moveRight"
-      accounts: [
+      "name": "moveRight",
+      "accounts": [
         {
-          name: "gameDataAccount"
-          isMut: true
-          isSigner: false
+          "name": "gameDataAccount",
+          "isMut": true,
+          "isSigner": false
         }
-      ]
-      args: []
+      ],
+      "args": []
     }
-  ]
-  accounts: [
+  ],
+  "accounts": [
     {
-      name: "gameDataAccount"
-      type: {
-        kind: "struct"
-        fields: [
+      "name": "gameDataAccount",
+      "type": {
+        "kind": "struct",
+        "fields": [
           {
-            name: "playerPosition"
-            type: "u8"
+            "name": "playerPosition",
+            "type": "u8"
           }
         ]
       }
     }
   ]
-}
+};
 
 export const IDL: TinyAdventure = {
-  version: "0.1.0",
-  name: "tiny_adventure",
-  instructions: [
+  "version": "0.1.0",
+  "name": "tiny_adventure",
+  "instructions": [
     {
-      name: "initialize",
-      accounts: [
+      "name": "initialize",
+      "accounts": [
         {
-          name: "newGameDataAccount",
-          isMut: true,
-          isSigner: false,
+          "name": "newGameDataAccount",
+          "isMut": true,
+          "isSigner": false
         },
         {
-          name: "signer",
-          isMut: true,
-          isSigner: true,
+          "name": "signer",
+          "isMut": true,
+          "isSigner": true
         },
         {
-          name: "systemProgram",
-          isMut: false,
-          isSigner: false,
-        },
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
       ],
-      args: [],
+      "args": []
     },
     {
-      name: "moveLeft",
-      accounts: [
+      "name": "moveLeft",
+      "accounts": [
         {
-          name: "gameDataAccount",
-          isMut: true,
-          isSigner: false,
-        },
+          "name": "gameDataAccount",
+          "isMut": true,
+          "isSigner": false
+        }
       ],
-      args: [],
+      "args": []
     },
     {
-      name: "moveRight",
-      accounts: [
+      "name": "moveRight",
+      "accounts": [
         {
-          name: "gameDataAccount",
-          isMut: true,
-          isSigner: false,
-        },
+          "name": "gameDataAccount",
+          "isMut": true,
+          "isSigner": false
+        }
       ],
-      args: [],
-    },
+      "args": []
+    }
   ],
-  accounts: [
+  "accounts": [
     {
-      name: "gameDataAccount",
-      type: {
-        kind: "struct",
-        fields: [
+      "name": "gameDataAccount",
+      "type": {
+        "kind": "struct",
+        "fields": [
           {
-            name: "playerPosition",
-            type: "u8",
-          },
-        ],
-      },
-    },
-  ],
-}
+            "name": "playerPosition",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ]
+};
