@@ -53,17 +53,17 @@ Material:
     - _FresnelExp: 3.831522
     - _GradientPosition1: 1.9555202
     - _GradientPosition2: 2.8132126
-    - _LightColorIntensity: 0.57
+    - _LightColorIntensity: 0.455
     - _MainFoamIntensity: 0.29
     - _MainFoamOpacity: 0.23
     - _MainFoamScale: 7.81
     - _MainFoamSpeed: 1.15
-    - _Opacity: 0.11
+    - _Opacity: 0.021
     - _OpacityDepth: 5.58
     - _RealTimeReflection: 1
     - _ReflectionsIntensity: 3
     - _RefractionIntensity: 1.71
-    - _Roughness: 0.7
+    - _Roughness: 0.62
     - _SecondaryFoamAlwaysVisible: 0
     - _SecondaryFoamIntensity: 4
     - _SecondaryFoamOpacity: 1
@@ -71,7 +71,7 @@ Material:
     - _ShadowIntensity: 1
     - _Shadows: 1
     - _ShadowsIntensity: 1
-    - _SpecularIntensity: 0.6
+    - _SpecularIntensity: 0.536
     - _TurbulenceDistortionIntesity: 0.89
     - _TurbulenceScale: 3.09
     - _VertexOffset: 1
