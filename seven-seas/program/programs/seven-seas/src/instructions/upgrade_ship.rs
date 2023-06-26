@@ -23,12 +23,12 @@ pub fn upgrade_ship(ctx: Context<UpgradeShip>) -> Result<()> {
     let cost: u64;
     match ctx.accounts.new_ship.upgrades {
         0 => {
-            ctx.accounts.new_ship.health = 50;
+            ctx.accounts.new_ship.health = 100;
             ctx.accounts.new_ship.upgrades = 1;                
             cost = 5;
         },
         1 => {
-            ctx.accounts.new_ship.health = 120;
+            ctx.accounts.new_ship.health = 150;
             ctx.accounts.new_ship.upgrades = 2;                
             cost = 200;
         },

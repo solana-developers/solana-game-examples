@@ -30,10 +30,15 @@ public class ShipBehaviour : MonoBehaviour
     public GameObject SelectionCircleRoot;
     public Tile currentTile;
     public GameObject SelectionCircelFX;
+    public GameObject PositionIndicator;
     
+    public float RoationSpeed = 3;
     public float ScrenShakePower = 3;
     public float ScrenShakeDuration = 0.05f;
-    
+    public float RotationSpeed = 5f;
+    public Quaternion FromRotation;
+    public Vector3 PositionIndicatorTarget;
+
     public void Init(Vector2 startPosition, Tile tile, bool isPlayer)
     {
         currentTile = tile;
@@ -61,47 +66,66 @@ public class ShipBehaviour : MonoBehaviour
         {
             Instantiate(SelectionCircelFX, SelectionCircleRoot.transform);
         }
-
-        int shipLevel = Math.Clamp((int) tile.ShipLevel - 1, 0, 3);
+        
+        PositionIndicator.gameObject.SetActive(isPlayer);
+        
+        int shipLevel = Math.Clamp((int) tile.ShipLevel, 0, 3);
         var model = Instantiate(UpgradeLevels[shipLevel], RotationRoot.transform);
-        model.name = "model";
+        model.name = "model:" + UpgradeLevels[shipLevel].name;
     }
 
     private void Update()
     {
-        var transformPosition = transform.position - LastPosition;
-        if (transformPosition.magnitude > 0.04f)
+        PositionIndicator.transform.position = new Vector3(PositionIndicatorTarget.x, 1f, PositionIndicatorTarget.z);
+        PositionIndicator.gameObject.SetActive((PositionIndicator.transform.position - transform.position).magnitude > 1f);
+
+        var step = RotationSpeed * Time.deltaTime;
+
+        // Rotate our transform a step closer to the target's.
+        Quaternion targetRotation;
+        switch (currentTile.LookDirection)
         {
-           RotationRoot.transform.rotation = Quaternion.LookRotation(transformPosition, UpVector);   
+            case 0:
+                targetRotation = Quaternion.Euler(0, 0, 0);
+                break;
+            case 1:
+                targetRotation = Quaternion.Euler(0, 90, 0);
+                break;
+            case 2:
+                targetRotation = Quaternion.Euler(0, 180, 0);
+                break;
+            case 3:
+                targetRotation = Quaternion.Euler(0, 270, 0);
+                break;
+            default:
+                targetRotation = new Quaternion();
+                break;
         }
-        else
-        {
-            switch (currentTile.LookDirection)
-            {
-                case 0:
-                    RotationRoot.transform.rotation = Quaternion.Euler(0, 0, 0);
-                    break;
-                case 1:
-                    RotationRoot.transform.rotation = Quaternion.Euler(0, 90, 0);
-                    break;
-                case 2:
-                    RotationRoot.transform.rotation = Quaternion.Euler(0, 180, 0);
-                    break;
-                case 3:
-                    RotationRoot.transform.rotation = Quaternion.Euler(0, 270, 0);
-                    break;
-            }
-        }
+        
+        RotationRoot.transform.rotation = Quaternion.Lerp(RotationRoot.transform.rotation, targetRotation, step);
+
         LastPosition = transform.position;
     }
-    
+
+    public void PredictMovement(Vector2 newPosition, SevenSeasService.Direction direction)
+    {
+        //PositionIndicatorTarget = new Vector3((10 * newPosition.x) + 5f, 1.4f, (10 * newPosition.y) - 5f);
+        //TargetPosition = PositionIndicatorTarget;
+        FromRotation = RotationRoot.transform.rotation;
+        LastGridPosition = newPosition;
+    }
+
     public void SetNewTargetPosition(Vector2 newPosition, Tile tile)
     {
         currentTile = tile;
+
         HealthBar.SetHealth(tile.Health, tile.StartHealth);
         PublicKey.text = tile.Player.ToString();
         SetNftAvatar(tile.Avatar);
         TargetPosition = new Vector3((10 * newPosition.x) + 5f, 1.4f, (10 * newPosition.y) - 5f);
+        PositionIndicatorTarget = TargetPosition;
+
+        FromRotation = RotationRoot.transform.rotation;
         
         if ((newPosition - LastGridPosition).magnitude  > 5)
         {

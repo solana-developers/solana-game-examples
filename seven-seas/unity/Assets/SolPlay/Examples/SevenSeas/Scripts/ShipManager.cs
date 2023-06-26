@@ -187,4 +187,64 @@ public class ShipManager : MonoBehaviour
         newChest.Init(startPosition);
         return newChest;
     }
+
+    public void PredictMovement(PublicKey accountPublicKey, SevenSeasService.Direction direction)
+    {
+        if (TryGetShipByOwner(accountPublicKey, out ShipBehaviour ship))
+        {
+            Vector2 newPosition = new Vector2(ship.LastGridPosition.x, ship.LastGridPosition.y);
+            switch (direction)
+            {
+                case SevenSeasService.Direction.Up:
+                    if (Math.Abs(newPosition.y) > 0)
+                    {
+                        newPosition.y += 1;
+                    }
+
+                    break;
+                case SevenSeasService.Direction.Right:
+                    if (newPosition.x < SevenSeasService.TILE_COUNT_X -1)
+                    {
+                        newPosition.x += 1;
+                    }
+
+                    break;
+                case SevenSeasService.Direction.Down:
+                    if (Math.Abs(newPosition.y) < SevenSeasService.TILE_COUNT_Y - 1)
+                    {
+                        newPosition.y -= 1;
+                    }
+
+                    break;
+                case SevenSeasService.Direction.Left:
+                    if (newPosition.x > 0)
+                    {
+                        newPosition.x -= 1;
+                    }
+
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(direction), direction, null);
+            }
+
+            Debug.Log(newPosition);
+            Debug.Log(ServiceFactory.Resolve<SevenSeasService>().CurrentGameData.Board.Length);
+            var newTile =
+                ServiceFactory.Resolve<SevenSeasService>().CurrentGameData.Board[(int) newPosition.x][
+                    (int) -newPosition.y];
+            var currentTile =
+                ServiceFactory.Resolve<SevenSeasService>().CurrentGameData.Board[(int) ship.LastGridPosition.x][
+                    (int) -ship.LastGridPosition.y];
+            Debug.Log("New tile state: " + newTile.State + " current state: " + currentTile.State);
+            if (newTile.State == (byte) SevenSeasService.STATE_EMPTY)
+            {
+                ship.PredictMovement(newPosition, direction);
+                currentTile.LookDirection = (byte) direction;
+            }
+        }
+        else
+        {
+            Debug.Log("Could not find player");
+        }
+    }
 }

@@ -364,6 +364,9 @@ public class SevenSeasService : MonoBehaviour
         TransactionInstruction initializeInstruction = GetMovePlayerInstruction((byte) direction);
         ServiceFactory.Resolve<TransactionService>().SendInstructionInNextBlock($"Move{direction}",
             initializeInstruction, walletHolderService.InGameWallet);
+            
+        var shipManager = ServiceFactory.Resolve<ShipManager>();
+        shipManager.PredictMovement(walletHolderService.InGameWallet.Account.PublicKey, direction);
     }
 
     public void Shoot()

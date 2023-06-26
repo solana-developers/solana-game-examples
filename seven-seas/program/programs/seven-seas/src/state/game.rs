@@ -567,7 +567,8 @@ impl GameDataAccount {
                     // Up
                     0 => {
                         if new_player_position.1 == 0 {
-                            new_player_position.1 = BOARD_SIZE_Y - 1;
+                            return Err(SevenSeasError::TileOutOfBounds.into());
+                            // new_player_position.1 = BOARD_SIZE_Y - 1; // Use to wrap around
                         } else {
                             new_player_position.1 -= 1;
                         }
@@ -575,7 +576,8 @@ impl GameDataAccount {
                     // Right
                     1 => {
                         if new_player_position.0 == BOARD_SIZE_X - 1 {
-                            new_player_position.0 = 0;
+                            return Err(SevenSeasError::TileOutOfBounds.into());
+                            // new_player_position.0 = 0; // Use to wrap around
                         } else {
                             new_player_position.0 += 1;
                         }
@@ -583,7 +585,8 @@ impl GameDataAccount {
                     // Down
                     2 => {
                         if new_player_position.1 == BOARD_SIZE_Y - 1 {
-                            new_player_position.1 = 0;
+                            return Err(SevenSeasError::TileOutOfBounds.into());
+                            // new_player_position.1 = 0; // Use to wrap around
                         } else {
                             new_player_position.1 += 1;
                         }
@@ -591,7 +594,8 @@ impl GameDataAccount {
                     // Left
                     3 => {
                         if new_player_position.0 == 0 {
-                            new_player_position.0 = BOARD_SIZE_X - 1;
+                            return Err(SevenSeasError::TileOutOfBounds.into());
+                            // new_player_position.0 = BOARD_SIZE_X - 1; // Use to wrap around
                         } else {
                             new_player_position.0 -= 1;
                         }

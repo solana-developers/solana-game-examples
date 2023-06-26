@@ -5,8 +5,8 @@ use anchor_lang::prelude::Account;
 
 pub fn initialize_ship(ctx: Context<InitializeShip>) -> Result<()> {
     msg!("Ship Initialized!");
-    ctx.accounts.new_ship.health = 100;
-    ctx.accounts.new_ship.start_health = 100;
+    ctx.accounts.new_ship.health = 50;
+    ctx.accounts.new_ship.start_health = 50;
     ctx.accounts.new_ship.level = 1;
     ctx.accounts.new_ship.upgrades = 0;
     ctx.accounts.new_ship.cannons = 1;

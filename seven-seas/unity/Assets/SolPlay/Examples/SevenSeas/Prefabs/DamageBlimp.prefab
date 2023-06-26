@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 948155532996457488}
   - component: {fileID: 948155532996457489}
   - component: {fileID: 3937335489223350052}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: DamageBlimp
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -76,7 +76,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 948155533165737432}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: Root
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -110,7 +110,7 @@ GameObject:
   - component: {fileID: 948155534957369728}
   - component: {fileID: 948155534957369730}
   - component: {fileID: 948155534957369731}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}

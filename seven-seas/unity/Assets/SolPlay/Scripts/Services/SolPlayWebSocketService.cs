@@ -291,7 +291,7 @@ namespace SolPlay.Scripts.Services
                 string accountSubscribeParams =
                     "{\"jsonrpc\":\"2.0\",\"id\":" + subscriptionsCount +
                     ",\"method\":\"accountSubscribe\",\"params\":[\"" + pubkey.Key +
-                    "\",{\"encoding\":\"jsonParsed\",\"commitment\":\"confirmed\"}]}";
+                    "\",{\"encoding\":\"jsonParsed\",\"commitment\":\"processed\"}]}";
                 await websocket.Send(System.Text.Encoding.UTF8.GetBytes(accountSubscribeParams));
             }
         }
