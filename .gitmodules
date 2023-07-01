@@ -1,0 +1,3 @@
+[submodule "chess"]
+	path = chess
+	url = https://github.com/magicblock-labs/Solana-Unity-Chess
