@@ -1,7 +1,3 @@
-// components/SessionProvider.tsx
-// The SessionProvider component initializes the SessionKeyManager and provides it to its children via context.
-// Wrap any component that needs access to the SessionKeyManager with this provider.
-
 import { SessionWalletProvider, useSessionKeyManager } from "@gumhq/react-sdk"
 import {
   AnchorWallet,
