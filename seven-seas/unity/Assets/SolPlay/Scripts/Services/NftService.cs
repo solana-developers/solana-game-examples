@@ -72,7 +72,8 @@ namespace SolPlay.Scripts.Services
             Web3.Instance.customRpc = privateFieldValue.ToString();
             Debug.Log(privateFieldValue);
             Web3.Instance.WalletBase = walletHolderService.BaseWallet;
-            Web3.OnNFTsUpdate += nfts =>
+            
+            Web3.OnNFTsUpdate += (nfts, totalAmount)  =>
             {
                 foreach (var newNft in nfts)
                 {
