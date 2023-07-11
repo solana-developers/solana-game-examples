@@ -1,11 +1,11 @@
 using System;
 using System.Collections;
-using Frictionless;
-using SolPlay.DeeplinksNftExample.Utils;
-using SolPlay.Scripts.Services;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using codebase.utility;
+using Solana.Unity.SDK;
+using SolPlay.DeeplinksNftExample.Utils;
 
 namespace SolPlay.Scripts.Ui
 {
@@ -18,10 +18,10 @@ namespace SolPlay.Scripts.Ui
         public TextMeshProUGUI SolChangeText;
         public TextMeshProUGUI PublicKey;
         public Button CopyAddressButton;
-        public bool InGameWallet = false;
 
         private double lamportsChange;
         private Coroutine disableSolChangeCoroutine;
+        private double currentLamports;
 
         private void Awake()
         {
@@ -33,68 +33,36 @@ namespace SolPlay.Scripts.Ui
 
         private void OnCopyClicked()
         {
-            var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
-
-            GUIUtility.systemCopyBuffer = InGameWallet ? walletHolderService.InGameWallet.Account.PublicKey : walletHolderService.BaseWallet.Account.PublicKey;;
-            
+            Clipboard.Copy(Web3.Account.PublicKey);
         }
 
         private void OnEnable()
         {
-            MessageRouter.AddHandler<SolBalanceChangedMessage>(OnSolBalanceChangedMessage);
-            UpdateContent();
+            Web3.OnBalanceChange += OnSolBalanceChangedMessage;
         }
 
         private void OnDisable()
         {
-            MessageRouter.RemoveHandler<SolBalanceChangedMessage>(OnSolBalanceChangedMessage);
+            Web3.OnBalanceChange -= OnSolBalanceChangedMessage;
         }
-
+        
         private void UpdateContent()
         {
-            SolBalance.text = (GetLamports() / SolanaUtils.SolToLamports).ToString("F2") + " sol";
+            SolBalance.text = currentLamports.ToString("F2") + " sol";
             if (PublicKey != null)
             {
-                PublicKey.text = GetPubkey();
+                PublicKey.text = Web3.Account.PublicKey;
             }
         }
 
-        private double GetLamports()
+        private void OnSolBalanceChangedMessage(double newLamports)
         {
-            var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
-            if (walletHolderService == null)
+            double balanceChange = newLamports - currentLamports;
+
+            if (balanceChange != 0 && Math.Abs(currentLamports - newLamports) > 0.00000001)
             {
-                return 0;
-            }
-
-            return InGameWallet ? walletHolderService.InGameWalletSolBalance : walletHolderService.BaseWalletSolBalance;
-        }
-
-        private string GetPubkey()
-        {
-            var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
-            if (walletHolderService == null)
-            {
-                return "";
-            }
-
-            return InGameWallet
-                ? walletHolderService.InGameWallet.Account.PublicKey.Key.Substring(0, 5) + "..."
-                : walletHolderService.BaseWallet.Account.PublicKey.Key.Substring(0, 5) + "...";
-        }
-
-        private void OnSolBalanceChangedMessage(SolBalanceChangedMessage message)
-        {
-            UpdateContent();
-            if (message.IsInGameWallet != InGameWallet)
-            {
-                return;
-            }
-
-            if (message.SolBalanceChange != 0 && Math.Abs(GetLamports() - message.SolBalanceChange) > 0.00000001)
-            {
-                lamportsChange += message.SolBalanceChange;
-                if (message.SolBalanceChange > 0)
+                lamportsChange += balanceChange;
+                if (balanceChange > 0)
                 {
                     if (disableSolChangeCoroutine != null)
                     {
@@ -106,7 +74,7 @@ namespace SolPlay.Scripts.Ui
                 }
                 else
                 {
-                    if (message.SolBalanceChange < -0.0001)
+                    if (balanceChange < -0.0001)
                     {
                         if (disableSolChangeCoroutine != null)
                         {
@@ -117,9 +85,13 @@ namespace SolPlay.Scripts.Ui
                         disableSolChangeCoroutine = StartCoroutine(DisableSolChangeDelayed());
                     }
                 }
+
+                currentLamports = newLamports;
+                UpdateContent();
             }
             else
             {
+                currentLamports = newLamports;
                 UpdateContent();
             }
         }

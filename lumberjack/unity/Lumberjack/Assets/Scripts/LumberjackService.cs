@@ -27,11 +27,14 @@ using UnityEngine;
         public static LumberjackService Instance { get; private set; }
         public static Action<PlayerData> OnPlayerDataChanged;
         public static Action OnInitialDataLoaded;
-        
+        public bool IsAnyTransactionInProgress => transactionsInProgress > 0;
+        public PlayerData CurrentPlayerData;
+
         private SessionWallet sessionWallet;
         private PublicKey PlayerDataPDA;
         private bool _isInitialized;
         private LumberjackClient lumberjackClient;
+        private int transactionsInProgress;
         
         private void Awake() 
         {
@@ -55,9 +58,14 @@ using UnityEngine;
         private async void OnLogin(Account account)
         {
             var solBalance = await Web3.Instance.WalletBase.GetBalance(Commitment.Confirmed);
-            if (solBalance < 10000)
+            if (solBalance < 20000)
             {
-                await Web3.Instance.WalletBase.RequestAirdrop(commitment: Commitment.Confirmed);
+                Debug.Log("Not enough sol. Requsting airdrop");
+                var result = await Web3.Instance.WalletBase.RequestAirdrop(commitment: Commitment.Confirmed);
+                if (!result.WasSuccessful)
+                {
+                    Debug.Log("Airdrop failed.");
+                }
             }
 
             PublicKey.TryFindProgramAddress(new[]
@@ -65,33 +73,9 @@ using UnityEngine;
                 LumberjackProgramIdPubKey, out PlayerDataPDA, out byte bump);
             
             lumberjackClient = new LumberjackClient(Web3.Rpc, Web3.WsRpc, LumberjackProgramIdPubKey);
+            
+            await SubscribeToPlayerDataUpdates();
 
-            AccountResultWrapper<PlayerData> playerData = null;
-            
-            try
-            {
-                playerData = await lumberjackClient.GetPlayerDataAsync(PlayerDataPDA, Commitment.Confirmed);
-                if (playerData.ParsedResult != null)
-                {
-                    OnPlayerDataChanged?.Invoke(playerData.ParsedResult);
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.Log("Probably playerData not available " + e.Message);
-            }
-            
-            if (playerData != null)
-            {
-                _isInitialized = true;
-                Debug.Log("Player data first "+ playerData.ParsedResult.Wood + " wood");
-                await SubscribeToPlayerDataUpdates();
-            }
-            else
-            {
-               // The player needs to create a new account which will be triggered from the ui
-            }
-            
             sessionWallet = await SessionWallet.GetSessionWallet(LumberjackProgramIdPubKey, "ingame");
             OnInitialDataLoaded?.Invoke();
         }
@@ -100,24 +84,38 @@ using UnityEngine;
         {
             return _isInitialized;
         }
-        
-        private async Task InitPlayerData()
-        {
-            var initResult = await InitGameDataAccount();
-            Debug.Log("Init result: " + initResult);
-            await SubscribeToPlayerDataUpdates();
-            OnInitialDataLoaded?.Invoke();
-        }
 
         private async Task SubscribeToPlayerDataUpdates()
         {
-            await lumberjackClient.SubscribePlayerDataAsync(PlayerDataPDA, OnRecievedPlayerDataUpdate, Commitment.Confirmed);
+            AccountResultWrapper<PlayerData> playerData = null;
+            
+            try
+            {
+                playerData = await lumberjackClient.GetPlayerDataAsync(PlayerDataPDA, Commitment.Confirmed);
+                if (playerData.ParsedResult != null)
+                {
+                    CurrentPlayerData = playerData.ParsedResult;
+                    OnPlayerDataChanged?.Invoke(playerData.ParsedResult);
+                }
+                
+                _isInitialized = true;
+            }
+            catch (Exception e)
+            {
+                Debug.Log("Probably playerData not available " + e.Message);
+            }
+            
+            if (playerData != null)
+            {
+                await lumberjackClient.SubscribePlayerDataAsync(PlayerDataPDA, OnRecievedPlayerDataUpdate, Commitment.Confirmed);
+            }
         }
 
         private void OnRecievedPlayerDataUpdate(SubscriptionState state, ResponseValue<AccountInfo> value, PlayerData playerData)
         {
             Debug.Log("Socket Message " + state + value + playerData);
             Debug.Log("Player data first " + playerData.Wood + " wood");
+            CurrentPlayerData = playerData;
             OnPlayerDataChanged?.Invoke(playerData);
         }
 
@@ -136,6 +134,7 @@ using UnityEngine;
             accounts.SystemProgram = SystemProgram.ProgramIdKey;
             
             var initTx = LumberjackProgram.InitPlayer(accounts, LumberjackProgramIdPubKey);
+            tx.Add(initTx);
 
             if (!(await sessionWallet.IsSessionTokenInitialized()))
             {
@@ -147,10 +146,11 @@ using UnityEngine;
                 tx.Add(createSessionIX);
                 Debug.Log("Has no session -> partial sign");
                 tx.PartialSign(new[] { Web3.Account, sessionWallet.Account });
-            }
+            } 
             
-            tx.Add(initTx);
-            return await Web3.Wallet.SignAndSendTransaction(tx, commitment: Commitment.Confirmed);
+            var initResult =  await Web3.Wallet.SignAndSendTransaction(tx, commitment: Commitment.Confirmed);
+            await SubscribeToPlayerDataUpdates();
+            return initResult;
         }
 
         public async Task<SessionWallet> RevokeSession()
@@ -159,13 +159,13 @@ using UnityEngine;
             return sessionWallet;
         }
 
-        public async Task<RequestResult<string>> ChopTree(bool useSession)
+        public async void ChopTree(bool useSession)
         {
             var tx = new Transaction()
             {
                 FeePayer = Web3.Account,
                 Instructions = new List<TransactionInstruction>(),
-                RecentBlockHash = await Web3.BlockHash(maxSeconds:0)
+                RecentBlockHash = await Web3.BlockHash(maxSeconds:1)
             };
 
             ChopTreeAccounts accounts = new ChopTreeAccounts();
@@ -185,6 +185,7 @@ using UnityEngine;
                     tx.Add(chopInstruction);
                     Debug.Log("Has no session -> partial sign");
                     tx.PartialSign(new[] { Web3.Account, sessionWallet.Account });
+                    SendAndConfirmTransaction(Web3.Wallet, tx, "Chop Tree and init session");
                 }
                 else
                 {
@@ -195,10 +196,20 @@ using UnityEngine;
                     tx.Add(chopInstruction);
                     Debug.Log("Has session -> sign and send session wallet");
 
-                    return await sessionWallet.SignAndSendTransaction(tx, commitment: Commitment.Confirmed);
+                    SendAndConfirmTransaction(sessionWallet, tx, "Chop Tree");
                 }
             }
-            
-            return await Web3.Wallet.SignAndSendTransaction(tx, commitment: Commitment.Confirmed);
+        }
+
+        private async void SendAndConfirmTransaction(WalletBase wallet, Transaction transaction, string label = "")
+        {
+            transactionsInProgress++;
+            var res=  await wallet.SignAndSendTransaction(transaction, commitment: Commitment.Confirmed);
+            if (res.WasSuccessful && res.Result != null)
+            {
+                await Web3.Rpc.ConfirmTransaction(res.Result, Commitment.Confirmed);
+            }
+            Debug.Log($"Send tranaction {label} with response: {res.RawRpcResponse}");
+            transactionsInProgress--;
         }
     }

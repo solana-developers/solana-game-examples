@@ -48,7 +48,7 @@ namespace SolPlay.Scripts.Ui
         
         private void UpdateContent()
         {
-            SolBalance.text = (currentLamports / SolanaUtils.SolToLamports).ToString("F2") + " sol";
+            SolBalance.text = currentLamports.ToString("F2") + " sol";
             if (PublicKey != null)
             {
                 PublicKey.text = Web3.Account.PublicKey;
@@ -85,9 +85,13 @@ namespace SolPlay.Scripts.Ui
                         disableSolChangeCoroutine = StartCoroutine(DisableSolChangeDelayed());
                     }
                 }
+
+                currentLamports = newLamports;
+                UpdateContent();
             }
             else
             {
+                currentLamports = newLamports;
                 UpdateContent();
             }
         }

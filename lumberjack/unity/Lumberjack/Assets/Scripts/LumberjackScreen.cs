@@ -23,13 +23,13 @@ public class LumberjackScreen : MonoBehaviour
     public TextMeshProUGUI WoodAmountText;
     public TextMeshProUGUI NextEnergyInText;
 
+    public GameObject LoadingSpinner;
+
     public GameObject LoggedInRoot;
     public GameObject NotInitializedRoot;
     public GameObject InitializedRoot;
     public GameObject NotLoggedInRoot;
-
-    public PlayerData CurrentPlayerData;
-
+    
     void Start()
     {
         LoggedInRoot.SetActive(false);
@@ -41,7 +41,7 @@ public class LumberjackScreen : MonoBehaviour
         ChuckWoodSessionButton.onClick.AddListener(OnChuckWoodSessionButtonClicked);
         RevokeSessionButton.onClick.AddListener(OnRevokeSessionButtonClicked);
         NftsButton.onClick.AddListener(OnNftsButtonnClicked);
-        InitGameDataButton.onClick.AddListener(OnIitGameDataButtonClicked);
+        InitGameDataButton.onClick.AddListener(OnInitGameDataButtonClicked);
         LumberjackService.OnPlayerDataChanged += OnPlayerDataChanged;
 
         StartCoroutine(UpdateNextEnergy());
@@ -49,7 +49,12 @@ public class LumberjackScreen : MonoBehaviour
         LumberjackService.OnInitialDataLoaded += UpdateContent;
     }
 
-    private async void OnIitGameDataButtonClicked()
+    private void Update()
+    {
+        LoadingSpinner.gameObject.SetActive(LumberjackService.Instance.IsAnyTransactionInProgress);
+    }
+
+    private async void OnInitGameDataButtonClicked()
     {
         await LumberjackService.Instance.InitGameDataAccount();
     }
@@ -57,16 +62,6 @@ public class LumberjackScreen : MonoBehaviour
     private void OnNftsButtonnClicked()
     {
         ServiceFactory.Resolve<UiService>().OpenPopup(UiService.ScreenType.NftListPopup, new NftListPopupUiData(false, Web3.Wallet));
-    }
-
-    private void UpdateContent()
-    {
-        var isInitialized = LumberjackService.Instance.IsInitialized();
-        LoggedInRoot.SetActive(Web3.Account != null);
-        NotInitializedRoot.SetActive(!isInitialized);
-        InitializedRoot.SetActive(isInitialized);
-
-        NotLoggedInRoot.SetActive(Web3.Account == null);
     }
 
     private async void OnRevokeSessionButtonClicked()
@@ -85,31 +80,39 @@ public class LumberjackScreen : MonoBehaviour
         while (true)
         {
             yield return new WaitForSeconds(1);
-            UpdateContent(CurrentPlayerData);
+            UpdateContent();
         }
     }
 
     private void OnPlayerDataChanged(PlayerData playerData)
     {
-        CurrentPlayerData = playerData;
-        UpdateContent(playerData);
+        UpdateContent();
     }
 
-    private void UpdateContent(PlayerData playerData)
+    private void UpdateContent()
     {
-        if (CurrentPlayerData == null)
+        var isInitialized = LumberjackService.Instance.IsInitialized();
+        LoggedInRoot.SetActive(Web3.Account != null);
+        NotInitializedRoot.SetActive(!isInitialized);
+        InitGameDataButton.gameObject.SetActive(isInitialized && LumberjackService.Instance.CurrentPlayerData == null);
+        InitializedRoot.SetActive(isInitialized);
+
+        NotLoggedInRoot.SetActive(Web3.Account == null);
+
+        if (LumberjackService.Instance.CurrentPlayerData == null)
         {
             return;
         }
-        var lastLoginTime = playerData.LastLogin;
+        
+        var lastLoginTime = LumberjackService.Instance.CurrentPlayerData.LastLogin;
         var timePassed = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - lastLoginTime;
         
         while (
             timePassed >= LumberjackService.TIME_TO_REFILL_ENERGY &&
-            playerData.Energy < LumberjackService.MAX_ENERGY
+            LumberjackService.Instance.CurrentPlayerData.Energy < LumberjackService.MAX_ENERGY
         ) {
-            playerData.Energy += 1;
-            playerData.LastLogin += LumberjackService.TIME_TO_REFILL_ENERGY;
+            LumberjackService.Instance.CurrentPlayerData.Energy += 1;
+            LumberjackService.Instance.CurrentPlayerData.LastLogin += LumberjackService.TIME_TO_REFILL_ENERGY;
             timePassed -= LumberjackService.TIME_TO_REFILL_ENERGY;
         }
 
@@ -124,21 +127,18 @@ public class LumberjackScreen : MonoBehaviour
             NextEnergyInText.text = "";
         }
         
-        EnergyAmountText.text = playerData.Energy.ToString();
-        WoodAmountText.text = playerData.Wood.ToString();
+        EnergyAmountText.text = LumberjackService.Instance.CurrentPlayerData.Energy.ToString();
+        WoodAmountText.text = LumberjackService.Instance.CurrentPlayerData.Wood.ToString();
     }
 
-    private async void OnChuckWoodSessionButtonClicked()
+    private void OnChuckWoodSessionButtonClicked()
     {
-        var res =  await LumberjackService.Instance.ChopTree(true);
-        Debug.Log("Request: " + res.RawRpcRequest);
-        Debug.Log("Response: " + res.RawRpcResponse);
+        LumberjackService.Instance.ChopTree(true);
     }
 
-    private async void OnChuckWoodButtonClicked()
+    private void OnChuckWoodButtonClicked()
     {
-       var res =  await LumberjackService.Instance.ChopTree(false);
-        Debug.Log(res.Result);
+       LumberjackService.Instance.ChopTree(false);
     }
 
     private async void OnLoginClicked()
