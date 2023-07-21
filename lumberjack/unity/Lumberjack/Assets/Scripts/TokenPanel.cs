@@ -1,9 +1,7 @@
-using Frictionless;
 using Solana.Unity.Programs;
 using Solana.Unity.Rpc.Types;
 using Solana.Unity.SDK;
 using Solana.Unity.Wallet;
-using SolPlay.Scripts.Services;
 using TMPro;
 using UnityEngine;
 
@@ -18,7 +16,7 @@ namespace SolPlay.Scripts.Ui
 
         public string
             TokenMintAdress =
-                "PLAyKbtrwQWgWkpsEaMHPMeDLDourWEWVrx824kQN8P"; // Solplay Token, replace with whatever token you like.
+                "PLAyKbtrwQWgWkpsEaMHPMeDLDourWEWVrx824kQN8P"; // Replace with whatever token you like.
 
         private PublicKey _associatedTokenAddress;
         

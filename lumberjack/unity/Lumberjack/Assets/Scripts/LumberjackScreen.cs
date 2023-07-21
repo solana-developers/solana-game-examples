@@ -4,7 +4,6 @@ using Frictionless;
 using Lumberjack.Accounts;
 using Solana.Unity.SDK;
 using SolPlay.Scripts.Services;
-using SolPlay.Scripts.Ui;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -35,7 +34,7 @@ public class LumberjackScreen : MonoBehaviour
         LoggedInRoot.SetActive(false);
         NotLoggedInRoot.SetActive(true);
         
-        LoginButton.onClick.AddListener(OnLoginClicked);
+        LoginButton.onClick.AddListener(OnEditorLoginClicked);
         LoginWalletAdapterButton.onClick.AddListener(OnLoginWalletAdapterButtonClicked);
         ChuckWoodButton.onClick.AddListener(OnChuckWoodButtonClicked);
         ChuckWoodSessionButton.onClick.AddListener(OnChuckWoodSessionButtonClicked);
@@ -141,7 +140,7 @@ public class LumberjackScreen : MonoBehaviour
        LumberjackService.Instance.ChopTree(false);
     }
 
-    private async void OnLoginClicked()
+    private async void OnEditorLoginClicked()
     {
         // Dont use this one for production.
         await Web3.Instance.LoginInGameWallet("1234");

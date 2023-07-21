@@ -1,153 +1,137 @@
-using System.Threading.Tasks;
 using Frictionless;
-using Solana.Unity.SDK;
-using Solana.Unity.Wallet;
 using SolPlay.Scripts.Services;
+using SolPlay.Scripts.Ui;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace SolPlay.Scripts.Ui
+
+/// <summary>
+/// Screen that loads all NFTs when opened
+/// </summary>
+public class NftListPopup : BasePopup
 {
-    /// <summary>
-    /// Screen that loads all NFTs when opened
-    /// </summary>
-    public class NftListPopup : BasePopup
+    public Button GetNFtsDataButton;
+    public Button MintInAppButton;
+    public NftItemListView NftItemListView;
+    public GameObject YouDontOwnANftOfCollectionRoot;
+    public GameObject YouOwnANftOfCollectionRoot;
+    public GameObject LoadingSpinner;
+    public GameObject MinitingBlocker;
+
+    void Start()
     {
-        public Button GetNFtsDataButton;
-        public Button MintInAppButton;
-        public NftItemListView NftItemListView;
-        public GameObject YouDontOwnANftOfCollectionRoot;
-        public GameObject YouOwnANftOfCollectionRoot;
-        public GameObject LoadingSpinner;
-        public GameObject MinitingBlocker;
+        GetNFtsDataButton.onClick.AddListener(OnGetNftButtonClicked);
+        MintInAppButton.onClick.AddListener(OnMintInAppButtonClicked);
+        
+        MessageRouter
+            .AddHandler<NftLoadingStartedMessage>(OnNftLoadingStartedMessage);
+        MessageRouter
+            .AddHandler<NftLoadingFinishedMessage>(OnNftLoadingFinishedMessage);
+        MessageRouter
+            .AddHandler<NftLoadedMessage>(OnNftLoadedMessage);
+        MessageRouter
+            .AddHandler<NftMintFinishedMessage>(OnNftMintFinishedMessage);
+        MessageRouter
+            .AddHandler<NftSelectedMessage>(OnNftSelectedMessage);
+    }
 
-        async void Start()
+    private void OnNftSelectedMessage(NftSelectedMessage obj)
+    {
+        Close();
+    }
+
+    public override void Open(UiService.UiData uiData)
+    {
+        var nftListPopupUiData = (uiData as NftListPopupUiData);
+
+        if (nftListPopupUiData == null)
         {
-            GetNFtsDataButton.onClick.AddListener(OnGetNftButtonClicked);
-            MintInAppButton.onClick.AddListener(OnMintInAppButtonClicked);
-            
-            MessageRouter
-                .AddHandler<NftLoadingStartedMessage>(OnNftLoadingStartedMessage);
-            MessageRouter
-                .AddHandler<NftLoadingFinishedMessage>(OnNftLoadingFinishedMessage);
-            MessageRouter
-                .AddHandler<NftLoadedMessage>(OnNftLoadedMessage);
-            MessageRouter
-                .AddHandler<NftMintFinishedMessage>(OnNftMintFinishedMessage);
-            MessageRouter
-                .AddHandler<NftSelectedMessage>(OnNftSelectedMessage);
-
-            Web3.OnLogin += OnLogin;
+            Debug.LogError("Wrong ui data for nft list popup");
+            return;
         }
 
-        private void OnNftSelectedMessage(NftSelectedMessage obj)
+        NftItemListView.UpdateContent();
+        NftItemListView.SetData(nft =>
         {
+            // when an nft was selected we want to close the popup so we can start the game.
             Close();
+        });
+        base.Open(uiData);
+    }
+
+    private async void OnMintInAppButtonClicked()
+    {
+        if (MinitingBlocker != null)
+        {
+            MinitingBlocker.gameObject.SetActive(true);
         }
 
-        private void OnDestroy()
-        {
-            Web3.OnLogin -= OnLogin;
-        }
-        
-        private async void OnLogin(Account account)
-        {
-            await OnLogin();
-        }
-
-        public override void Open(UiService.UiData uiData)
-        {
-            var nftListPopupUiData = (uiData as NftListPopupUiData);
-
-            if (nftListPopupUiData == null)
-            {
-                Debug.LogError("Wrong ui data for nft list popup");
-                return;
-            }
-
-            NftItemListView.UpdateContent();
-            NftItemListView.SetData(nft =>
-            {
-                // when an nft was selected we want to close the popup so we can start the game.
-                Close();
-            });
-            base.Open(uiData);
-        }
-        
-        private async Task OnLogin()
-        {
-            await RequestNfts();
-        }
-
-        private async void OnMintInAppButtonClicked()
-        {
-            if (MinitingBlocker != null)
-            {
-                MinitingBlocker.gameObject.SetActive(true);
-            }
-
-            // Mint a pirate sship
-            var signature = await ServiceFactory.Resolve<NftMintingService>()
-                .MintNftWithMetaData(
-                    "https://shdw-drive.genesysgo.net/QZNGUVnJgkw6sGQddwZVZkhyUWSUXAjXF9HQAjiVZ55/DummyPirateShipMetaData.json",
-                    "Simple Pirate Ship", "Pirate", b =>
+        // Mint a pirate sship
+        var signature = await ServiceFactory.Resolve<NftMintingService>()
+            .MintNftWithMetaData(
+                "https://shdw-drive.genesysgo.net/QZNGUVnJgkw6sGQddwZVZkhyUWSUXAjXF9HQAjiVZ55/DummyPirateShipMetaData.json",
+                "Simple Pirate Ship", "Pirate", b =>
+                {
+                    if (MinitingBlocker != null)
                     {
-                        if (MinitingBlocker != null)
-                        {
-                            MinitingBlocker.gameObject.SetActive(false);
-                        }
-                    });
-            Debug.Log("Mint signature: " + signature);
-        }
+                        MinitingBlocker.gameObject.SetActive(false);
+                    }
 
-        private void OnNftLoadedMessage(NftLoadedMessage message)
-        {
-            NftItemListView.AddNFt(message.Nft);
-            UpdateOwnCollectionStatus();
-        }
+                    if (b)
+                    {
+                        RequestNfts();   
+                    }
+                });
+        Debug.Log("Mint signature: " + signature);
+    }
 
-        private bool UpdateOwnCollectionStatus()
-        {
-            var nftService = ServiceFactory.Resolve<NftService>();
-            bool ownsBeaver = nftService.OwnsNftOfMintAuthority(NftService.BeaverNftMintAuthority);
-            YouDontOwnANftOfCollectionRoot.gameObject.SetActive(!ownsBeaver);
-            YouOwnANftOfCollectionRoot.gameObject.SetActive(ownsBeaver);
-            return ownsBeaver;
-        }
+    private void OnNftLoadedMessage(NftLoadedMessage message)
+    {
+        NftItemListView.AddNFt(message.Nft);
+        UpdateOwnCollectionStatus();
+    }
 
-        private async void OnGetNftButtonClicked()
-        {
-            await RequestNfts();
-        }
+    private bool UpdateOwnCollectionStatus()
+    {
+        var nftService = ServiceFactory.Resolve<NftService>();
+        bool ownsBeaver = nftService.OwnsNftOfMintAuthority(NftService.NftMintAuthority);
+        YouDontOwnANftOfCollectionRoot.gameObject.SetActive(!ownsBeaver);
+        YouOwnANftOfCollectionRoot.gameObject.SetActive(ownsBeaver);
+        return ownsBeaver;
+    }
 
-        private void OnNftLoadingStartedMessage(NftLoadingStartedMessage message)
-        {
-            GetNFtsDataButton.interactable = false;
-        }
+    private void OnGetNftButtonClicked()
+    {
+        RequestNfts();
+    }
 
-        private void OnNftLoadingFinishedMessage(NftLoadingFinishedMessage message)
-        {
-            NftItemListView.UpdateContent();
-        }
+    private void OnNftLoadingStartedMessage(NftLoadingStartedMessage message)
+    {
+        GetNFtsDataButton.interactable = false;
+    }
 
-        private async void OnNftMintFinishedMessage(NftMintFinishedMessage message)
-        {
-            await RequestNfts();
-        }
+    private void OnNftLoadingFinishedMessage(NftLoadingFinishedMessage message)
+    {
+        NftItemListView.UpdateContent();
+    }
 
-        private void Update()
-        {
-            var nftService = ServiceFactory.Resolve<NftService>();
-            if (nftService != null)
-            {
-                GetNFtsDataButton.interactable = !nftService.IsLoadingTokenAccounts;
-                LoadingSpinner.gameObject.SetActive(nftService.IsLoadingTokenAccounts);
-            }
-        }
+    private void OnNftMintFinishedMessage(NftMintFinishedMessage message)
+    {
+        RequestNfts();
+    }
 
-        private async Task RequestNfts()
+    private void Update()
+    {
+        var nftService = ServiceFactory.Resolve<NftService>();
+        if (nftService != null)
         {
-            ServiceFactory.Resolve<NftService>().LoadNfts();
+            GetNFtsDataButton.interactable = !nftService.IsLoadingTokenAccounts;
+            LoadingSpinner.gameObject.SetActive(nftService.IsLoadingTokenAccounts);
         }
+    }
+
+    private void RequestNfts()
+    {
+        ServiceFactory.Resolve<NftService>().LoadNfts();
     }
 }

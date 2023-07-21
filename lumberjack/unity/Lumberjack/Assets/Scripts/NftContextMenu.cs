@@ -36,10 +36,11 @@ namespace SolPlay.Scripts.Ui
             Close();
         }
 
-        private async void OnSelectClicked()
+        private void OnSelectClicked()
         {
             ServiceFactory.Resolve<NftService>().SelectNft(currentNft);
             Debug.Log($"{currentNft.metaplexData.data.offchainData.name} selected");
+            onNftSelected?.Invoke(currentNft);
             Close();
         }
 

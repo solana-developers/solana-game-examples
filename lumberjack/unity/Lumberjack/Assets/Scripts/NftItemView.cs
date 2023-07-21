@@ -25,7 +25,7 @@ namespace SolPlay.Scripts.Ui
 
         private Action<NftItemView> onButtonClickedAction;
 
-        public async void SetData(Nft nft, Action<NftItemView> onButtonClicked)
+        public void SetData(Nft nft, Action<NftItemView> onButtonClicked)
         {
             if (nft == null)
             {
