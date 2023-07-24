@@ -1,3 +1,7 @@
+This game uses gum session keys for auto approval of transactions. Its ment as a starter game for on chain game. 
+There is a js and a unity client for this game.
+Note that neither the program nor session keys are audited. Use at your own risk. 
+
 How to run this example:
 
 Anchor program
@@ -14,12 +18,18 @@ Next js client
 2. `cd lumberjack` `cd app` to end the app directory
 3. Run `yarn install` to install node modules
 4. Run `yarn dev` to start the client
+5. After doing changes to the anchor program make sure to copy over the types from the program into the client so you can use them
 
+Unity client 
+1. Install [Unity](https://unity.com/)
+2. Open the lumberjack scene
+3. Hit play
+4. After doing changes to the anchor program make sure to regenerate the C# client: https://solanacookbook.com/gaming/porting-anchor-to-unity.html#generating-the-client
 
 # Energy System  
 
 Many casual games in traditional gaming use energy systems. This is how you can build it on chain.
-Recommended to start with the Solana cookbook hello world example. 
+Recommended to start with the Solana cookbook [Hello world example]([https://unity.com/](https://solanacookbook.com/gaming/hello-world.html#getting-started-with-your-first-solana-game)).  
 
 ## Anchor program 
 
@@ -131,6 +141,8 @@ pub fn update_energy(ctx: &mut ChopTree) -> Result<()> {
 
 ### Subscribe to account updates
 
+It is possible to subscribe to account updates via a websocket. This get updates to this account pushed directly back to the client without the need to poll this data. This allows fast gameplay because the updates usually arrive after around 500ms.
+
 ```js
 useEffect(() => {
     if (!publicKey) {return;}
@@ -190,8 +202,10 @@ useEffect(() => {
 
   ```
 
+### Session keys
+
+Session keys is an optional component. What it does is creating a local key pair which is toped up with some sol which can be used to autoapprove transactions. The session token is only allowed on certain functions of the program and has an expiry of 23 hours. Then the player will get the sol back and can create a new session.  
+
 With this you can now build any energy based game and even if someone builds a bot for the game the most he can do is play optimally, which maybe even easier to achieve when playing normally depending on the logic of your game.
 
 This game becomes even better when combined with the Token example from Solana Cookbook and you actually drop some spl token to the players. 
-
-Here is a complete example based on the solana dapp scaffold: 
