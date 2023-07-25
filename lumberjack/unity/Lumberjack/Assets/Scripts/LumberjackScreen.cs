@@ -55,7 +55,7 @@ public class LumberjackScreen : MonoBehaviour
 
     private async void OnInitGameDataButtonClicked()
     {
-        await LumberjackService.Instance.InitGameDataAccount();
+        await LumberjackService.Instance.InitGameDataAccount(!Web3.Rpc.NodeAddress.AbsoluteUri.Contains("localhost"));
     }
 
     private void OnNftsButtonnClicked()
@@ -93,7 +93,7 @@ public class LumberjackScreen : MonoBehaviour
         var isInitialized = LumberjackService.Instance.IsInitialized();
         LoggedInRoot.SetActive(Web3.Account != null);
         NotInitializedRoot.SetActive(!isInitialized);
-        InitGameDataButton.gameObject.SetActive(isInitialized && LumberjackService.Instance.CurrentPlayerData == null);
+        InitGameDataButton.gameObject.SetActive(!isInitialized && LumberjackService.Instance.CurrentPlayerData == null);
         InitializedRoot.SetActive(isInitialized);
 
         NotLoggedInRoot.SetActive(Web3.Account == null);
@@ -132,7 +132,7 @@ public class LumberjackScreen : MonoBehaviour
 
     private void OnChuckWoodSessionButtonClicked()
     {
-        LumberjackService.Instance.ChopTree(true);
+        LumberjackService.Instance.ChopTree(!Web3.Rpc.NodeAddress.AbsoluteUri.Contains("localhost"));
     }
 
     private void OnChuckWoodButtonClicked()

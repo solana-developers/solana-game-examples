@@ -26,6 +26,10 @@ Unity client
 3. Hit play
 4. After doing changes to the anchor program make sure to regenerate the C# client: https://solanacookbook.com/gaming/porting-anchor-to-unity.html#generating-the-client
 
+To connect to local host from Unity add these links on the wallet holder game object: 
+http://localhost:8899
+ws://localhost:8900
+
 # Energy System  
 
 Many casual games in traditional gaming use energy systems. This is how you can build it on chain.

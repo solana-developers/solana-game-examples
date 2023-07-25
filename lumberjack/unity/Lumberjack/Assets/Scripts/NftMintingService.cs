@@ -312,6 +312,7 @@ namespace SolPlay.Scripts.Services
             }
             else
             {
+                mintDone?.Invoke(true);
                 Debug.Log("Mint Successfull! Woop woop!");
             }
 

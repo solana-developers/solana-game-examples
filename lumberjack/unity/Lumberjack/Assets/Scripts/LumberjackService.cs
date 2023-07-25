@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using Frictionless;
 using Lumberjack;
 using Lumberjack.Accounts;
 using Lumberjack.Program;
@@ -14,6 +15,7 @@ using Solana.Unity.Rpc.Models;
 using Solana.Unity.Rpc.Types;
 using Solana.Unity.SDK;
 using Solana.Unity.Wallet;
+using SolPlay.Scripts.Services;
 using UnityEngine;
 
 
@@ -73,7 +75,7 @@ public class LumberjackService : MonoBehaviour
             LumberjackProgramIdPubKey, out PlayerDataPDA, out byte bump);
         
         lumberjackClient = new LumberjackClient(Web3.Rpc, Web3.WsRpc, LumberjackProgramIdPubKey);
-        
+        ServiceFactory.Resolve<SolPlayWebSocketService>().Connect(Web3.WsRpc.NodeAddress.AbsoluteUri);
         await SubscribeToPlayerDataUpdates();
 
         sessionWallet = await SessionWallet.GetSessionWallet(LumberjackProgramIdPubKey, "ingame");
@@ -105,10 +107,19 @@ public class LumberjackService : MonoBehaviour
             Debug.Log("Probably playerData not available " + e.Message);
         }
         
-        if (playerData != null)
+        // The standart implemenation is for some reason not realiable so we use the SolPlayWebocket for now
+        /*if (playerData != null)
         {
             await lumberjackClient.SubscribePlayerDataAsync(PlayerDataPDA, OnRecievedPlayerDataUpdate, Commitment.Confirmed);
-        }
+        }*/
+        
+        ServiceFactory.Resolve<SolPlayWebSocketService>().SubscribeToPubKeyData(PlayerDataPDA, result =>
+        {
+            var playerData = PlayerData.Deserialize(Convert.FromBase64String(result.result.value.data[0]));
+            Debug.Log("Got via websocket: " + playerData.Wood);
+            CurrentPlayerData = playerData;
+            OnPlayerDataChanged?.Invoke(playerData);
+        });
     }
 
     private void OnRecievedPlayerDataUpdate(SubscriptionState state, ResponseValue<AccountInfo> value, PlayerData playerData)
@@ -119,7 +130,7 @@ public class LumberjackService : MonoBehaviour
         OnPlayerDataChanged?.Invoke(playerData);
     }
 
-    public async Task<RequestResult<string>> InitGameDataAccount()
+    public async Task<RequestResult<string>> InitGameDataAccount(bool useSession)
     {
         var tx = new Transaction()
         {
@@ -136,18 +147,21 @@ public class LumberjackService : MonoBehaviour
         var initTx = LumberjackProgram.InitPlayer(accounts, LumberjackProgramIdPubKey);
         tx.Add(initTx);
 
-        if (!(await sessionWallet.IsSessionTokenInitialized()))
+        if (useSession)
         {
-            var topUp = true;
+            if (!(await sessionWallet.IsSessionTokenInitialized()))
+            {
+                var topUp = true;
 
-            var validity = DateTimeOffset.UtcNow.AddHours(23).ToUnixTimeSeconds();
-            var createSessionIX = sessionWallet.CreateSessionIX(topUp, validity);
-            accounts.Signer = Web3.Account.PublicKey;
-            tx.Add(createSessionIX);
-            Debug.Log("Has no session -> partial sign");
-            tx.PartialSign(new[] { Web3.Account, sessionWallet.Account });
-        } 
-        
+                var validity = DateTimeOffset.UtcNow.AddHours(23).ToUnixTimeSeconds();
+                var createSessionIX = sessionWallet.CreateSessionIX(topUp, validity);
+                accounts.Signer = Web3.Account.PublicKey;
+                tx.Add(createSessionIX);
+                Debug.Log("Has no session -> partial sign");
+                tx.PartialSign(new[] { Web3.Account, sessionWallet.Account });
+            }
+        }
+
         var initResult =  await Web3.Wallet.SignAndSendTransaction(tx, commitment: Commitment.Confirmed);
         await Web3.Rpc.ConfirmTransaction(initResult.Result, Commitment.Confirmed);
         await SubscribeToPlayerDataUpdates();
@@ -200,6 +214,15 @@ public class LumberjackService : MonoBehaviour
 
                 SendAndConfirmTransaction(sessionWallet, tx, "Chop Tree");
             }
+        }
+        else
+        {
+            tx.FeePayer = Web3.Account.PublicKey;
+            accounts.Signer = Web3.Account.PublicKey;
+            var chopInstruction = LumberjackProgram.ChopTree(accounts, LumberjackProgramIdPubKey);
+            tx.Add(chopInstruction);
+            Debug.Log("Sign without session");
+            SendAndConfirmTransaction(Web3.Wallet, tx, "Chop Tree without session");
         }
     }
 
