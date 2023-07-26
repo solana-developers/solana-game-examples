@@ -107,7 +107,7 @@ public class LumberjackService : MonoBehaviour
             Debug.Log("Probably playerData not available " + e.Message);
         }
         
-        // The standart implemenation is for some reason not realiable so we use the SolPlayWebocket for now
+        // The standart implementation is for some reason not realiable so we use the SolPlayWebocket for now
         /*if (playerData != null)
         {
             await lumberjackClient.SubscribePlayerDataAsync(PlayerDataPDA, OnRecievedPlayerDataUpdate, Commitment.Confirmed);
@@ -122,6 +122,7 @@ public class LumberjackService : MonoBehaviour
         });
     }
 
+    // The standart implementation is for some reason not realiable so we use the SolPlayWebocket for now
     private void OnRecievedPlayerDataUpdate(SubscriptionState state, ResponseValue<AccountInfo> value, PlayerData playerData)
     {
         Debug.Log("Socket Message " + state + value + playerData);

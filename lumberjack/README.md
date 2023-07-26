@@ -3,13 +3,16 @@ There is a js and a unity client for this game.
 Note that neither the program nor session keys are audited. Use at your own risk. 
 
 How to run this example:
+Follow the installation here: https://www.anchor-lang.com/docs/installation
+make sure to install solana CLI version 1.14.20 not the 1.16.x version
+sh -c "$(curl -sSfL https://release.solana.com/v1.14.20/install)"
 
 Anchor program
 1. Install the [Anchor CLI](https://project-serum.github.io/anchor/getting-started/installation.html)
 2. `cd lumberjack` `cd program` to end the program directory
 3. Run `anchor build` to build the program
 4. Run `anchor deploy` to deploy the program
-5. Copy the program id into the lib.rs and anchor.toml file
+5. Copy the program id from the terminal into the lib.rs, anchor.toml and within the unity project in the LumberjackService and if you use js in the anchor.ts file
 6. Build and deploy again
 
 Next js client
@@ -25,10 +28,22 @@ Unity client
 2. Open the lumberjack scene
 3. Hit play
 4. After doing changes to the anchor program make sure to regenerate the C# client: https://solanacookbook.com/gaming/porting-anchor-to-unity.html#generating-the-client
+Its done like this (after you have build the program): 
+cd program 
+dotnet tool install Solana.Unity.Anchor.Tool <- run once
+dotnet anchorgen -i target/idl/lumberjack.json -o target/idl/Lumberjack.cs
+
+then copy the c# code into the unity project
 
 To connect to local host from Unity add these links on the wallet holder game object: 
 http://localhost:8899
 ws://localhost:8900
+
+Here are two videos explaining the energy logic and session keys: 
+Session keys:
+https://www.youtube.com/watch?v=oKvWZoybv7Y&t=17s&ab_channel=Solana
+Energy system: 
+https://www.youtube.com/watch?v=YYQtRCXJBgs&t=4s&ab_channel=Solana
 
 # Energy System  
 
