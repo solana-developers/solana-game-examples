@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef6d93e4c8904031a8a9b76b4acb032c, type: 3}
+  m_Name: Tree
+  m_EditorClassIdentifier: 
+  Number: 0
+  Prefab: {fileID: 1509320704378930833, guid: f8fe3d72c70d14e8aaf6435715fa209d, type: 3}
+  MergeFx: {fileID: 0}
+  Material: {fileID: 2100000, guid: dc77712f8a3c349dfa7d7f80d7d2bb04, type: 2}
+  ShakeStrength: 0.3
+  MaterialColor: {r: 0, g: 1, b: 0.023376703, a: 1}
+  BackgroundMaterial: {fileID: 0}
+  Index: 0
+  building_type: 0
+  BuildingName: Tree

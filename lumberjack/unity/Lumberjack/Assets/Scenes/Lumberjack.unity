@@ -3621,8 +3621,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   rpcCluster: 1
-  customRpc: https://devnet.helius-rpc.com/?api-key=dcee9dad-fb42-4a26-b394-41b53e81d913
-  webSocketsRpc: wss://devnet.helius-rpc.com/?api-key=dcee9dad-fb42-4a26-b394-41b53e81d913
+  customRpc: https://falling-fabled-sailboat.solana-devnet.discover.quiknode.pro/3e431df782d3e8ff8917093bc779b110836def40/
+  webSocketsRpc: wss://falling-fabled-sailboat.solana-devnet.discover.quiknode.pro/3e431df782d3e8ff8917093bc779b110836def40/
   autoConnectOnStartup: 0
   web3AuthWalletOptions:
     appName: Web3Auth Sample App
