@@ -1,4 +1,4 @@
-<img width="1859" alt="image" src="https://github.com/solana-developers/solana-game-starter-kits/assets/5938789/b4d45a5f-4fc8-40fc-b411-485a953ceda5"># A collection of example games
+# A collection of example games
 
 This is a collection of example games built on Solana. The games are built using the [Anchor](https://project-serum.github.io/anchor/) framework. The games are meant to be used as a starting point for building your own games on Solana.
 
