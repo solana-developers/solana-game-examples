@@ -100,9 +100,9 @@ namespace SolPlay.Scripts.Services
             {
                 DeeplinkWallet = new SolanaWalletAdapter(WebGlWalletOptions, cluster, rpcUrl, null, true);
             }
-
+            
             InGameWallet = new InGameWallet(cluster, rpcUrl, null, true);
-
+            
             TwoWalletSetup = singleWalletSetup;
 
             var newMnemonic = new Mnemonic(WordList.English, WordCount.Twelve);

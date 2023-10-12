@@ -3,8 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
-using CandyMachineV2;
-using CandyMachineV2.Program;
 using Frictionless;
 using Solana.Unity.Metaplex.NFT.Library;
 using Solana.Unity.Programs;
@@ -40,121 +38,7 @@ namespace SolPlay.Scripts.Services
             yield return null;
         }
 
-        public async Task<string> MintNFTFromCandyMachineV2(PublicKey candyMachineKey)
-        {
-            var baseWallet = ServiceFactory.Resolve<WalletHolderService>().BaseWallet;
-
-            var account = baseWallet.Account;
-
-            Account mint = new Account();
-
-            PublicKey associatedTokenAccount =
-                AssociatedTokenAccountProgram.DeriveAssociatedTokenAccount(account, mint.PublicKey);
-
-            var candyMachineClient = new CandyMachineClient(baseWallet.ActiveRpcClient, null);
-            var candyMachineWrap = await candyMachineClient.GetCandyMachineAsync(candyMachineKey);
-            var candyMachine = candyMachineWrap.ParsedResult;
-
-            var (candyMachineCreator, creatorBump) = CandyMachineUtils.getCandyMachineCreator(candyMachineKey);
-
-            MintNftAccounts mintNftAccounts = new MintNftAccounts
-            {
-                CandyMachine = candyMachineKey,
-                CandyMachineCreator = candyMachineCreator,
-                Clock = SysVars.ClockKey,
-                InstructionSysvarAccount = CandyMachineUtils.instructionSysVarAccount,
-                MasterEdition = CandyMachineUtils.getMasterEdition(mint.PublicKey),
-                Metadata = CandyMachineUtils.getMetadata(mint.PublicKey),
-                Mint = mint.PublicKey,
-                MintAuthority = account,
-                Payer = account,
-                RecentBlockhashes = SysVars.RecentBlockHashesKey,
-                Rent = SysVars.RentKey,
-                SystemProgram = SystemProgram.ProgramIdKey,
-                TokenMetadataProgram = CandyMachineUtils.TokenMetadataProgramId,
-                TokenProgram = TokenProgram.ProgramIdKey,
-                UpdateAuthority = account,
-                Wallet = candyMachine.Wallet
-            };
-
-            var candyMachineInstruction = CandyMachineProgram.MintNft(mintNftAccounts, creatorBump);
-
-            var blockHash = await baseWallet.ActiveRpcClient.GetRecentBlockHashAsync();
-            var minimumRent =
-                await baseWallet.ActiveRpcClient.GetMinimumBalanceForRentExemptionAsync(
-                    TokenProgram.MintAccountDataSize);
-
-            var serializedTransaction = new TransactionBuilder()
-                .SetRecentBlockHash(blockHash.Result.Value.Blockhash)
-                .SetFeePayer(account)
-                .AddInstruction(
-                    SystemProgram.CreateAccount(
-                        account,
-                        mint.PublicKey,
-                        minimumRent.Result,
-                        TokenProgram.MintAccountDataSize,
-                        TokenProgram.ProgramIdKey))
-                .AddInstruction(
-                    TokenProgram.InitializeMint(
-                        mint.PublicKey,
-                        0,
-                        account,
-                        account))
-                .AddInstruction(
-                    AssociatedTokenAccountProgram.CreateAssociatedTokenAccount(
-                        account,
-                        account,
-                        mint.PublicKey))
-                .AddInstruction(
-                    TokenProgram.MintTo(
-                        mint.PublicKey,
-                        associatedTokenAccount,
-                        1,
-                        account))
-                .AddInstruction(candyMachineInstruction)
-                .Build(new List<Account>()
-                {
-                    account,
-                    mint
-                });
-            
-            Transaction deserializedTransaction = Transaction.Deserialize(serializedTransaction);
-
-            Debug.Log($"mint transaction length {serializedTransaction.Length}");
-
-            var signedTransaction = await baseWallet.SignTransaction(deserializedTransaction);
-
-            var transactionSignature =
-                await baseWallet.ActiveRpcClient.SendTransactionAsync(
-                    Convert.ToBase64String(signedTransaction.Serialize()), true, Commitment.Confirmed);
-
-            if (!transactionSignature.WasSuccessful)
-            {
-                LoggingService
-                    .Log("Mint was not successfull: " + transactionSignature.Reason, true);
-            }
-            else
-            {
-                ServiceFactory.Resolve<TransactionService>().CheckSignatureStatus(transactionSignature.Result,
-                    success =>
-                    {
-                        if (success)
-                        {
-                            LoggingService.Log("Mint Successfull! Woop woop!", true);
-                        }
-                        else
-                        {
-                            LoggingService.Log("Mint failed!", true);
-                        }
-                        MessageRouter.RaiseMessage(new NftMintFinishedMessage());
-                    });
-            }
-
-            Debug.Log(transactionSignature.Reason);
-            return transactionSignature.Result;
-        }
-
-        public async Task<string> AuthorizeAccount(PublicKey accountToUnfreeze, PublicKey mint)
+       public async Task<string> AuthorizeAccount(PublicKey accountToUnfreeze, PublicKey mint)
         {
             var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
             var localWallet = walletHolderService.BaseWallet;

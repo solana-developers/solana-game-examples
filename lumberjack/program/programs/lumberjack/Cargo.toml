@@ -16,5 +16,5 @@ cpi = ["no-entrypoint"]
 default = []
 
 [dependencies]
-anchor-lang = "0.26.0"
-gpl-session = { version = "0.2.0", features = ["no-entrypoint"] }
+anchor-lang = "0.28.0"
+session-keys = { version = "2.0.1", features = ["no-entrypoint"] }

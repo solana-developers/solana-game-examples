@@ -20,8 +20,7 @@ https://solplay.de/humansandgoblins/
 
 How to run this example:
 Follow the installation here: https://www.anchor-lang.com/docs/installation
-make sure to install solana CLI version 1.14.20 not the 1.16.x version
-sh -c "$(curl -sSfL https://release.solana.com/v1.14.20/install)"
+sh -c "$(curl -sSfL https://release.solana.com/v1.16.20/install)"
 
 Anchor program
 1. Install the [Anchor CLI](https://project-serum.github.io/anchor/getting-started/installation.html)

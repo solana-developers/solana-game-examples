@@ -114,7 +114,6 @@ namespace SolPlay.Scripts.Services
             {
                 socketUrl = "ws://localhost:8900";
             }
-            Debug.Log("Socket url: " + socketUrl);
         }
 
         public void Connect(string rpcUrl)
@@ -131,7 +130,6 @@ namespace SolPlay.Scripts.Services
             }
 
             SetSocketUrl(rpcUrl);
-            Debug.Log("Connect Socket: " + socketUrl);
             
 #if UNITY_WEBGL 
             websocket = new WebSocket(socketUrl);

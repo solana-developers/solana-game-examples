@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.45072937, g: 0.50067306, b: 0.5748514, a: 1}
+  m_IndirectSpecularColor: {r: 0.45072877, g: 0.50067186, b: 0.5748498, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -975,11 +975,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1665109046784520929, guid: 1b4fdc6f1968a43d68ee82dc0c862785, type: 3}
       propertyPath: MainNetRpcUrl
-      value: https://rpc-devnet.helius.xyz/?api-key=dcee9dad-fb42-4a26-b394-41b53e81d913
+      value: https://light-red-uranium.solana-mainnet.quiknode.pro/9d63f34cfe3e6e00543a34ff3f19855e537f0a99/
       objectReference: {fileID: 0}
     - target: {fileID: 1665109046784520929, guid: 1b4fdc6f1968a43d68ee82dc0c862785, type: 3}
       propertyPath: DevnetLoginRPCUrl
-      value: https://rpc-devnet.helius.xyz/?api-key=dcee9dad-fb42-4a26-b394-41b53e81d913
+      value: https://broken-empty-reel.solana-devnet.quiknode.pro/333a00f389fe630f4d331dd740b3aa6b040f8598/
       objectReference: {fileID: 0}
     - target: {fileID: 1665109046784520929, guid: 1b4fdc6f1968a43d68ee82dc0c862785, type: 3}
       propertyPath: DevnetWalletCluster
@@ -3671,7 +3671,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   rpcCluster: 1
-  customRpc: https://rpc-devnet.helius.xyz/?api-key=dcee9dad-fb42-4a26-b394-41b53e81d913
+  customRpc: https://broken-empty-reel.solana-devnet.quiknode.pro/333a00f389fe630f4d331dd740b3aa6b040f8598/
   webSocketsRpc: 
   autoConnectOnStartup: 0
   web3AuthWalletOptions:
@@ -8812,6 +8812,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: ResetShip
       objectReference: {fileID: 0}
+    - target: {fileID: 4543230662569328021, guid: c27ebc42ed62d4f528778183ed634846, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c27ebc42ed62d4f528778183ed634846, type: 3}
 --- !u!224 &1519190724 stripped
@@ -10078,7 +10082,7 @@ GameObject:
   m_IsActive: 1
 --- !u!95 &1726441577
 Animator:
-  serializedVersion: 4
+  serializedVersion: 5
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -10095,7 +10099,7 @@ Animator:
   m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorControllerStateOnDisable: 0
+  m_KeepAnimatorStateOnDisable: 0
 --- !u!4 &1726441578
 Transform:
   m_ObjectHideFlags: 0

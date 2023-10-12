@@ -5,7 +5,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using codebase.utility;
 using Solana.Unity.SDK;
-using SolPlay.DeeplinksNftExample.Utils;
 
 namespace SolPlay.Scripts.Ui
 {

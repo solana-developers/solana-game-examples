@@ -1,5 +1,4 @@
 using System.Collections;
-using CandyMachineV2;
 using Frictionless;
 using Solana.Unity.Wallet;
 using UnityEngine;
@@ -21,15 +20,6 @@ namespace SolPlay.Scripts.Services
             }
 
             ServiceFactory.RegisterSingleton(this);
-        }
-
-        public async void OnNftIapDone(bool wasBought)
-        {
-            var baseWallet = ServiceFactory.Resolve<WalletHolderService>().BaseWallet;
-            var account = baseWallet.Account;
-            var candy = await CandyMachineUtils.MintOneToken(account,
-                new PublicKey("D1cEd7k6BK6cX8rwBMp5hSUzRheZxqdrmXQvMLst4Mrn"), baseWallet.ActiveRpcClient);
-            Debug.Log(candy);
         }
 
         public IEnumerator HandleNewSceneLoaded()

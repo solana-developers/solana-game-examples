@@ -171,7 +171,6 @@ public class LumberjackService : MonoBehaviour
 
     public async Task<SessionWallet> RevokeSession()
     {
-        await sessionWallet.PrepareLogout();
         sessionWallet.Logout();
         return sessionWallet;
     }
