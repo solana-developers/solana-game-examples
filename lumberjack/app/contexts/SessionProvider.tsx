@@ -1,4 +1,5 @@
-import { SessionWalletProvider, useSessionKeyManager } from "@gumhq/react-sdk"
+import { SessionWalletProvider, useSessionKeyManager } from "@magicblock-labs/gum-react-sdk"
+
 import {
   AnchorWallet,
   useAnchorWallet,

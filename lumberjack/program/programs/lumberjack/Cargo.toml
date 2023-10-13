@@ -17,4 +17,5 @@ default = []
 
 [dependencies]
 anchor-lang = "0.28.0"
-session-keys = { version = "2.0.1", features = ["no-entrypoint"] }
+session-keys = { version = "2.0.2", features = ["no-entrypoint"] } 
+solana-program = "1.16.16"

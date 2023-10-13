@@ -2,7 +2,7 @@ import Image from "next/image"
 import { useCallback, useState } from "react"
 import { Button, HStack, VStack } from "@chakra-ui/react"
 import { useConnection, useWallet } from "@solana/wallet-adapter-react"
-import { useSessionWallet } from "@gumhq/react-sdk"
+import { useSessionWallet } from "@magicblock-labs/gum-react-sdk"
 import { useGameState } from "@/contexts/GameStateProvider"
 import { program } from "@/utils/anchor"
 

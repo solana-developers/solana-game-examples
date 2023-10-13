@@ -37,8 +37,8 @@ pub mod lumberjack {
             return err!(GameErrorCode::NotEnoughEnergy);
         }
 
-        ctx.accounts.player.wood = ctx.accounts.player.wood + 1;
-        ctx.accounts.player.energy = ctx.accounts.player.energy - 1;
+        ctx.accounts.player.wood += 1;
+        ctx.accounts.player.energy -= 1;
         msg!("You chopped a tree and got 1 wood. You have {} wood and {} energy left.", ctx.accounts.player.wood, ctx.accounts.player.energy);
         Ok(())
     }

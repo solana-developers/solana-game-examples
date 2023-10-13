@@ -3,6 +3,7 @@ using System.Collections;
 using Frictionless;
 using Lumberjack.Accounts;
 using Solana.Unity.SDK;
+using Solana.Unity.Wallet.Bip39;
 using SolPlay.Scripts.Services;
 using TMPro;
 using UnityEngine;
@@ -41,21 +42,21 @@ public class LumberjackScreen : MonoBehaviour
         RevokeSessionButton.onClick.AddListener(OnRevokeSessionButtonClicked);
         NftsButton.onClick.AddListener(OnNftsButtonnClicked);
         InitGameDataButton.onClick.AddListener(OnInitGameDataButtonClicked);
-        LumberjackService.OnPlayerDataChanged += OnPlayerDataChanged;
+        AnchorService.OnPlayerDataChanged += OnPlayerDataChanged;
 
         StartCoroutine(UpdateNextEnergy());
         
-        LumberjackService.OnInitialDataLoaded += UpdateContent;
+        AnchorService.OnInitialDataLoaded += UpdateContent;
     }
 
     private void Update()
     {
-        LoadingSpinner.gameObject.SetActive(LumberjackService.Instance.IsAnyTransactionInProgress);
+        LoadingSpinner.gameObject.SetActive(AnchorService.Instance.IsAnyTransactionInProgress);
     }
 
     private async void OnInitGameDataButtonClicked()
     {
-        await LumberjackService.Instance.InitGameDataAccount(!Web3.Rpc.NodeAddress.AbsoluteUri.Contains("localhost"));
+        await AnchorService.Instance.InitGameDataAccount(!Web3.Rpc.NodeAddress.AbsoluteUri.Contains("localhost"));
     }
 
     private void OnNftsButtonnClicked()
@@ -65,7 +66,7 @@ public class LumberjackScreen : MonoBehaviour
 
     private async void OnRevokeSessionButtonClicked()
     {
-        var res =  await LumberjackService.Instance.RevokeSession();
+        var res =  await AnchorService.Instance.RevokeSession();
         Debug.Log("Revoked Session: " + res.Account);
     }
 
@@ -90,32 +91,32 @@ public class LumberjackScreen : MonoBehaviour
 
     private void UpdateContent()
     {
-        var isInitialized = LumberjackService.Instance.IsInitialized();
+        var isInitialized = AnchorService.Instance.IsInitialized();
         LoggedInRoot.SetActive(Web3.Account != null);
         NotInitializedRoot.SetActive(!isInitialized);
-        InitGameDataButton.gameObject.SetActive(!isInitialized && LumberjackService.Instance.CurrentPlayerData == null);
+        InitGameDataButton.gameObject.SetActive(!isInitialized && AnchorService.Instance.CurrentPlayerData == null);
         InitializedRoot.SetActive(isInitialized);
 
         NotLoggedInRoot.SetActive(Web3.Account == null);
 
-        if (LumberjackService.Instance.CurrentPlayerData == null)
+        if (AnchorService.Instance.CurrentPlayerData == null)
         {
             return;
         }
         
-        var lastLoginTime = LumberjackService.Instance.CurrentPlayerData.LastLogin;
+        var lastLoginTime = AnchorService.Instance.CurrentPlayerData.LastLogin;
         var timePassed = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - lastLoginTime;
         
         while (
-            timePassed >= LumberjackService.TIME_TO_REFILL_ENERGY &&
-            LumberjackService.Instance.CurrentPlayerData.Energy < LumberjackService.MAX_ENERGY
+            timePassed >= AnchorService.TIME_TO_REFILL_ENERGY &&
+            AnchorService.Instance.CurrentPlayerData.Energy < AnchorService.MAX_ENERGY
         ) {
-            LumberjackService.Instance.CurrentPlayerData.Energy += 1;
-            LumberjackService.Instance.CurrentPlayerData.LastLogin += LumberjackService.TIME_TO_REFILL_ENERGY;
-            timePassed -= LumberjackService.TIME_TO_REFILL_ENERGY;
+            AnchorService.Instance.CurrentPlayerData.Energy += 1;
+            AnchorService.Instance.CurrentPlayerData.LastLogin += AnchorService.TIME_TO_REFILL_ENERGY;
+            timePassed -= AnchorService.TIME_TO_REFILL_ENERGY;
         }
 
-        var timeUntilNextRefill = LumberjackService.TIME_TO_REFILL_ENERGY - timePassed;
+        var timeUntilNextRefill = AnchorService.TIME_TO_REFILL_ENERGY - timePassed;
 
         if (timeUntilNextRefill > 0)
         {
@@ -126,23 +127,27 @@ public class LumberjackScreen : MonoBehaviour
             NextEnergyInText.text = "";
         }
         
-        EnergyAmountText.text = LumberjackService.Instance.CurrentPlayerData.Energy.ToString();
-        WoodAmountText.text = LumberjackService.Instance.CurrentPlayerData.Wood.ToString();
+        EnergyAmountText.text = AnchorService.Instance.CurrentPlayerData.Energy.ToString();
+        WoodAmountText.text = AnchorService.Instance.CurrentPlayerData.Wood.ToString();
     }
 
     private void OnChuckWoodSessionButtonClicked()
     {
-        LumberjackService.Instance.ChopTree(!Web3.Rpc.NodeAddress.AbsoluteUri.Contains("localhost"));
+        AnchorService.Instance.ChopTree(!Web3.Rpc.NodeAddress.AbsoluteUri.Contains("localhost"));
     }
 
     private void OnChuckWoodButtonClicked()
     {
-       LumberjackService.Instance.ChopTree(false);
+       AnchorService.Instance.ChopTree(false);
     }
 
     private async void OnEditorLoginClicked()
     {
+        var newMnemonic = new Mnemonic(WordList.English, WordCount.Twelve);
+
         // Dont use this one for production.
-        await Web3.Instance.LoginInGameWallet("1234");
+        var account = await Web3.Instance.LoginInGameWallet("1234") ??
+                      await Web3.Instance.CreateAccount(newMnemonic.ToString(), "1234");
+
     }
 }

@@ -19,7 +19,8 @@ namespace SolPlay.Scripts.Services
         public enum ScreenType
         {
             TransferNftPopup = 0,
-            NftListPopup = 1
+            NftListPopup = 1,
+            SessionPopup = 2
         }
 
         public class UiData

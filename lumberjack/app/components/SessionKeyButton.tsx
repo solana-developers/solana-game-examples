@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Button } from "@chakra-ui/react"
 import { useWallet } from "@solana/wallet-adapter-react"
-import { useSessionWallet } from "@gumhq/react-sdk"
+import { useSessionWallet } from "@magicblock-labs/gum-react-sdk"
 import { useGameState } from "@/contexts/GameStateProvider"
 import { program } from "@/utils/anchor"
 
