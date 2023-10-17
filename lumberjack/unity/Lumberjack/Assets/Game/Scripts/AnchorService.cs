@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using Frictionless;
+using Game.Scripts.Ui;
 using Lumberjack;
 using Lumberjack.Accounts;
 using Lumberjack.Program;
@@ -19,8 +20,7 @@ using Solana.Unity.Rpc.Types;
 using Solana.Unity.SDK;
 using Solana.Unity.SessionKeys.GplSession.Accounts;
 using Solana.Unity.Wallet;
-using SolPlay.Scripts.Services;
-using SolPlay.Scripts.Ui;
+using Services;
 using UnityEngine;
 
 public class AnchorService : MonoBehaviour
@@ -64,7 +64,7 @@ public class AnchorService : MonoBehaviour
 
     private async void OnLogin(Account account)
     {
-        Debug.Log("Logging in with pubkey: " + account.PublicKey);
+        Debug.Log("Logged in with pubkey: " + account.PublicKey);
         
         var solBalance = await Web3.Instance.WalletBase.GetBalance();
         if (solBalance < 20000)
@@ -129,8 +129,7 @@ public class AnchorService : MonoBehaviour
 
     private void OnRecievedPlayerDataUpdate(SubscriptionState state, ResponseValue<AccountInfo> value, PlayerData playerData)
     {
-        Debug.Log("Socket Message " + state + value + playerData);
-        Debug.Log("Player data first " + playerData.Wood + " wood");
+        Debug.Log($"Socket Message: Player has  {playerData.Wood} wood now.");
         CurrentPlayerData = playerData;
         OnPlayerDataChanged?.Invoke(playerData);
     }
@@ -259,53 +258,49 @@ public class AnchorService : MonoBehaviour
     
     public async Task<SessionWallet> RevokeSession()
     {
-        sessionWallet.Logout();
+        await sessionWallet.CloseSession();
         return sessionWallet;
     }
 
-    public bool IsSessionValid()
-    {
-        return sessionValidUntil != null && sessionValidUntil > DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-    }
-    
     public async void ChopTree(bool useSession)
     {
         if (!Instance.IsSessionValid())
         {
-            var res = await Instance.UpdateSessionValid();
+            await Instance.UpdateSessionValid();
             ServiceFactory.Resolve<UiService>().OpenPopup(UiService.ScreenType.SessionPopup, new SessionPopupUiData());
             return;
         }
         
-        var tx = new Transaction()
+        var transaction = new Transaction()
         {
             FeePayer = Web3.Account,
             Instructions = new List<TransactionInstruction>(),
             RecentBlockHash = await Web3.BlockHash(maxSeconds:1)
         };
 
-        ChopTreeAccounts accounts = new ChopTreeAccounts();
-        accounts.Player = PlayerDataPDA;
-        
+        ChopTreeAccounts chopTreeAccounts = new ChopTreeAccounts
+        {
+            Player = PlayerDataPDA
+        };
+
         if (useSession)
         {
-            tx.FeePayer = sessionWallet.Account.PublicKey;
-            accounts.SessionToken = sessionWallet.SessionTokenPDA;
-            accounts.Signer = sessionWallet.Account.PublicKey;
-            var chopInstruction = LumberjackProgram.ChopTree(accounts, AnchorProgramIdPubKey);
-            tx.Add(chopInstruction);
-            Debug.Log("Has session -> sign and send session wallet");
-
-            SendAndConfirmTransaction(sessionWallet, tx, "Chop Tree");
+            transaction.FeePayer = sessionWallet.Account.PublicKey;
+            chopTreeAccounts.Signer = sessionWallet.Account.PublicKey;
+            chopTreeAccounts.SessionToken = sessionWallet.SessionTokenPDA;
+            var chopInstruction = LumberjackProgram.ChopTree(chopTreeAccounts, AnchorProgramIdPubKey);
+            transaction.Add(chopInstruction);
+            Debug.Log("Sign and send chop tree with session");
+            SendAndConfirmTransaction(sessionWallet, transaction, "Chop Tree with session.");
         }
         else
         {
-            tx.FeePayer = Web3.Account.PublicKey;
-            accounts.Signer = Web3.Account.PublicKey;
-            var chopInstruction = LumberjackProgram.ChopTree(accounts, AnchorProgramIdPubKey);
-            tx.Add(chopInstruction);
-            Debug.Log("Sign without session");
-            SendAndConfirmTransaction(Web3.Wallet, tx, "Chop Tree without session");
+            transaction.FeePayer = Web3.Account.PublicKey;
+            chopTreeAccounts.Signer = Web3.Account.PublicKey;
+            var chopInstruction = LumberjackProgram.ChopTree(chopTreeAccounts, AnchorProgramIdPubKey);
+            transaction.Add(chopInstruction);
+            Debug.Log("Sign and send init without session");
+            SendAndConfirmTransaction(Web3.Wallet, transaction, "Chop Tree without session.");
         }
     }
 
@@ -322,16 +317,10 @@ public class AnchorService : MonoBehaviour
     
     public async Task<bool> UpdateSessionValid()
     {
-        ResponseValue<AccountInfo> sessionTokenData = (await Web3.Rpc.GetAccountInfoAsync(sessionWallet.SessionTokenPDA, Commitment.Confirmed)).Result;
+        SessionToken sessionToken = await RequestSessionToken();
+        
+        if (sessionToken == null) return false;
 
-        if (sessionTokenData == null) return false;
-        if (sessionTokenData.Value == null || sessionTokenData.Value.Data[0] == null)
-        {
-            return false;
-        }
-        
-        var sessionToken = SessionToken.Deserialize(Convert.FromBase64String(sessionTokenData.Value.Data[0]));
-        
         Debug.Log("Session token valid until: " + (new DateTime(1970, 1, 1)).AddSeconds(sessionToken.ValidUntil) + " Now: " + DateTimeOffset.UtcNow);
         sessionValidUntil = sessionToken.ValidUntil;
         return IsSessionValid();
@@ -352,6 +341,11 @@ public class AnchorService : MonoBehaviour
         return sessionToken;
     }
     
+    public bool IsSessionValid()
+    {
+        return sessionValidUntil != null && sessionValidUntil > DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+    }
+
     private async Task RefreshSessionWallet()
     {
         sessionWallet = await SessionWallet.GetSessionWallet(AnchorProgramIdPubKey, "ingame2",
@@ -363,10 +357,10 @@ public class AnchorService : MonoBehaviour
         var sessionToken = await Instance.RequestSessionToken();
         if (sessionToken != null)
         {
-            await RevokeSession();
+            await sessionWallet.CloseSession();
         }
         
-        var tx = new Transaction()
+        var transaction = new Transaction()
         {
             FeePayer = Web3.Account,
             Instructions = new List<TransactionInstruction>(),
@@ -375,10 +369,10 @@ public class AnchorService : MonoBehaviour
         SessionWallet.Instance = null;
         await RefreshSessionWallet();
         var sessionIx = sessionWallet.CreateSessionIX(true, GetSessionKeysEndTime());
-        tx.Add(sessionIx);
-        tx.PartialSign(new[] { Web3.Account, sessionWallet.Account });
+        transaction.Add(sessionIx);
+        transaction.PartialSign(new[] { Web3.Account, sessionWallet.Account });
 
-        var res = await Web3.Wallet.SignAndSendTransaction(tx, commitment: Commitment.Confirmed);
+        var res = await Web3.Wallet.SignAndSendTransaction(transaction, commitment: Commitment.Confirmed);
 
         Debug.Log("Create session wallet: " + res.RawRpcResponse);
         await Web3.Wallet.ActiveRpcClient.ConfirmTransaction(res.Result, Commitment.Confirmed);
@@ -395,7 +389,7 @@ public class AnchorService : MonoBehaviour
         {
             await Web3.Rpc.ConfirmTransaction(res.Result, Commitment.Confirmed);
         }
-        Debug.Log($"Send tranaction {label} with response: {res.RawRpcResponse}");
+        Debug.Log($"Sent transaction {label} with response: {res.RawRpcResponse}");
         transactionsInProgress--;
     }
 }

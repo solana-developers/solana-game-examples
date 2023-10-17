@@ -1,6 +1,6 @@
 using Frictionless;
-using SolPlay.Scripts.Services;
-using SolPlay.Scripts.Ui;
+using Game.Scripts.Ui;
+using Services;
 using UnityEngine;
 
 public class SelectedNft : MonoBehaviour

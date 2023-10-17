@@ -1,6 +1,6 @@
-using SolPlay.Scripts.Services;
+using Services;
 
-namespace SolPlay.Scripts.Ui
+namespace Game.Scripts.Ui
 {
     public class SessionPopupUiData : UiService.UiData
     {

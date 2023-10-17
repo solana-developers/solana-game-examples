@@ -4,7 +4,7 @@ using Frictionless;
 using Lumberjack.Accounts;
 using Solana.Unity.SDK;
 using Solana.Unity.Wallet.Bip39;
-using SolPlay.Scripts.Services;
+using Services;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;

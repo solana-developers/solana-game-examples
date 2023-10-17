@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using Frictionless;
+using Game.Scripts.Ui;
 using Solana.Unity.SDK.Nft;
-using SolPlay.Scripts.Services;
-using SolPlay.Scripts.Ui;
+using Services;
 using UnityEngine;
 
 public class NftItemListView : MonoBehaviour
@@ -55,7 +55,7 @@ public class NftItemListView : MonoBehaviour
             bool existsInWallet = false;
             foreach (Nft walletNft in nftService.LoadedNfts)
             {
-                if (nftItemView.CurrentSolPlayNft.metaplexData.data.mint == walletNft.metaplexData.data.mint)
+                if (nftItemView.CurrentMetaPlexNFt.metaplexData.data.mint == walletNft.metaplexData.data.mint)
                 {
                     existsInWallet = true;
                     break;
@@ -76,45 +76,44 @@ public class NftItemListView : MonoBehaviour
         }
     }
 
-    public void AddNFt(Nft newSolPlayNft)
+    public void AddNFt(Nft metaPlexNFt)
     {
         foreach (var nft in allNftItemViews)
         {
-            if (nft.CurrentSolPlayNft.metaplexData.data.mint == newSolPlayNft.metaplexData.data.mint)
+            if (nft.CurrentMetaPlexNFt.metaplexData.data.mint == metaPlexNFt.metaplexData.data.mint)
             {
                 // already exists
                 return;
             }
         }
 
-        InstantiateListNftItem(newSolPlayNft);
+        InstantiateListNftItem(metaPlexNFt);
     }
 
-    private void InstantiateListNftItem(Nft solPlayNft)
+    private void InstantiateListNftItem(Nft nft)
     {
-        if (string.IsNullOrEmpty(solPlayNft.metaplexData.data.mint))
+        if (string.IsNullOrEmpty(nft.metaplexData.data.mint))
         {
             return;
         }
 
-        if (!string.IsNullOrEmpty(FilterSymbol) && solPlayNft.metaplexData.data.offchainData.symbol != FilterSymbol)
+        if (!string.IsNullOrEmpty(FilterSymbol) && nft.metaplexData.data.offchainData.symbol != FilterSymbol)
         {
             return;
         }
 
-        if (!string.IsNullOrEmpty(BlackList) && solPlayNft.metaplexData.data.offchainData.symbol == BlackList)
+        if (!string.IsNullOrEmpty(BlackList) && nft.metaplexData.data.offchainData.symbol == BlackList)
         {
             return;
         }
 
         NftItemView nftItemView = Instantiate(itemPrefab, ItemRoot.transform);
-        nftItemView.SetData(solPlayNft, OnItemClicked);
+        nftItemView.SetData(nft, OnItemClicked);
         allNftItemViews.Add(nftItemView);
     }
 
     private void OnItemClicked(NftItemView itemView)
     {
-        //Debug.Log("Item Clicked: " + itemView.CurrentSolPlayNft.metaplexData.data.offchainData.name);
         ServiceFactory.Resolve<NftContextMenu>().Open(itemView, onNftSelected);
     }
 }

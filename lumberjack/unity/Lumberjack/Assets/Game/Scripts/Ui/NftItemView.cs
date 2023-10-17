@@ -1,23 +1,22 @@
 using System;
 using Frictionless;
+using Services;
 using Solana.Unity.SDK.Nft;
-using SolPlay.Scripts.Services;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace SolPlay.Scripts.Ui
+namespace Game.Scripts.Ui
 {
     /// <summary>
     /// Show the image of a given Nft and can have a click handler
     /// </summary>
     public class NftItemView : MonoBehaviour
     {
-        public Nft CurrentSolPlayNft;
+        public Nft CurrentMetaPlexNFt;
         public RawImage Icon;
         public TextMeshProUGUI Headline;
         public TextMeshProUGUI Description;
-        public TextMeshProUGUI ErrorText;
         public Button Button;
         public GameObject SelectionGameObject;
         public GameObject IsLoadingDataRoot;
@@ -32,7 +31,7 @@ namespace SolPlay.Scripts.Ui
                 return;
             }
 
-            CurrentSolPlayNft = nft;
+            CurrentMetaPlexNFt = nft;
             Icon.gameObject.SetActive(false);
             LoadingErrorRoot.gameObject.SetActive(false);
             IsLoadingDataRoot.gameObject.SetActive(true);

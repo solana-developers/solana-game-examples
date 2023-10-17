@@ -1,5 +1,5 @@
 using Solana.Unity.SDK;
-using SolPlay.Scripts.Services;
+using Services;
 
 public class NftListPopupUiData : UiService.UiData
 {

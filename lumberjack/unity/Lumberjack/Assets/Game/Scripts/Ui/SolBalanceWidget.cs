@@ -1,12 +1,12 @@
 using System;
 using System.Collections;
+using codebase.utility;
+using Solana.Unity.SDK;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using codebase.utility;
-using Solana.Unity.SDK;
 
-namespace SolPlay.Scripts.Ui
+namespace Game.Scripts.Ui
 {
     /// <summary>
     /// Shows the sol balance of the connected wallet. Should be updated at certain points, after transactions for example.

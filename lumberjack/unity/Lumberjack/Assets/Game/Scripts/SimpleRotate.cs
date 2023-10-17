@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace SolPlay.FlappyGame.Runtime.Scripts
+namespace Game.Scripts
 {
     public class SimpleRotate : MonoBehaviour
     {

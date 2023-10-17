@@ -1,12 +1,12 @@
 using System;
 using Frictionless;
+using Services;
 using Solana.Unity.SDK.Nft;
-using SolPlay.Scripts.Services;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace SolPlay.Scripts.Ui
+namespace Game.Scripts.Ui
 {
     /// <summary>
     /// When clicking a Nft this context menu opens and shows some information about the Nft
@@ -57,9 +57,9 @@ namespace SolPlay.Scripts.Ui
         public void Open(NftItemView nftItemView, Action<Nft> onNftSelected)
         {
             this.onNftSelected = onNftSelected;
-            currentNft = nftItemView.CurrentSolPlayNft;
+            currentNft = nftItemView.CurrentMetaPlexNFt;
             Root.gameObject.SetActive(true);
-            NftNameText.text = nftItemView.CurrentSolPlayNft.metaplexData.data.offchainData.name;
+            NftNameText.text = nftItemView.CurrentMetaPlexNFt.metaplexData.data.offchainData.name;
             transform.position = nftItemView.transform.position;
         }
     }

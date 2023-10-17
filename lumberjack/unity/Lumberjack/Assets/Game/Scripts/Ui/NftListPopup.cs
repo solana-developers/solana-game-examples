@@ -1,9 +1,8 @@
 using Frictionless;
-using SolPlay.Scripts.Services;
-using SolPlay.Scripts.Ui;
+using Game.Scripts.Ui;
+using Services;
 using UnityEngine;
 using UnityEngine.UI;
-
 
 /// <summary>
 /// Screen that loads all NFTs when opened

@@ -10,7 +10,7 @@ using Solana.Unity.SDK.Nft;
 using Solana.Unity.Wallet;
 using UnityEngine;
 
-namespace SolPlay.Scripts.Services
+namespace Services
 {
     /// <summary>
     /// Handles all logic related to NFTs and calculating their power level or whatever you like to do with the NFTs

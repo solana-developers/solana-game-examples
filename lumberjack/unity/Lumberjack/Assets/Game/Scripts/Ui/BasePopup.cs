@@ -1,8 +1,8 @@
-using SolPlay.Scripts.Services;
+using Services;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace SolPlay.Scripts.Ui
+namespace Game.Scripts.Ui
 {
     public class BasePopup : MonoBehaviour
     {

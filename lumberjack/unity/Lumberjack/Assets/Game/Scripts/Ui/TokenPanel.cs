@@ -5,7 +5,7 @@ using Solana.Unity.Wallet;
 using TMPro;
 using UnityEngine;
 
-namespace SolPlay.Scripts.Ui
+namespace Game.Scripts.Ui
 {
     /// <summary>
     /// Shows the amount of the token "TokenMintAddress" from the connected Wallet.

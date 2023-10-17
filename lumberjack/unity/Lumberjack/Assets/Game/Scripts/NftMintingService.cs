@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using Frictionless;
+using Game.Scripts;
 using Solana.Unity.Metaplex.NFT.Library;
 using Solana.Unity.Programs;
 using Solana.Unity.Rpc.Builders;
@@ -13,14 +14,13 @@ using Solana.Unity.Rpc.Messages;
 using Solana.Unity.Rpc.Types;
 using Solana.Unity.SDK;
 using Solana.Unity.Wallet;
-using SolPlay.DeeplinksNftExample.Utils;
 using UnityEngine;
 using Creator = Solana.Unity.Metaplex.NFT.Library.Creator;
 using MetadataProgram = Solana.Unity.Metaplex.NFT.Library.MetadataProgram;
 using PublicKey = Solana.Unity.Wallet.PublicKey;
 using Transaction = Solana.Unity.Rpc.Models.Transaction;
 
-namespace SolPlay.Scripts.Services
+namespace Services
 {
     public class NftMintingService : MonoBehaviour, IMultiSceneSingleton
     {
@@ -62,7 +62,7 @@ namespace SolPlay.Scripts.Services
             Debug.Log($"Balance: {balance.Result.Value} ");
             Debug.Log($"Mint key : {mint.PublicKey} ");
 
-            var blockHash = await rpcClient.GetRecentBlockHashAsync();
+            var blockHash = await rpcClient.GetLatestBlockHashAsync();
             var rentMint = await rpcClient.GetMinimumBalanceForRentExemptionAsync(
                 TokenProgram.MintAccountDataSize,
                 Commitment.Confirmed

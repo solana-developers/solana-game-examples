@@ -1,6 +1,6 @@
 using System;
 
-namespace SolPlay.DeeplinksNftExample.Utils
+namespace Game.Scripts
 {
     public class SolanaUtils
     {

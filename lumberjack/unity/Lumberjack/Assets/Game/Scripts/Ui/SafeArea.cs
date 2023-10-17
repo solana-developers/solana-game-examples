@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace SolPlay.Scripts.Ui
+namespace Game.Scripts.Ui
 {
     /// <summary>
     /// Safe area implementation for notched mobile devices. Usage:

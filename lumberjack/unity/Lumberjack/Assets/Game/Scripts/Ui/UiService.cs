@@ -2,10 +2,10 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Frictionless;
-using SolPlay.Scripts.Ui;
+using Game.Scripts.Ui;
 using UnityEngine;
 
-namespace SolPlay.Scripts.Services
+namespace Services
 {
     public class UiService : MonoBehaviour, IMultiSceneSingleton
     {
