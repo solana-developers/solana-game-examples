@@ -348,7 +348,7 @@ public class AnchorService : MonoBehaviour
 
     private async Task RefreshSessionWallet()
     {
-        sessionWallet = await SessionWallet.GetSessionWallet(AnchorProgramIdPubKey, "ingame2",
+        sessionWallet = await SessionWallet.GetSessionWallet(AnchorProgramIdPubKey, "ingame",
             Web3.Wallet);
     }
     

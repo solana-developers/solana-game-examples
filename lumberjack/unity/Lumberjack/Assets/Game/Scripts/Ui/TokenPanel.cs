@@ -1,3 +1,6 @@
+using System;
+using System.Collections;
+using System.Threading.Tasks;
 using Solana.Unity.Programs;
 using Solana.Unity.Rpc.Types;
 using Solana.Unity.SDK;
@@ -16,25 +19,44 @@ namespace Game.Scripts.Ui
 
         public string
             TokenMintAdress =
-                "PLAyKbtrwQWgWkpsEaMHPMeDLDourWEWVrx824kQN8P"; // Replace with whatever token you like.
+                "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"; // Replace with whatever token you like. (Default USDC)
 
         private PublicKey _associatedTokenAddress;
         
-        void Start()
+        void Awake()
         {
-            if (Web3.Instance.WalletBase.Account != null)
-            {
-                UpdateTokenAmount();
-            }
+            Web3.OnLogin += onLogin;
+        }
+        void OnDestroy()
+        {
+            Web3.OnLogin -= onLogin;
         }
 
+        private void OnEnable()
+        {
+            StartCoroutine(UpdateDelayed());
+        }
+
+        private async void onLogin(Account account)
+        {
+            // This is where the subscription should happen. Instead it starts now in UpdateDelayed OnEnable
+            //UpdateTokenAmount();
+        }
+
+        private IEnumerator UpdateDelayed()
+        {
+            // Only works when waiting a while since the socket is not connected yet. 
+            yield return new WaitForSeconds(2);
+            UpdateTokenAmount();
+        }
+        
         private async void UpdateTokenAmount()
         {
             if (Web3.Instance.WalletBase.Account == null)
             {
                 return;
             }
-
+            
             var wallet = Web3.Instance.WalletBase;
 
             if (wallet != null && wallet.Account.PublicKey != null)
@@ -47,6 +69,17 @@ namespace Game.Scripts.Ui
             {
                 return;
             }
+
+            await Web3.WsRpc.SubscribeTokenAccountAsync(_associatedTokenAddress, (state, value) =>
+            {
+                Debug.Log("Token balance (Socket Token): " + value.Value.Data.Parsed.Info.TokenAmount.UiAmountString);
+            }, Commitment.Confirmed);
+
+            // When subscribing on another channel both subscriptions dont work anymore.
+            /*await Web3.WsRpc.SubscribeAccountInfoAsync(_associatedTokenAddress, (state, value) =>
+            {
+                Debug.Log("Token balance (Socket Account): " + value.Value.Data);
+            }, Commitment.Confirmed);*/
             
             var tokenBalance = await wallet.ActiveRpcClient.GetTokenAccountBalanceAsync(_associatedTokenAddress, Commitment.Confirmed);
             if (tokenBalance.Result == null || tokenBalance.Result.Value == null)

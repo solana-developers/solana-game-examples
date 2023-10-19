@@ -601,6 +601,120 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 252703861}
   m_CullTransparentMesh: 1
+--- !u!1001 &279988557
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    m_TransformParent: {fileID: 734343833}
+    m_Modifications:
+    - target: {fileID: 946525032574983128, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+      propertyPath: m_Name
+      value: TokenBalanceWidget
+      objectReference: {fileID: 0}
+    - target: {fileID: 946525032574983130, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+      propertyPath: TokenMintAdress
+      value: CgPG8inVvG3S6BpP6CWN1XY2swMXU1iPqgfYNaSMp5dd
+      objectReference: {fileID: 0}
+    - target: {fileID: 946525032574983131, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+      propertyPath: m_Pivot.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 946525032574983131, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+      propertyPath: m_Pivot.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 946525032574983131, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+      propertyPath: m_RootOrder
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 946525032574983131, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 946525032574983131, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 946525032574983131, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 946525032574983131, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 946525032574983131, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 262.43787
+      objectReference: {fileID: 0}
+    - target: {fileID: 946525032574983131, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 49.277588
+      objectReference: {fileID: 0}
+    - target: {fileID: 946525032574983131, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 946525032574983131, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 946525032574983131, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 946525032574983131, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 946525032574983131, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 946525032574983131, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 946525032574983131, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 946525032574983131, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: -140
+      objectReference: {fileID: 0}
+    - target: {fileID: 946525032574983131, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -173
+      objectReference: {fileID: 0}
+    - target: {fileID: 946525032574983131, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 946525032574983131, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 946525032574983131, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 946525032748819597, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+      propertyPath: m_fontAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+    - target: {fileID: 946525032748819597, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+      propertyPath: m_sharedMaterial
+      value: 
+      objectReference: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+    m_RemovedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+--- !u!224 &279988558 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 946525032574983131, guid: 9983340f07aa240e7adad9f74350fcf4, type: 3}
+  m_PrefabInstance: {fileID: 279988557}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &311494785
 GameObject:
   m_ObjectHideFlags: 0
@@ -1720,6 +1834,7 @@ RectTransform:
   - {fileID: 895286102}
   - {fileID: 1648474101}
   - {fileID: 1215065034387861979}
+  - {fileID: 279988558}
   m_Father: {fileID: 361775995}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -3114,8 +3229,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   rpcCluster: 1
-  customRpc: https://falling-fabled-sailboat.solana-devnet.discover.quiknode.pro/3e431df782d3e8ff8917093bc779b110836def40/
-  webSocketsRpc: wss://falling-fabled-sailboat.solana-devnet.discover.quiknode.pro/3e431df782d3e8ff8917093bc779b110836def40/
+  customRpc: https://broken-empty-reel.solana-devnet.quiknode.pro/333a00f389fe630f4d331dd740b3aa6b040f8598/
+  webSocketsRpc: wss://broken-empty-reel.solana-devnet.quiknode.pro/333a00f389fe630f4d331dd740b3aa6b040f8598/
   autoConnectOnStartup: 0
   web3AuthWalletOptions:
     appName: Web3Auth Sample App
