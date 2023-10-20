@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
-using Cysharp.Threading.Tasks;
 using Frictionless;
 using Game.Scripts.Ui;
 using Lumberjack;
@@ -11,7 +9,6 @@ using Lumberjack.Accounts;
 using Lumberjack.Program;
 using Solana.Unity.Programs;
 using Solana.Unity.Programs.Models;
-using Solana.Unity.Rpc;
 using Solana.Unity.Rpc.Core.Http;
 using Solana.Unity.Rpc.Core.Sockets;
 using Solana.Unity.Rpc.Messages;
@@ -33,16 +30,19 @@ public class AnchorService : MonoBehaviour
     public static AnchorService Instance { get; private set; }
     public static Action<PlayerData> OnPlayerDataChanged;
     public static Action OnInitialDataLoaded;
-    public bool IsAnyTransactionInProgress => transactionsInProgress > 0;
+    public bool IsAnyBlockingTransactionInProgress => blockingTransactionsInProgress > 0;
+    public bool IsAnyNonBlockingTransactionInProgress => nonBlockingTransactionsInProgress > 0;
     public PlayerData CurrentPlayerData;
 
     private SessionWallet sessionWallet;
     private PublicKey PlayerDataPDA;
     private bool _isInitialized;
     private LumberjackClient lumberjackClient;
-    private int transactionsInProgress;
+    private int blockingTransactionsInProgress;
+    private int nonBlockingTransactionsInProgress;
     private long? sessionValidUntil;
-
+    private string sessionKeyPassword = "inGame";
+    
     private void Awake() 
     {
         if (Instance != null && Instance != this) 
@@ -77,7 +77,7 @@ public class AnchorService : MonoBehaviour
             }
         }
 
-        sessionWallet = await SessionWallet.GetSessionWallet(AnchorProgramIdPubKey, "ingame");
+        sessionWallet = await SessionWallet.GetSessionWallet(AnchorProgramIdPubKey, sessionKeyPassword);
         await UpdateSessionValid();
         
         PublicKey.TryFindProgramAddress(new[]
@@ -168,23 +168,20 @@ public class AnchorService : MonoBehaviour
 
         bool success = await SendAndConfirmTransaction(Web3.Wallet, tx, "initialize", () =>
         {
+            Debug.LogError("Init account was successful");
         }, s =>
         {
+            Debug.LogError("Init was not successful");
         });
 
-        if (!success)
-        {
-            Debug.LogError("Init was not successful");
-        }
-
         await UpdateSessionValid();
-        
         await SubscribeToPlayerDataUpdates();
     }
 
-    private async Task<bool> SendAndConfirmTransaction(WalletBase wallet, Transaction transaction, string label = "", Action onSucccess = null, Action<string> onError = null)
+    private async Task<bool> SendAndConfirmTransaction(WalletBase wallet, Transaction transaction, string label = "", Action onSucccess = null, Action<string> onError = null, bool isBlocking = true)
     {
-        transactionsInProgress++;
+        (isBlocking ? ref blockingTransactionsInProgress : ref nonBlockingTransactionsInProgress)++;
+
         Debug.Log("Sending and confirming transaction: " + label);
         RequestResult<string> res;
         try
@@ -194,7 +191,9 @@ public class AnchorService : MonoBehaviour
         catch (Exception e)
         {
             Debug.Log("Transaction exception " + e);
-            transactionsInProgress--;
+            blockingTransactionsInProgress--;
+            (isBlocking ? ref blockingTransactionsInProgress : ref nonBlockingTransactionsInProgress)--;
+
             onError?.Invoke(e.ToString());
             return false;
         }
@@ -202,9 +201,8 @@ public class AnchorService : MonoBehaviour
         Debug.Log("Transaction sent: " + res.RawRpcResponse);
         if (res.WasSuccessful && res.Result != null)
         {
-            Debug.Log("Confirm");
-
-            await ConfirmTransaction(Web3.Rpc, res.Result, Commitment.Confirmed);
+            Debug.Log("Confirming transaction: " + res.Result);
+            await Web3.Rpc.ConfirmTransaction(res.Result, Commitment.Confirmed);
             Debug.Log("Confirm done");
         }
         else
@@ -213,53 +211,25 @@ public class AnchorService : MonoBehaviour
             if (res.RawRpcResponse.Contains("InsufficientFundsForRent"))
             {
                 Debug.Log("Trigger session top up");
+                // TODO: this can probably happen when the session key runs out of funds. 
                 //TriggerTopUpTransaction();
             }
-            transactionsInProgress--;
+            (isBlocking ? ref blockingTransactionsInProgress : ref nonBlockingTransactionsInProgress)--;
+
             onError?.Invoke(res.RawRpcResponse);
             return false;
         }
+        
         Debug.Log($"Send transaction {label} with response: {res.RawRpcResponse}");
-        transactionsInProgress--;
+        (isBlocking ? ref blockingTransactionsInProgress : ref nonBlockingTransactionsInProgress)--;
         onSucccess?.Invoke();
         return true;
     }
-
-    public static async UniTask<bool> ConfirmTransaction(
-        IRpcClient rpc,
-        string hash,
-        Commitment commitment = Commitment.Finalized)
-    {
-        TimeSpan delay = commitment == Commitment.Finalized ? TimeSpan.FromSeconds(60.0) : TimeSpan.FromSeconds(30.0);
-        CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-        CancellationToken cancelToken = cancellationTokenSource.Token;
-        cancellationTokenSource.CancelAfter(delay);
-        if (commitment == Commitment.Processed)
-            commitment = Commitment.Confirmed;
-        while (!cancelToken.IsCancellationRequested)
-        {
-            await UniTask.Delay(50, cancellationToken: cancelToken);
-            RequestResult<ResponseValue<List<SignatureStatusInfo>>> signatureStatusesAsync = await rpc.GetSignatureStatusesAsync(new List<string>()
-            {
-                hash
-            }, true);
-            if (signatureStatusesAsync.WasSuccessful && signatureStatusesAsync.Result?.Value != null && signatureStatusesAsync.Result.Value.TrueForAll((Predicate<SignatureStatusInfo>) (sgn =>
-                {
-                    if (sgn == null || sgn.ConfirmationStatus == null)
-                        return false;
-                    if (sgn.ConfirmationStatus.Equals(commitment.ToString().ToLower()))
-                        return true;
-                    return commitment.Equals((object) Commitment.Confirmed) && sgn.ConfirmationStatus.Equals(Commitment.Finalized.ToString().ToLower());
-                })))
-                return true;
-        }
-        return false;
-    }
     
-    public async Task<SessionWallet> RevokeSession()
+    public async Task RevokeSession()
     {
         await sessionWallet.CloseSession();
-        return sessionWallet;
+        Debug.Log("Session closed");
     }
 
     public async void ChopTree(bool useSession)
@@ -291,7 +261,7 @@ public class AnchorService : MonoBehaviour
             var chopInstruction = LumberjackProgram.ChopTree(chopTreeAccounts, AnchorProgramIdPubKey);
             transaction.Add(chopInstruction);
             Debug.Log("Sign and send chop tree with session");
-            SendAndConfirmTransaction(sessionWallet, transaction, "Chop Tree with session.");
+            await SendAndConfirmTransaction(sessionWallet, transaction, "Chop Tree with session.", isBlocking: false);
         }
         else
         {
@@ -300,7 +270,7 @@ public class AnchorService : MonoBehaviour
             var chopInstruction = LumberjackProgram.ChopTree(chopTreeAccounts, AnchorProgramIdPubKey);
             transaction.Add(chopInstruction);
             Debug.Log("Sign and send init without session");
-            SendAndConfirmTransaction(Web3.Wallet, transaction, "Chop Tree without session.");
+            await SendAndConfirmTransaction(Web3.Wallet, transaction, "Chop Tree without session.");
         }
     }
 
@@ -341,18 +311,18 @@ public class AnchorService : MonoBehaviour
         return sessionToken;
     }
     
-    public bool IsSessionValid()
+    private bool IsSessionValid()
     {
         return sessionValidUntil != null && sessionValidUntil > DateTimeOffset.UtcNow.ToUnixTimeSeconds();
     }
 
     private async Task RefreshSessionWallet()
     {
-        sessionWallet = await SessionWallet.GetSessionWallet(AnchorProgramIdPubKey, "ingame",
+        sessionWallet = await SessionWallet.GetSessionWallet(AnchorProgramIdPubKey, sessionKeyPassword,
             Web3.Wallet);
     }
     
-    public async Task<SessionWallet> CreateNewSession()
+    public async Task CreateNewSession()
     {
         var sessionToken = await Instance.RequestSessionToken();
         if (sessionToken != null)
@@ -366,6 +336,7 @@ public class AnchorService : MonoBehaviour
             Instructions = new List<TransactionInstruction>(),
             RecentBlockHash = await Web3.BlockHash(Commitment.Confirmed, false)
         };
+        
         SessionWallet.Instance = null;
         await RefreshSessionWallet();
         var sessionIx = sessionWallet.CreateSessionIX(true, GetSessionKeysEndTime());
@@ -378,18 +349,5 @@ public class AnchorService : MonoBehaviour
         await Web3.Wallet.ActiveRpcClient.ConfirmTransaction(res.Result, Commitment.Confirmed);
         var sessionValid = await UpdateSessionValid();
         Debug.Log("After create session, the session is valid: " + sessionValid);
-        return sessionWallet;
-    }
-    
-    private async void SendAndConfirmTransaction(WalletBase wallet, Transaction transaction, string label = "")
-    {
-        transactionsInProgress++;
-        var res=  await wallet.SignAndSendTransaction(transaction, commitment: Commitment.Confirmed);
-        if (res.WasSuccessful && res.Result != null)
-        {
-            await Web3.Rpc.ConfirmTransaction(res.Result, Commitment.Confirmed);
-        }
-        Debug.Log($"Sent transaction {label} with response: {res.RawRpcResponse}");
-        transactionsInProgress--;
     }
 }
