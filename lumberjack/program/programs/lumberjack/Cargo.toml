@@ -16,6 +16,6 @@ cpi = ["no-entrypoint"]
 default = []
 
 [dependencies]
-anchor-lang = "0.28.0"
+anchor-lang = { version = "0.28.0", features = ["init-if-needed"] }
 session-keys = { version = "2.0.2", features = ["no-entrypoint"] } 
 solana-program = "1.16.16"

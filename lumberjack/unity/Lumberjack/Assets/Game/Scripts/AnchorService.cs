@@ -22,36 +22,39 @@ using UnityEngine;
 
 public class AnchorService : MonoBehaviour
 {
-    public PublicKey AnchorProgramIdPubKey = new ("MkabCfyUD6rBTaYHpgKBBpBo5qzWA2pK2hrGGKMurJt");
-    
+    public PublicKey AnchorProgramIdPubKey = new("MkabCfyUD6rBTaYHpgKBBpBo5qzWA2pK2hrGGKMurJt");
+
     public const int TIME_TO_REFILL_ENERGY = 60;
     public const int MAX_ENERGY = 10;
-    
+
     public static AnchorService Instance { get; private set; }
     public static Action<PlayerData> OnPlayerDataChanged;
+    public static Action<GameData> OnGameDataChanged;
     public static Action OnInitialDataLoaded;
     public bool IsAnyBlockingTransactionInProgress => blockingTransactionsInProgress > 0;
     public bool IsAnyNonBlockingTransactionInProgress => nonBlockingTransactionsInProgress > 0;
     public PlayerData CurrentPlayerData;
+    public GameData CurrentGameData;
 
     private SessionWallet sessionWallet;
     private PublicKey PlayerDataPDA;
+    private PublicKey GameDataPDA;
     private bool _isInitialized;
     private LumberjackClient lumberjackClient;
     private int blockingTransactionsInProgress;
     private int nonBlockingTransactionsInProgress;
     private long? sessionValidUntil;
     private string sessionKeyPassword = "inGame";
-    
-    private void Awake() 
+
+    private void Awake()
     {
-        if (Instance != null && Instance != this) 
-        { 
-            Destroy(this); 
-        } 
-        else 
-        { 
-            Instance = this; 
+        if (Instance != null && Instance != this)
+        {
+            Destroy(this);
+        }
+        else
+        {
+            Instance = this;
         }
 
         Web3.OnLogin += OnLogin;
@@ -65,7 +68,7 @@ public class AnchorService : MonoBehaviour
     private async void OnLogin(Account account)
     {
         Debug.Log("Logged in with pubkey: " + account.PublicKey);
-        
+
         var solBalance = await Web3.Instance.WalletBase.GetBalance();
         if (solBalance < 20000)
         {
@@ -79,14 +82,19 @@ public class AnchorService : MonoBehaviour
 
         sessionWallet = await SessionWallet.GetSessionWallet(AnchorProgramIdPubKey, sessionKeyPassword);
         await UpdateSessionValid();
-        
+
         PublicKey.TryFindProgramAddress(new[]
-        {Encoding.UTF8.GetBytes("player"), account.PublicKey.KeyBytes},
+                {Encoding.UTF8.GetBytes("player"), account.PublicKey.KeyBytes},
             AnchorProgramIdPubKey, out PlayerDataPDA, out byte bump);
-        
+
+        PublicKey.TryFindProgramAddress(new[]
+                {Encoding.UTF8.GetBytes("gameData")},
+            AnchorProgramIdPubKey, out GameDataPDA, out byte bump2);
+
         lumberjackClient = new LumberjackClient(Web3.Rpc, Web3.WsRpc, AnchorProgramIdPubKey);
 
         await SubscribeToPlayerDataUpdates();
+        await SubscribeToGameDataUpdates();
 
         OnInitialDataLoaded?.Invoke();
     }
@@ -104,7 +112,7 @@ public class AnchorService : MonoBehaviour
     private async Task SubscribeToPlayerDataUpdates()
     {
         AccountResultWrapper<PlayerData> playerData = null;
-        
+
         try
         {
             playerData = await lumberjackClient.GetPlayerDataAsync(PlayerDataPDA, Commitment.Confirmed);
@@ -113,28 +121,63 @@ public class AnchorService : MonoBehaviour
                 CurrentPlayerData = playerData.ParsedResult;
                 OnPlayerDataChanged?.Invoke(playerData.ParsedResult);
             }
-            
+
             _isInitialized = true;
         }
         catch (Exception e)
         {
             Debug.Log("Probably playerData not available " + e.Message);
         }
-        
+
         if (playerData != null)
         {
-            await lumberjackClient.SubscribePlayerDataAsync(PlayerDataPDA, OnRecievedPlayerDataUpdate, Commitment.Confirmed);
+            await lumberjackClient.SubscribePlayerDataAsync(PlayerDataPDA, OnRecievedPlayerDataUpdate,
+                Commitment.Confirmed);
         }
     }
 
-    private void OnRecievedPlayerDataUpdate(SubscriptionState state, ResponseValue<AccountInfo> value, PlayerData playerData)
+    private void OnRecievedPlayerDataUpdate(SubscriptionState state, ResponseValue<AccountInfo> value,
+        PlayerData playerData)
     {
         Debug.Log($"Socket Message: Player has  {playerData.Wood} wood now.");
         CurrentPlayerData = playerData;
         OnPlayerDataChanged?.Invoke(playerData);
     }
+    
+    private async Task SubscribeToGameDataUpdates()
+    {
+        AccountResultWrapper<GameData> gameData = null;
 
-    public async Task InitGameDataAccount(bool useSession)
+        try
+        {
+            gameData = await lumberjackClient.GetGameDataAsync(GameDataPDA, Commitment.Confirmed);
+            if (gameData.ParsedResult != null)
+            {
+                CurrentGameData = gameData.ParsedResult;
+                OnGameDataChanged?.Invoke(gameData.ParsedResult);
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.Log("Probably game data not available " + e.Message);
+        }
+
+        if (gameData != null)
+        {
+            await lumberjackClient.SubscribeGameDataAsync(GameDataPDA, OnRecievedGameDataUpdate,
+                Commitment.Confirmed);
+        }
+    }
+
+    private void OnRecievedGameDataUpdate(SubscriptionState state, ResponseValue<AccountInfo> value,
+        GameData gameData)
+    {
+        Debug.Log($"Socket Message: Total log chopped  {gameData.TotalWoodCollected}.");
+        CurrentGameData = gameData;
+        OnGameDataChanged?.Invoke(gameData);
+    }
+
+    public async Task InitAccounts(bool useSession)
     {
         var tx = new Transaction()
         {
@@ -145,9 +188,10 @@ public class AnchorService : MonoBehaviour
 
         InitPlayerAccounts accounts = new InitPlayerAccounts();
         accounts.Player = PlayerDataPDA;
+        accounts.GameData = GameDataPDA;
         accounts.Signer = Web3.Account;
         accounts.SystemProgram = SystemProgram.ProgramIdKey;
-        
+
         var initTx = LumberjackProgram.InitPlayer(accounts, AnchorProgramIdPubKey);
         tx.Add(initTx);
 
@@ -162,23 +206,19 @@ public class AnchorService : MonoBehaviour
                 accounts.Signer = Web3.Account.PublicKey;
                 tx.Add(createSessionIX);
                 Debug.Log("Has no session -> partial sign");
-                tx.PartialSign(new[] { Web3.Account, sessionWallet.Account });
+                tx.PartialSign(new[] {Web3.Account, sessionWallet.Account});
             }
         }
 
-        bool success = await SendAndConfirmTransaction(Web3.Wallet, tx, "initialize", () =>
-        {
-            Debug.LogError("Init account was successful");
-        }, s =>
-        {
-            Debug.LogError("Init was not successful");
-        });
+        bool success = await SendAndConfirmTransaction(Web3.Wallet, tx, "initialize",
+            () => { Debug.Log("Init account was successful"); }, s => { Debug.LogError("Init was not successful"); });
 
         await UpdateSessionValid();
         await SubscribeToPlayerDataUpdates();
     }
 
-    private async Task<bool> SendAndConfirmTransaction(WalletBase wallet, Transaction transaction, string label = "", Action onSucccess = null, Action<string> onError = null, bool isBlocking = true)
+    private async Task<bool> SendAndConfirmTransaction(WalletBase wallet, Transaction transaction, string label = "",
+        Action onSucccess = null, Action<string> onError = null, bool isBlocking = true)
     {
         (isBlocking ? ref blockingTransactionsInProgress : ref nonBlockingTransactionsInProgress)++;
 
@@ -197,7 +237,7 @@ public class AnchorService : MonoBehaviour
             onError?.Invoke(e.ToString());
             return false;
         }
-        
+
         Debug.Log("Transaction sent: " + res.RawRpcResponse);
         if (res.WasSuccessful && res.Result != null)
         {
@@ -214,18 +254,19 @@ public class AnchorService : MonoBehaviour
                 // TODO: this can probably happen when the session key runs out of funds. 
                 //TriggerTopUpTransaction();
             }
+
             (isBlocking ? ref blockingTransactionsInProgress : ref nonBlockingTransactionsInProgress)--;
 
             onError?.Invoke(res.RawRpcResponse);
             return false;
         }
-        
+
         Debug.Log($"Send transaction {label} with response: {res.RawRpcResponse}");
         (isBlocking ? ref blockingTransactionsInProgress : ref nonBlockingTransactionsInProgress)--;
         onSucccess?.Invoke();
         return true;
     }
-    
+
     public async Task RevokeSession()
     {
         await sessionWallet.CloseSession();
@@ -240,17 +281,18 @@ public class AnchorService : MonoBehaviour
             ServiceFactory.Resolve<UiService>().OpenPopup(UiService.ScreenType.SessionPopup, new SessionPopupUiData());
             return;
         }
-        
+
         var transaction = new Transaction()
         {
             FeePayer = Web3.Account,
             Instructions = new List<TransactionInstruction>(),
-            RecentBlockHash = await Web3.BlockHash(maxSeconds:1)
+            RecentBlockHash = await Web3.BlockHash(maxSeconds: 1)
         };
 
         ChopTreeAccounts chopTreeAccounts = new ChopTreeAccounts
         {
-            Player = PlayerDataPDA
+            Player = PlayerDataPDA,
+            GameData = GameDataPDA
         };
 
         if (useSession)
@@ -281,36 +323,38 @@ public class AnchorService : MonoBehaviour
         {
             return true;
         }
-       
+
         return false;
     }
-    
+
     public async Task<bool> UpdateSessionValid()
     {
         SessionToken sessionToken = await RequestSessionToken();
-        
+
         if (sessionToken == null) return false;
 
-        Debug.Log("Session token valid until: " + (new DateTime(1970, 1, 1)).AddSeconds(sessionToken.ValidUntil) + " Now: " + DateTimeOffset.UtcNow);
+        Debug.Log("Session token valid until: " + (new DateTime(1970, 1, 1)).AddSeconds(sessionToken.ValidUntil) +
+                  " Now: " + DateTimeOffset.UtcNow);
         sessionValidUntil = sessionToken.ValidUntil;
         return IsSessionValid();
     }
-    
+
     public async Task<SessionToken> RequestSessionToken()
     {
-        ResponseValue<AccountInfo> sessionTokenData = (await Web3.Rpc.GetAccountInfoAsync(sessionWallet.SessionTokenPDA, Commitment.Confirmed)).Result;
+        ResponseValue<AccountInfo> sessionTokenData =
+            (await Web3.Rpc.GetAccountInfoAsync(sessionWallet.SessionTokenPDA, Commitment.Confirmed)).Result;
 
         if (sessionTokenData == null) return null;
         if (sessionTokenData.Value == null || sessionTokenData.Value.Data[0] == null)
         {
             return null;
         }
-        
+
         var sessionToken = SessionToken.Deserialize(Convert.FromBase64String(sessionTokenData.Value.Data[0]));
 
         return sessionToken;
     }
-    
+
     private bool IsSessionValid()
     {
         return sessionValidUntil != null && sessionValidUntil > DateTimeOffset.UtcNow.ToUnixTimeSeconds();
@@ -321,7 +365,7 @@ public class AnchorService : MonoBehaviour
         sessionWallet = await SessionWallet.GetSessionWallet(AnchorProgramIdPubKey, sessionKeyPassword,
             Web3.Wallet);
     }
-    
+
     public async Task CreateNewSession()
     {
         var sessionToken = await Instance.RequestSessionToken();
@@ -329,19 +373,19 @@ public class AnchorService : MonoBehaviour
         {
             await sessionWallet.CloseSession();
         }
-        
+
         var transaction = new Transaction()
         {
             FeePayer = Web3.Account,
             Instructions = new List<TransactionInstruction>(),
             RecentBlockHash = await Web3.BlockHash(Commitment.Confirmed, false)
         };
-        
+
         SessionWallet.Instance = null;
         await RefreshSessionWallet();
         var sessionIx = sessionWallet.CreateSessionIX(true, GetSessionKeysEndTime());
         transaction.Add(sessionIx);
-        transaction.PartialSign(new[] { Web3.Account, sessionWallet.Account });
+        transaction.PartialSign(new[] {Web3.Account, sessionWallet.Account});
 
         var res = await Web3.Wallet.SignAndSendTransaction(transaction, commitment: Commitment.Confirmed);
 

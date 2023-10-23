@@ -14,7 +14,7 @@ pub struct PlayerData {
 
 impl PlayerData {
     pub fn print(&mut self) -> Result<()> {
-        msg!("PubKey: {} Wood: {}", self.name, self.wood);
+        msg!("Name: {} Wood: {}", self.name, self.wood);
         Ok(())
     }
 
@@ -37,6 +37,19 @@ impl PlayerData {
             self.last_login += time_spent;
         }
 
+        Ok(())
+    }
+
+    pub fn chop_tree(&mut self, amount: u64) -> Result<()> {
+        match self.wood.checked_add(amount) {
+            Some(v) => {
+                self.wood = v;
+            }
+            None => {
+                msg!("Total wood reached!");
+            }
+        };
+        self.energy -= 1;
         Ok(())
     }
 }

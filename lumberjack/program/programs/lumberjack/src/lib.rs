@@ -15,14 +15,14 @@ pub mod lumberjack {
     use super::*;
 
     pub fn init_player(ctx: Context<InitPlayer>) -> Result<()> {
-        instructions::init_player::init_player(ctx)
+        init_player::init_player(ctx)
     }
 
     #[session_auth_or(
         ctx.accounts.player.authority.key() == ctx.accounts.signer.key(),
         GameErrorCode::WrongAuthority
     )]
-    pub fn chop_tree(ctx: Context<chop_tree::ChopTree>) -> Result<()> {
-        instructions::chop_tree::chop_tree(ctx)
+    pub fn chop_tree(ctx: Context<ChopTree>) -> Result<()> {
+        chop_tree::chop_tree(ctx)
     }
 }

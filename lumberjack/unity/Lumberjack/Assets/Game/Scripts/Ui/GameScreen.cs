@@ -21,6 +21,7 @@ public class GameScreen : MonoBehaviour
     public TextMeshProUGUI EnergyAmountText;
     public TextMeshProUGUI WoodAmountText;
     public TextMeshProUGUI NextEnergyInText;
+    public TextMeshProUGUI TotalLogAvailableText;
 
     public GameObject NotInitializedRoot;
     public GameObject InitializedRoot;
@@ -30,16 +31,29 @@ public class GameScreen : MonoBehaviour
         ChuckWoodSessionButton.onClick.AddListener(OnChuckWoodSessionButtonClicked);
         NftsButton.onClick.AddListener(OnNftsButtonClicked);
         InitGameDataButton.onClick.AddListener(OnInitGameDataButtonClicked);
-        AnchorService.OnPlayerDataChanged += OnPlayerDataChanged;
 
         StartCoroutine(UpdateNextEnergy());
         
+        AnchorService.OnPlayerDataChanged += OnPlayerDataChanged;
+        AnchorService.OnGameDataChanged += OnGameDataChanged;
         AnchorService.OnInitialDataLoaded += UpdateContent;
+    }
+
+    private void OnDestroy()
+    {
+        AnchorService.OnPlayerDataChanged -= OnPlayerDataChanged;
+        AnchorService.OnGameDataChanged -= OnGameDataChanged;
+        AnchorService.OnInitialDataLoaded -= UpdateContent;
+    }
+
+    private void OnEnable()
+    {
+        StartCoroutine(UpdateNextEnergy());
     }
 
     private async void OnInitGameDataButtonClicked()
     {
-        await AnchorService.Instance.InitGameDataAccount(!Web3.Rpc.NodeAddress.AbsoluteUri.Contains("localhost"));
+        await AnchorService.Instance.InitAccounts(!Web3.Rpc.NodeAddress.AbsoluteUri.Contains("localhost"));
     }
 
     private void OnNftsButtonClicked()
@@ -59,6 +73,13 @@ public class GameScreen : MonoBehaviour
     private void OnPlayerDataChanged(PlayerData playerData)
     {
         UpdateContent();
+    }
+
+    private void OnGameDataChanged(GameData gameData)
+    {
+        var totalLogAvailable = ulong.MaxValue - gameData.TotalWoodCollected;
+        TotalLogAvailableText.text = totalLogAvailable + " Wood available.";
+
     }
 
     private void UpdateContent()

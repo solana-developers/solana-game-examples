@@ -1,6 +1,6 @@
-use super::init_player::GameData;
 pub use crate::errors::GameErrorCode;
-pub use crate::state::player_data::PlayerData;
+pub use crate::state::game_data::GameData;
+use crate::state::player_data::PlayerData;
 use anchor_lang::prelude::*;
 use session_keys::{Session, SessionToken};
 
@@ -9,13 +9,12 @@ pub fn chop_tree(mut ctx: Context<ChopTree>) -> Result<()> {
     account.player.update_energy()?;
     account.player.print()?;
 
-    if ctx.accounts.player.energy == 0 {
+    if account.player.energy == 0 {
         return err!(GameErrorCode::NotEnoughEnergy);
     }
 
-    ctx.accounts.game_data.total_wood_collected += 1;
-    ctx.accounts.player.wood += 1;
-    ctx.accounts.player.energy -= 1;
+    account.player.chop_tree(1)?;
+    account.game_data.on_tree_chopped(1)?;
 
     msg!(
         "You chopped a tree and got 1 wood. You have {} wood and {} energy left.",
