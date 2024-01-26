@@ -4,20 +4,34 @@ use anchor_spl::{
     metadata::{create_metadata_accounts_v3, CreateMetadataAccountsV3, Metadata},
     token::{burn, mint_to, Burn, Mint, MintTo, Token, TokenAccount},
 };
-use mpl_token_metadata::{pda::find_metadata_account, state::DataV2};
+
+use mpl_token_metadata::types::DataV2;
+
 use solana_program::{pubkey, pubkey::Pubkey};
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("BXDmXqvp9zrwMQHFEAXqWqgyEmQgvRazSmBCKkiSPV7U");
 
-// TODO: run "solana address" cli command and update ADMIN_PUBKEY with your own pubkey
-const ADMIN_PUBKEY: Pubkey = pubkey!("...");
+const ADMIN_PUBKEY: Pubkey = pubkey!("4cqBrEJs9NL2Lt3tis8BUcgPMV6zjFjyPuNzGWfB4jeh");
 const MAX_HEALTH: u8 = 100;
 
+pub const PREFIX: &str = "metadata";
+
+fn find_metadata_account(mint: &Pubkey) -> (Pubkey, u8) {
+    Pubkey::find_program_address(
+        &[
+            PREFIX.as_bytes(),
+            mpl_token_metadata::ID.as_ref(),
+            mint.as_ref(),
+        ],
+        &mpl_token_metadata::ID,
+    )
+}
+
 #[program]
-pub mod battle_coins {
+pub mod anchor_token {
     use super::*;
 
-    // Create new token mint with metadata using PDA as mint authority
+    // Create new token mint with PDA as mint authority
     pub fn create_mint(
         ctx: Context<CreateMint>,
         uri: String,
@@ -26,7 +40,7 @@ pub mod battle_coins {
     ) -> Result<()> {
         // PDA seeds and bump to "sign" for CPI
         let seeds = b"reward";
-        let bump = *ctx.bumps.get("reward_token_mint").unwrap();
+        let bump = ctx.bumps.reward_token_mint;
         let signer: &[&[&[u8]]] = &[&[seeds, &[bump]]];
 
         // On-chain token metadata for the mint
@@ -44,15 +58,22 @@ pub mod battle_coins {
         let cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_metadata_program.to_account_info(),
             CreateMetadataAccountsV3 {
-                metadata: ctx.accounts.metadata_account.to_account_info(), // the metadata account being created
-                mint: ctx.accounts.reward_token_mint.to_account_info(), // the mint account of the metadata account
-                mint_authority: ctx.accounts.reward_token_mint.to_account_info(), // the mint authority of the mint account
-                update_authority: ctx.accounts.reward_token_mint.to_account_info(), // the update authority of the metadata account
-                payer: ctx.accounts.admin.to_account_info(), // the payer for creating the metadata account
-                system_program: ctx.accounts.system_program.to_account_info(), // the system program account, required when creating new accounts
-                rent: ctx.accounts.rent.to_account_info(), // the rent sysvar account
+                // the metadata account being created
+                metadata: ctx.accounts.metadata_account.to_account_info(),
+                // the mint account of the metadata account
+                mint: ctx.accounts.reward_token_mint.to_account_info(),
+                // the mint authority of the mint account
+                mint_authority: ctx.accounts.reward_token_mint.to_account_info(),
+                // the update authority of the metadata account
+                update_authority: ctx.accounts.reward_token_mint.to_account_info(),
+                // the payer for creating the metadata account
+                payer: ctx.accounts.admin.to_account_info(),
+                // the system program account
+                system_program: ctx.accounts.system_program.to_account_info(),
+                // the rent sysvar account
+                rent: ctx.accounts.rent.to_account_info(),
             },
-            signer, // pda signer
+            signer,
         );
 
         create_metadata_accounts_v3(
@@ -68,46 +89,33 @@ pub mod battle_coins {
 
     // Create new player account
     pub fn init_player(ctx: Context<InitPlayer>) -> Result<()> {
-        // Set initial player health
         ctx.accounts.player_data.health = MAX_HEALTH;
         Ok(())
     }
 
-    // Calculate random damage and mint 1 token to player token account
+    // Mint tokens to player token account
     pub fn kill_enemy(ctx: Context<KillEnemy>) -> Result<()> {
         // Check if player has enough health
         if ctx.accounts.player_data.health == 0 {
             return err!(ErrorCode::NotEnoughHealth);
         }
-
-        // Calculate random damage using slot as seed for xorshift RNG
-        let slot = Clock::get()?.slot;
-        let xorshift_output = xorshift64(slot);
-        let random_damage = xorshift_output % (MAX_HEALTH + 1) as u64;
-        msg!("Random damage: {}", random_damage);
-
-        // Subtract health from player, min health is 0
-        ctx.accounts.player_data.health = ctx
-            .accounts
-            .player_data
-            .health
-            .saturating_sub(random_damage as u8);
-        msg!("Player Health: {}", ctx.accounts.player_data.health);
+        // Subtract 10 health from player
+        ctx.accounts.player_data.health = ctx.accounts.player_data.health.checked_sub(10).unwrap();
 
         // PDA seeds and bump to "sign" for CPI
         let seeds = b"reward";
-        let bump = *ctx.bumps.get("reward_token_mint").unwrap();
+        let bump = ctx.bumps.reward_token_mint;
         let signer: &[&[&[u8]]] = &[&[seeds, &[bump]]];
 
         // CPI Context
         let cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
             MintTo {
-                mint: ctx.accounts.reward_token_mint.to_account_info(), // mint account of token to mint
-                to: ctx.accounts.player_token_account.to_account_info(), // player token account to mint to
-                authority: ctx.accounts.reward_token_mint.to_account_info(), // pda is used as both address of mint and mint authority
+                mint: ctx.accounts.reward_token_mint.to_account_info(),
+                to: ctx.accounts.player_token_account.to_account_info(),
+                authority: ctx.accounts.reward_token_mint.to_account_info(),
             },
-            signer, // pda signer
+            signer,
         );
 
         // Mint 1 token, accounting for decimals of mint
@@ -119,18 +127,17 @@ pub mod battle_coins {
         Ok(())
     }
 
-    // Burn Token to health player
+    // Burn token to heal player
     pub fn heal(ctx: Context<Heal>) -> Result<()> {
-        // Set player health to max
         ctx.accounts.player_data.health = MAX_HEALTH;
 
         // CPI Context
         let cpi_ctx = CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
             Burn {
-                mint: ctx.accounts.reward_token_mint.to_account_info(), // mint account of token to burn
-                from: ctx.accounts.player_token_account.to_account_info(), // player token account to burn from
-                authority: ctx.accounts.player.to_account_info(), // player account is authority for player token account, required as signer
+                mint: ctx.accounts.reward_token_mint.to_account_info(),
+                from: ctx.accounts.player_token_account.to_account_info(),
+                authority: ctx.accounts.player.to_account_info(),
             },
         );
 
@@ -146,7 +153,6 @@ pub mod battle_coins {
 
 #[derive(Accounts)]
 pub struct CreateMint<'info> {
-    // Use ADMIN_PUBKEY as constraint, only the specified admin can invoke this instruction
     #[account(
         mut,
         address = ADMIN_PUBKEY
@@ -165,7 +171,7 @@ pub struct CreateMint<'info> {
     )]
     pub reward_token_mint: Account<'info, Mint>,
 
-    ///CHECK: Using "address" constraint to validate metadata account address, this account is created via CPI in the instruction
+    ///CHECK: Using "address" constraint to validate metadata account address
     #[account(
         mut,
         address=find_metadata_account(&reward_token_mint.key()).0
@@ -180,10 +186,6 @@ pub struct CreateMint<'info> {
 
 #[derive(Accounts)]
 pub struct InitPlayer<'info> {
-    #[account(mut)]
-    pub player: Signer<'info>,
-
-    // Initialize player data account, using player.key() as a seed allows each player to create their own account
     #[account(
         init,
         payer = player,
@@ -192,7 +194,8 @@ pub struct InitPlayer<'info> {
         bump,
     )]
     pub player_data: Account<'info, PlayerData>,
-
+    #[account(mut)]
+    pub player: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -268,14 +271,4 @@ pub struct PlayerData {
 pub enum ErrorCode {
     #[msg("Not enough health")]
     NotEnoughHealth,
-}
-
-// Use xorshift64 to generate a random number
-// Note that this should not be used for cases where security is important
-pub fn xorshift64(seed: u64) -> u64 {
-    let mut x = seed;
-    x ^= x << 13;
-    x ^= x >> 7;
-    x ^= x << 17;
-    x
 }
