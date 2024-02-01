@@ -6,6 +6,7 @@ import InitPlayerButton from "@/components/InitPlayerButton"
 import SessionKeyButton from "@/components/SessionKeyButton"
 import ChopTreeButton from "@/components/ChopTreeButton"
 import RequestAirdrop from "@/components/RequestAirdrop"
+import DisplayNfts from "@/components/DisplayNfts"
 
 export default function Home() {
   const { publicKey } = useWallet()
@@ -24,6 +25,7 @@ export default function Home() {
         <SessionKeyButton />
         <ChopTreeButton />
         <RequestAirdrop />
+        <DisplayNfts />
       </VStack>
     </Box>
   )

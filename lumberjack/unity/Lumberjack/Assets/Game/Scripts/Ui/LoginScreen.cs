@@ -1,7 +1,9 @@
+using System;
 using Lumberjack.Accounts;
 using Solana.Unity.SDK;
 using Solana.Unity.Wallet.Bip39;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
@@ -12,18 +14,18 @@ public class LoginScreen : MonoBehaviour
     public Button LoginButton;
     public Button LoginWalletAdapterButton;
     
-    public GameObject LoggedInRoot;
-    public GameObject NotLoggedInRoot;
-    
     void Start()
     {
-        LoggedInRoot.SetActive(false);
-        NotLoggedInRoot.SetActive(true);
-        
         LoginButton.onClick.AddListener(OnEditorLoginClicked);
         LoginWalletAdapterButton.onClick.AddListener(OnLoginWalletAdapterButtonClicked);
         AnchorService.OnPlayerDataChanged += OnPlayerDataChanged;
         AnchorService.OnInitialDataLoaded += UpdateContent;
+    }
+
+    private void OnDestroy()
+    {
+        AnchorService.OnPlayerDataChanged -= OnPlayerDataChanged;
+        AnchorService.OnInitialDataLoaded -= UpdateContent;
     }
 
     private async void OnLoginWalletAdapterButtonClicked()
@@ -38,8 +40,10 @@ public class LoginScreen : MonoBehaviour
 
     private void UpdateContent()
     {
-        LoggedInRoot.SetActive(Web3.Account != null);
-        NotLoggedInRoot.SetActive(Web3.Account == null);
+        if (Web3.Account != null)
+        {
+            SceneManager.LoadScene("GameScene");
+        }
     }
 
     private async void OnEditorLoginClicked()

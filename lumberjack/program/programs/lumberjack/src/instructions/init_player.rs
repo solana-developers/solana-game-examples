@@ -11,6 +11,7 @@ pub fn init_player(ctx: Context<InitPlayer>) -> Result<()> {
 }
 
 #[derive(Accounts)]
+#[instruction(level_seed: String)]
 pub struct InitPlayer<'info> {
     #[account(
         init,
@@ -25,7 +26,7 @@ pub struct InitPlayer<'info> {
         init_if_needed,
         payer = signer,
         space = 1000, // 8 + 8 for anchor account discriminator and the u64. Using 1000 to have space to expand easily.
-        seeds = [b"gameData".as_ref()],
+        seeds = [level_seed.as_ref()],
         bump,
     )]
     pub game_data: Account<'info, GameData>,

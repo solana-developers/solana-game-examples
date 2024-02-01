@@ -11,6 +11,11 @@ export type Lumberjack = {
           "isSigner": false
         },
         {
+          "name": "gameData",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "signer",
           "isMut": true,
           "isSigner": true
@@ -21,7 +26,12 @@ export type Lumberjack = {
           "isSigner": false
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "levelSeed",
+          "type": "string"
+        }
+      ]
     },
     {
       "name": "chopTree",
@@ -38,24 +48,7 @@ export type Lumberjack = {
           "isSigner": false
         },
         {
-          "name": "signer",
-          "isMut": true,
-          "isSigner": true
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "update",
-      "accounts": [
-        {
-          "name": "sessionToken",
-          "isMut": false,
-          "isSigner": false,
-          "isOptional": true
-        },
-        {
-          "name": "player",
+          "name": "gameData",
           "isMut": true,
           "isSigner": false
         },
@@ -63,12 +56,38 @@ export type Lumberjack = {
           "name": "signer",
           "isMut": true,
           "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "levelSeed",
+          "type": "string"
+        },
+        {
+          "name": "counter",
+          "type": "u16"
+        }
+      ]
     }
   ],
   "accounts": [
+    {
+      "name": "gameData",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "totalWoodCollected",
+            "type": "u64"
+          }
+        ]
+      }
+    },
     {
       "name": "playerData",
       "type": {
@@ -101,6 +120,10 @@ export type Lumberjack = {
           {
             "name": "lastLogin",
             "type": "i64"
+          },
+          {
+            "name": "lastId",
+            "type": "u16"
           }
         ]
       }
@@ -133,6 +156,11 @@ export const IDL: Lumberjack = {
           "isSigner": false
         },
         {
+          "name": "gameData",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "signer",
           "isMut": true,
           "isSigner": true
@@ -143,7 +171,12 @@ export const IDL: Lumberjack = {
           "isSigner": false
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "levelSeed",
+          "type": "string"
+        }
+      ]
     },
     {
       "name": "chopTree",
@@ -160,24 +193,7 @@ export const IDL: Lumberjack = {
           "isSigner": false
         },
         {
-          "name": "signer",
-          "isMut": true,
-          "isSigner": true
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "update",
-      "accounts": [
-        {
-          "name": "sessionToken",
-          "isMut": false,
-          "isSigner": false,
-          "isOptional": true
-        },
-        {
-          "name": "player",
+          "name": "gameData",
           "isMut": true,
           "isSigner": false
         },
@@ -185,12 +201,38 @@ export const IDL: Lumberjack = {
           "name": "signer",
           "isMut": true,
           "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "levelSeed",
+          "type": "string"
+        },
+        {
+          "name": "counter",
+          "type": "u16"
+        }
+      ]
     }
   ],
   "accounts": [
+    {
+      "name": "gameData",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "totalWoodCollected",
+            "type": "u64"
+          }
+        ]
+      }
+    },
     {
       "name": "playerData",
       "type": {
@@ -223,6 +265,10 @@ export const IDL: Lumberjack = {
           {
             "name": "lastLogin",
             "type": "i64"
+          },
+          {
+            "name": "lastId",
+            "type": "u16"
           }
         ]
       }

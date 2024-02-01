@@ -1,54 +1,122 @@
-This game uses gum session keys for auto approval of transactions. Its ment as a starter game for on chain game. 
-There is a js and a unity client for this game.
+# Solana Game Preset
+
+This game is ment as a starter game for on chain games. 
+There is a js and a unity client for this game and both are talking to a solana anchor program.
+
+This game uses gum session keys for auto approval of transactions. 
 Note that neither the program nor session keys are audited. Use at your own risk. 
 
-How to run this example:
+To initialize the game preset with your own project name please use the command: 
+
+```bash
+npx create-solana-game <name> 
+```
+
+# How to run this example
+
+## Quickstart
+
+The unity client and the js client are both connected to the same program and should work out of the box connecting to the already deployed program. 
+
+### Unity 
+Open the Unity project with Unity Version 2021.3.32.f1 (or similar), open the GameScene or LoginScene and hit play.
+Use the editor login button in the bottom left. If you cant get devnet sol you can copy your address from the console and use the faucet here: https://faucet.solana.com/ to request some sol.
+
+### Js Client
+To start the js client open the project in visual studio code and run: 
+
+```bash
+cd app 
+yarn install 
+yarn dev
+```
+
+To start changing the program and connecting to your own program follow the steps below.
+
+## Installing Solana dependencies
+
 Follow the installation here: https://www.anchor-lang.com/docs/installation
-make sure to install solana CLI version 1.14.20 not the 1.16.x version
-sh -c "$(curl -sSfL https://release.solana.com/v1.14.20/install)"
+Install the latest 1.16 solana version (1.17 is not supported yet)
+sh -c "$(curl -sSfL https://release.solana.com/v1.16.18/install)"
 
 Anchor program
 1. Install the [Anchor CLI](https://project-serum.github.io/anchor/getting-started/installation.html)
-2. `cd lumberjack` `cd program` to end the program directory
+2. `cd program` to end the program directory
 3. Run `anchor build` to build the program
 4. Run `anchor deploy` to deploy the program
-5. Copy the program id from the terminal into the lib.rs, anchor.toml and within the unity project in the LumberjackService and if you use js in the anchor.ts file
+5. Copy the program id from the terminal into the lib.rs, anchor.toml and within the unity project in the AnchorService and if you use js in the anchor.ts file
 6. Build and deploy again
 
 Next js client
 1. Install [Node.js](https://nodejs.org/en/download/)
 2. Copy the program id into app/utils/anchor.ts
-2. `cd lumberjack` `cd app` to end the app directory
+2. `cd app` to end the app directory
 3. Run `yarn install` to install node modules
 4. Run `yarn dev` to start the client
-5. After doing changes to the anchor program make sure to copy over the types from the program into the client so you can use them
+5. After doing changes to the anchor program make sure to copy over the types from the program into the client so you can use them. You can find the js types in the target/idl folder.
 
 Unity client 
 1. Install [Unity](https://unity.com/)
-2. Open the lumberjack scene
+2. Open the MainScene
 3. Hit play
 4. After doing changes to the anchor program make sure to regenerate the C# client: https://solanacookbook.com/gaming/porting-anchor-to-unity.html#generating-the-client
 Its done like this (after you have build the program): 
+
+```bash
 cd program 
 dotnet tool install Solana.Unity.Anchor.Tool <- run once
 dotnet anchorgen -i target/idl/lumberjack.json -o target/idl/Lumberjack.cs
+```
 
-then copy the c# code into the unity project
+(Replace lumberjack with the name of your program)
 
+then copy the c# code into the unity project.
+
+## Connect to local host (optional)
 To connect to local host from Unity add these links on the wallet holder game object: 
 http://localhost:8899
 ws://localhost:8900
 
+## Video walkthroughs
 Here are two videos explaining the energy logic and session keys: 
 Session keys:
 https://www.youtube.com/watch?v=oKvWZoybv7Y&t=17s&ab_channel=Solana
 Energy system: 
 https://www.youtube.com/watch?v=YYQtRCXJBgs&t=4s&ab_channel=Solana
 
+# Project structure
+The anchor project is structured like this:
+
+The entry point is in the lib.rs file. Here we define the program id and the instructions.
+The instructions are defined in the instructions folder.
+The state is defined in the state folder.
+
+So the calls arrive in the lib.rs file and are then forwarded to the instructions.
+The instructions then call the state to get the data and update it.
+
+```shell
+├── src
+│   ├── instructions
+│   │   ├── chop_tree.rs
+│   │   ├── init_player.rs
+│   │   └── update_energy.rs
+│   ├── state
+│   │   ├── game_data.rs
+│   │   ├── mod.rs
+│   │   └── player_data.rs
+│   ├── lib.rs
+│   └── constants.rs
+│   └── errors.rs
+
+```
+
+The project uses session keys (maintained by Magic Block) for auto approving transactions using an expiring token. 
+
 # Energy System  
 
 Many casual games in traditional gaming use energy systems. This is how you can build it on chain.
-Recommended to start with the Solana cookbook [Hello world example]([https://unity.com/](https://solanacookbook.com/gaming/hello-world.html#getting-started-with-your-first-solana-game)).  
+
+If you have no prior knowledge in solan and rust programming it is recommended to start with the Solana cookbook [Hello world example]([https://unity.com/](https://solanacookbook.com/gaming/hello-world.html#getting-started-with-your-first-solana-game)).  
 
 ## Anchor program 
 
@@ -66,38 +134,37 @@ We also have a value for wood which will store the wood the lumber jack chucks i
 pub fn init_player(ctx: Context<InitPlayer>) -> Result<()> {
     ctx.accounts.player.energy = MAX_ENERGY;
     ctx.accounts.player.last_login = Clock::get()?.unix_timestamp;
+    ctx.accounts.player.authority = ctx.accounts.signer.key();
     Ok(())
 }
 
-...
-
 #[derive(Accounts)]
-pub struct InitPlayer <'info> {
-    #[account( 
-        init, 
+pub struct InitPlayer<'info> {
+    #[account(
+        init,
         payer = signer,
-        space = 1000,
+        space = 1000, // 8+32+x+1+8+8+8 But taking 1000 to have space to expand easily.
         seeds = [b"player".as_ref(), signer.key().as_ref()],
         bump,
     )]
     pub player: Account<'info, PlayerData>,
+
+    #[account(
+        init_if_needed,
+        payer = signer,
+        space = 1000, // 8 + 8 for anchor account discriminator and the u64. Using 1000 to have space to expand easily.
+        seeds = [b"gameData".as_ref()],
+        bump,
+    )]
+    pub game_data: Account<'info, GameData>,
+
     #[account(mut)]
     pub signer: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
-
-#[account]
-pub struct PlayerData {
-    pub name: String,
-    pub level: u8,
-    pub xp: u64,
-    pub wood: u64,
-    pub energy: u64,
-    pub last_login: i64
-}
 ```
 
-### Choping trees
+### Chopping trees
 
 Then whenever the player calls the chop_tree instruction we will check if the player has enough energy and reward him with one wood. 
 
@@ -134,22 +201,26 @@ The is a common technic in game development.
 const TIME_TO_REFILL_ENERGY: i64 = 60;
 const MAX_ENERGY: u64 = 10;
 
-pub fn update_energy(ctx: &mut ChopTree) -> Result<()> {
-    let mut time_passed: i64 = &Clock::get()?.unix_timestamp - &ctx.player.last_login;
-    let mut time_spent: i64 = 0;
-    while time_passed > TIME_TO_REFILL_ENERGY {
-        ctx.player.energy = ctx.player.energy + 1;
+pub fn update_energy(&mut self) -> Result<()> {
+    // Get the current timestamp
+    let current_timestamp = Clock::get()?.unix_timestamp;
+
+    // Calculate the time passed since the last login
+    let mut time_passed: i64 = current_timestamp - self.last_login;
+
+    // Calculate the time spent refilling energy
+    let mut time_spent = 0;
+
+    while time_passed >= TIME_TO_REFILL_ENERGY && self.energy < MAX_ENERGY {
+        self.energy += 1;
         time_passed -= TIME_TO_REFILL_ENERGY;
         time_spent += TIME_TO_REFILL_ENERGY;
-        if ctx.player.energy == MAX_ENERGY {
-            break;
-        }
     }
 
-    if ctx.player.energy >= MAX_ENERGY {
-        ctx.player.last_login = Clock::get()?.unix_timestamp;
+    if self.energy >= MAX_ENERGY {
+        self.last_login = current_timestamp;
     } else {
-        ctx.player.last_login += time_spent;
+        self.last_login += time_spent;
     }
 
     Ok(())
@@ -190,24 +261,25 @@ useEffect(() => {
 In the java script client we can then perform the same logic and show a countdown timer for the player so that he knows when the next energy will be available:
 
 ```js
-useEffect(() => {
-    const interval = setInterval(async () => {
-        if (gameState == null || gameState.lastLogin == undefined || gameState.energy >= 10) {return;}
-        const lastLoginTime=gameState.lastLogin * 1000;
-        let timePassed = ((Date.now() - lastLoginTime) / 1000);
-        while (timePassed > TIME_TO_REFILL_ENERGY && gameState.energy < MAX_ENERGY) {
-            gameState.energy = (parseInt(gameState.energy) + 1);
-            gameState.lastLogin = parseInt(gameState.lastLogin) + TIME_TO_REFILL_ENERGY;
-            timePassed -= TIME_TO_REFILL_ENERGY;
-        }
-        setTimePassed(timePassed);
-        let nextEnergyIn = Math.floor(TIME_TO_REFILL_ENERGY -timePassed);
-        if (nextEnergyIn < TIME_TO_REFILL_ENERGY && nextEnergyIn > 0) {
-            setEnergyNextIn(nextEnergyIn);
-        } else {
-            setEnergyNextIn(0);
-        }
+const interval = setInterval(async () => {
+    if (gameState == null || gameState.lastLogin == undefined || gameState.energy >= 10) {
+        return;
+    }
 
+    const lastLoginTime = gameState.lastLogin * 1000;
+    const currentTime = Date.now();
+    const timePassed = (currentTime - lastLoginTime) / 1000;
+
+    while (timePassed > TIME_TO_REFILL_ENERGY && gameState.energy < MAX_ENERGY) {
+        gameState.energy++;
+        gameState.lastLogin += TIME_TO_REFILL_ENERGY;
+        timePassed -= TIME_TO_REFILL_ENERGY;
+    }
+
+    setTimePassed(timePassed);
+
+    const nextEnergyIn = Math.floor(TIME_TO_REFILL_ENERGY - timePassed);
+    setEnergyNextIn(nextEnergyIn > 0 ? nextEnergyIn : 0);
     }, 1000);
 
     return () => clearInterval(interval);
@@ -220,6 +292,17 @@ useEffect(() => {
 </div>)} 
 
   ```
+
+## Unity client 
+
+In the Unity client everything interesting happens in the AnchorService. 
+To generate the client code you can follow the instructions here: https://solanacookbook.com/gaming/porting-anchor-to-unity.html#generating-the-client
+
+```bash
+cd program 
+dotnet tool install Solana.Unity.Anchor.Tool <- run once
+dotnet anchorgen -i target/idl/lumberjack.json -o target/idl/Lumberjack.cs
+```
 
 ### Session keys
 

@@ -30,7 +30,7 @@ namespace Game.Scripts.Ui
             Root.gameObject.SetActive(false);
         }
 
-        private void OnCloseButtonClicked()
+        protected void OnCloseButtonClicked()
         {
             Close();
         }

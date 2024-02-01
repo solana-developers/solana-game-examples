@@ -1,3 +1,4 @@
+using System;
 using Frictionless;
 using Game.Scripts.Ui;
 using Services;
@@ -16,6 +17,11 @@ public class SelectedNft : MonoBehaviour
     {
         MessageRouter.AddHandler<NftSelectedMessage>(OnNftSelectedMessage);
         UpdateContent();
+    }
+
+    private void OnDestroy()
+    {
+        MessageRouter.RemoveHandler<NftSelectedMessage>(OnNftSelectedMessage);
     }
 
     private void OnNftSelectedMessage(NftSelectedMessage message)

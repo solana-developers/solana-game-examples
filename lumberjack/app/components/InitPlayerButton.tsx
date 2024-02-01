@@ -3,7 +3,7 @@ import { Button } from "@chakra-ui/react"
 import { SystemProgram } from "@solana/web3.js"
 import { useConnection, useWallet } from "@solana/wallet-adapter-react"
 import { useGameState } from "@/contexts/GameStateProvider"
-import { program } from "@/utils/anchor"
+import { GAME_DATA_SEED, gameDataPDA, program } from "@/utils/anchor"
 
 const InitPlayerButton = () => {
   const { publicKey, sendTransaction } = useWallet()
@@ -19,9 +19,10 @@ const InitPlayerButton = () => {
 
     try {
       const transaction = await program.methods
-        .initPlayer()
+        .initPlayer(GAME_DATA_SEED)
         .accounts({
           player: playerDataPDA,
+          gameData: gameDataPDA,
           signer: publicKey,
           systemProgram: SystemProgram.programId,
         })

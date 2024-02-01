@@ -1,11 +1,14 @@
 using System;
 using System.Collections;
+using Cysharp.Threading.Tasks;
+using DG.Tweening;
 using Frictionless;
 using Lumberjack.Accounts;
 using Solana.Unity.SDK;
 using Services;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
@@ -25,13 +28,26 @@ public class GameScreen : MonoBehaviour
 
     public GameObject NotInitializedRoot;
     public GameObject InitializedRoot;
+    public GameObject ActionFx;
+    public GameObject ActionFxPosition;
+    public GameObject Tree;
+    
+    private Vector3 CharacterStartPosition;
+    private PlayerData currentPlayerData;
+    private GameData currentGameData;
     
     void Start()
     {
         ChuckWoodSessionButton.onClick.AddListener(OnChuckWoodSessionButtonClicked);
         NftsButton.onClick.AddListener(OnNftsButtonClicked);
         InitGameDataButton.onClick.AddListener(OnInitGameDataButtonClicked);
-
+        CharacterStartPosition = ChuckWoodSessionButton.transform.localPosition;
+        // In case we are not logged in yet load the LoginScene
+        if (Web3.Account == null)
+        {
+            SceneManager.LoadScene("LoginScene");
+            return;
+        }
         StartCoroutine(UpdateNextEnergy());
         
         AnchorService.OnPlayerDataChanged += OnPlayerDataChanged;
@@ -53,6 +69,7 @@ public class GameScreen : MonoBehaviour
 
     private async void OnInitGameDataButtonClicked()
     {
+        // On local host we probably dont have the session key progeam, but can just sign with the in game wallet instead. 
         await AnchorService.Instance.InitAccounts(!Web3.Rpc.NodeAddress.AbsoluteUri.Contains("localhost"));
     }
 
@@ -72,14 +89,28 @@ public class GameScreen : MonoBehaviour
 
     private void OnPlayerDataChanged(PlayerData playerData)
     {
+        if (currentPlayerData != null && currentPlayerData.Wood < playerData.Wood)
+        {
+            ChuckWoodSessionButton.transform.DOLocalMove(CharacterStartPosition, 0.2f);
+        }
+
+        currentPlayerData = playerData;
         UpdateContent();
     }
 
     private void OnGameDataChanged(GameData gameData)
     {
-        var totalLogAvailable = ulong.MaxValue - gameData.TotalWoodCollected;
-        TotalLogAvailableText.text = totalLogAvailable + " Wood available.";
+        if (currentGameData != null && currentGameData.TotalWoodCollected != gameData.TotalWoodCollected)
+        {
+            Tree.transform.DOKill();
+            Tree.transform.localScale = Vector3.one;
+            Tree.transform.DOPunchScale(Vector3.one * 0.1f, 0.1f);
+            Instantiate(ActionFx, ActionFxPosition.transform.position, Quaternion.identity);
+        }
 
+        var totalLogAvailable = AnchorService.MAX_WOOD_PER_TREE - gameData.TotalWoodCollected;
+        TotalLogAvailableText.text = totalLogAvailable + " Wood available.";
+        currentGameData = gameData;
     }
 
     private void UpdateContent()
@@ -123,6 +154,11 @@ public class GameScreen : MonoBehaviour
 
     private void OnChuckWoodSessionButtonClicked()
     {
-        AnchorService.Instance.ChopTree(!Web3.Rpc.NodeAddress.AbsoluteUri.Contains("localhost"));
+        ChuckWoodSessionButton.transform.localPosition = CharacterStartPosition;
+        ChuckWoodSessionButton.transform.DOLocalMove(CharacterStartPosition + Vector3.up * 10, 0.3f);
+        AnchorService.Instance.ChopTree(!Web3.Rpc.NodeAddress.AbsoluteUri.Contains("localhost"), () =>
+        {
+            // Do something with the result. The websocket update in onPlayerDataChanged will come a bit earlier
+        });
     }
 }

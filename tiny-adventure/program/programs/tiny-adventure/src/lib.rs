@@ -53,7 +53,7 @@ fn print_player(player_position: u8) {
 #[derive(Accounts)]
 pub struct Initialize<'info> {
     #[account(
-        init_if_needed,
+        init,
         seeds = [b"level1"],
         bump,
         payer = signer,

@@ -55,6 +55,10 @@ export type TinyAdventure = {
           {
             "name": "playerPosition",
             "type": "u8"
+          },
+          {
+            "name": "player",
+            "type": "bytes"
           }
         ]
       }
@@ -119,6 +123,10 @@ export const IDL: TinyAdventure = {
           {
             "name": "playerPosition",
             "type": "u8"
+          },
+          {
+            "name": "player",
+            "type": "bytes"
           }
         ]
       }

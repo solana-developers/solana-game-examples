@@ -6,6 +6,7 @@ using Solana.Unity.SDK.Nft;
 using Services;
 using UnityEngine;
 
+// Shows a list of all nfts in the NftService
 public class NftItemListView : MonoBehaviour
 {
     public GameObject ItemRoot;
@@ -82,7 +83,7 @@ public class NftItemListView : MonoBehaviour
         {
             if (nft.CurrentMetaPlexNFt.metaplexData.data.mint == metaPlexNFt.metaplexData.data.mint)
             {
-                // already exists
+                nft.SetData(metaPlexNFt, OnItemClicked);
                 return;
             }
         }

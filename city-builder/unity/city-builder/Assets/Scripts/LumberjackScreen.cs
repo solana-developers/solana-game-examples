@@ -3,6 +3,7 @@ using System.Collections;
 using Frictionless;
 using Lumberjack.Accounts;
 using Solana.Unity.SDK;
+using Solana.Unity.Wallet.Bip39;
 using SolPlay.Scripts.Services;
 using TMPro;
 using UnityEngine;
@@ -177,6 +178,10 @@ public class LumberjackScreen : MonoBehaviour
     private async void OnEditorLoginClicked()
     {
         // Dont use this one for production.
-        await Web3.Instance.LoginInGameWallet("1234");
+        var newMnemonic = new Mnemonic(WordList.English, WordCount.Twelve);
+
+        // Dont use this one for production. Its only ment for editor login
+        var account = await Web3.Instance.LoginInGameWallet("1234") ??
+                      await Web3.Instance.CreateAccount(newMnemonic.ToString(), "1234");
     }
 }

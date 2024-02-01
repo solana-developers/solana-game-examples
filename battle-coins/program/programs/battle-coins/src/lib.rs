@@ -1,20 +1,25 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    metadata::{create_metadata_accounts_v3, CreateMetadataAccountsV3, Metadata},
+    metadata::{
+        create_metadata_accounts_v3,
+        mpl_token_metadata::{accounts::Metadata as MetadataAccount, types::DataV2},
+        CreateMetadataAccountsV3, Metadata,
+    },
     token::{burn, mint_to, Burn, Mint, MintTo, Token, TokenAccount},
 };
-use mpl_token_metadata::{pda::find_metadata_account, state::DataV2};
 use solana_program::{pubkey, pubkey::Pubkey};
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("6Rrp7e4J5pxNCQDddWivSbVzEoe2gv4VsrrTLCKKM2GL");
+
+const ADMIN_PUBKEY: Pubkey = pubkey!("5vJwnLeyjV8uNJSp1zn7VLW8GwiQbcsQbGaVSwRmkE4r");
 
 // TODO: run "solana address" cli command and update ADMIN_PUBKEY with your own pubkey
-const ADMIN_PUBKEY: Pubkey = pubkey!("...");
 const MAX_HEALTH: u8 = 100;
 
 #[program]
 pub mod battle_coins {
+
     use super::*;
 
     // Create new token mint with metadata using PDA as mint authority
@@ -26,7 +31,7 @@ pub mod battle_coins {
     ) -> Result<()> {
         // PDA seeds and bump to "sign" for CPI
         let seeds = b"reward";
-        let bump = *ctx.bumps.get("reward_token_mint").unwrap();
+        let bump = ctx.bumps.reward_token_mint;
         let signer: &[&[&[u8]]] = &[&[seeds, &[bump]]];
 
         // On-chain token metadata for the mint
@@ -77,7 +82,7 @@ pub mod battle_coins {
     pub fn kill_enemy(ctx: Context<KillEnemy>) -> Result<()> {
         // Check if player has enough health
         if ctx.accounts.player_data.health == 0 {
-            return err!(ErrorCode::NotEnoughHealth);
+            return err!(MyError::NotEnoughHealth);
         }
 
         // Calculate random damage using slot as seed for xorshift RNG
@@ -96,7 +101,7 @@ pub mod battle_coins {
 
         // PDA seeds and bump to "sign" for CPI
         let seeds = b"reward";
-        let bump = *ctx.bumps.get("reward_token_mint").unwrap();
+        let bump = ctx.bumps.reward_token_mint;
         let signer: &[&[&[u8]]] = &[&[seeds, &[bump]]];
 
         // CPI Context
@@ -168,7 +173,7 @@ pub struct CreateMint<'info> {
     ///CHECK: Using "address" constraint to validate metadata account address, this account is created via CPI in the instruction
     #[account(
         mut,
-        address=find_metadata_account(&reward_token_mint.key()).0
+        address = MetadataAccount::find_pda(&reward_token_mint.key()).0,
     )]
     pub metadata_account: UncheckedAccount<'info>,
 
@@ -265,7 +270,7 @@ pub struct PlayerData {
 }
 
 #[error_code]
-pub enum ErrorCode {
+pub enum MyError {
     #[msg("Not enough health")]
     NotEnoughHealth,
 }

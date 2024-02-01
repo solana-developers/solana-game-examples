@@ -6,6 +6,7 @@ using Frictionless;
 using UnityEngine;
 using NativeWebSocket;
 using Newtonsoft.Json;
+using Socket;
 using Solana.Unity.Wallet;
 using WebSocketState = NativeWebSocket.WebSocketState;
 

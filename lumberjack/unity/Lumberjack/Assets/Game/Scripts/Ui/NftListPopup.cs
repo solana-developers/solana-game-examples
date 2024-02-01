@@ -55,6 +55,8 @@ public class NftListPopup : BasePopup
             // when an nft was selected we want to close the popup so we can start the game.
             Close();
         });
+        
+        UpdateOwnCollectionStatus();
         base.Open(uiData);
     }
 
@@ -65,18 +67,18 @@ public class NftListPopup : BasePopup
             MinitingBlocker.gameObject.SetActive(true);
         }
 
-        // Mint a pirate sship
+        // Mint a pirate ship
         var signature = await ServiceFactory.Resolve<NftMintingService>()
             .MintNftWithMetaData(
                 "https://shdw-drive.genesysgo.net/QZNGUVnJgkw6sGQddwZVZkhyUWSUXAjXF9HQAjiVZ55/DummyPirateShipMetaData.json",
-                "Simple Pirate Ship", "Pirate", b =>
+                "Simple Pirate Ship", "Pirate", success=>
                 {
                     if (MinitingBlocker != null)
                     {
                         MinitingBlocker.gameObject.SetActive(false);
                     }
 
-                    if (b)
+                    if (success)
                     {
                         RequestNfts();   
                     }
@@ -93,10 +95,10 @@ public class NftListPopup : BasePopup
     private bool UpdateOwnCollectionStatus()
     {
         var nftService = ServiceFactory.Resolve<NftService>();
-        bool ownsBeaver = nftService.OwnsNftOfMintAuthority(NftService.NftMintAuthority);
-        YouDontOwnANftOfCollectionRoot.gameObject.SetActive(!ownsBeaver);
-        YouOwnANftOfCollectionRoot.gameObject.SetActive(ownsBeaver);
-        return ownsBeaver;
+        bool ownsAndNftOfAuthority = nftService.OwnsNftByCreator(NftService.NftCreator);
+        YouDontOwnANftOfCollectionRoot.gameObject.SetActive(!ownsAndNftOfAuthority);
+        YouOwnANftOfCollectionRoot.gameObject.SetActive(ownsAndNftOfAuthority);
+        return ownsAndNftOfAuthority;
     }
 
     private void OnGetNftButtonClicked()

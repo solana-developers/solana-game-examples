@@ -6,17 +6,21 @@ import {
   PlayerData,
   MAX_ENERGY,
   TIME_TO_REFILL_ENERGY,
+  GameData,
+  GAME_DATA_SEED,
 } from "@/utils/anchor"
 import { BN } from "@coral-xyz/anchor"
 
 const GameStateContext = createContext<{
-  playerDataPDA: PublicKey | null
+  playerDataPDA: PublicKey | null  
   gameState: PlayerData | null
   nextEnergyIn: number
+  totalWoodAvailable: number | null
 }>({
   playerDataPDA: null,
   gameState: null,
   nextEnergyIn: 0,
+  totalWoodAvailable: 0
 })
 
 export const useGameState = () => useContext(GameStateContext)
@@ -30,12 +34,15 @@ export const GameStateProvider = ({
   const { connection } = useConnection()
 
   const [playerDataPDA, setPlayerData] = useState<PublicKey | null>(null)
-  const [gameState, setGameState] = useState<PlayerData | null>(null)
+  const [playerState, setPlayerState] = useState<PlayerData | null>(null)
   const [timePassed, setTimePassed] = useState<any>([])
   const [nextEnergyIn, setEnergyNextIn] = useState<number>(0)
+  const [gameDataPDA, setGameDataPDA] = useState<PublicKey | null>(null)
+  const [gameData, setGameData] = useState<GameData | null>(null)
+  const [totalWoodAvailable, setTotalWoodAvailable] = useState<number | null>(0)
 
   useEffect(() => {
-    setGameState(null)
+    setPlayerState(null)
     if (!publicKey) {
       return
     }
@@ -48,59 +55,84 @@ export const GameStateProvider = ({
     program.account.playerData
       .fetch(pda)
       .then((data) => {
-        setGameState(data)
+        setPlayerState(data)
       })
       .catch((error) => {
         window.alert("No player data found, please init!")
       })
 
     connection.onAccountChange(pda, (account) => {
-      setGameState(program.coder.accounts.decode("playerData", account.data))
+      setPlayerState(program.coder.accounts.decode("playerData", account.data))
     })
+    
   }, [publicKey])
+
+  useEffect(() => {
+    setGameData(null)
+    if (!publicKey) {
+      return
+    }
+    const [pda] = PublicKey.findProgramAddressSync(
+      [Buffer.from(GAME_DATA_SEED, "utf8")],
+      program.programId
+    )
+    setGameDataPDA(gameDataPDA)
+
+    program.account.gameData
+      .fetch(pda)
+      .then((data) => {
+        setGameData(data)
+        setTotalWoodAvailable(data.totalWoodCollected.toNumber());
+      })
+      .catch((error) => {
+        window.alert("No game data found, please init!")
+      })
+
+    connection.onAccountChange(pda, (account) => {
+      const newGameData = program.coder.accounts.decode("gameData", account.data)
+      setGameData(newGameData);
+      setTotalWoodAvailable(newGameData.totalWoodCollected.toNumber());
+    })
+    
+  }, [publicKey])
+
 
   useEffect(() => {
     const interval = setInterval(async () => {
       if (
-        gameState == null ||
-        gameState.lastLogin == undefined ||
-        gameState.energy.toNumber() >= MAX_ENERGY
+        playerState == null ||
+        playerState.lastLogin == undefined ||
+        playerState.energy.toNumber() >= MAX_ENERGY
       ) {
-        return
+        return;
       }
-      const lastLoginTime = gameState.lastLogin.toNumber() * 1000
-      let timePassed = (Date.now() - lastLoginTime) / 1000
-      while (
-        timePassed >= TIME_TO_REFILL_ENERGY.toNumber() &&
-        gameState.energy.toNumber() < MAX_ENERGY
-      ) {
-        gameState.energy = gameState.energy.add(new BN(1))
-        gameState.lastLogin = gameState.lastLogin.add(TIME_TO_REFILL_ENERGY)
-        timePassed -= TIME_TO_REFILL_ENERGY.toNumber()
+    
+      const lastLoginTime = playerState.lastLogin.toNumber() * 1000;
+      const currentTime = Date.now();
+      let timePassed = (currentTime - lastLoginTime) / 1000;
+    
+      while (timePassed >= TIME_TO_REFILL_ENERGY.toNumber() && playerState.energy.toNumber() < MAX_ENERGY) {
+        playerState.energy = playerState.energy.add(new BN(1));
+        playerState.lastLogin = playerState.lastLogin.add(TIME_TO_REFILL_ENERGY);
+        timePassed -= TIME_TO_REFILL_ENERGY.toNumber();
       }
-      setTimePassed(timePassed)
-      let nextEnergyIn = Math.floor(
-        TIME_TO_REFILL_ENERGY.toNumber() - timePassed
-      )
-      if (
-        nextEnergyIn < TIME_TO_REFILL_ENERGY.toNumber() &&
-        nextEnergyIn >= 0
-      ) {
-        setEnergyNextIn(nextEnergyIn)
-      } else {
-        setEnergyNextIn(0)
-      }
-    }, 1000)
+    
+      setTimePassed(timePassed);
+    
+      const nextEnergyIn = Math.floor(TIME_TO_REFILL_ENERGY.toNumber() - timePassed);
+      setEnergyNextIn(nextEnergyIn > 0 ? nextEnergyIn : 0);
+    }, 1000);
 
     return () => clearInterval(interval)
-  }, [gameState, timePassed, nextEnergyIn])
+  }, [playerState, timePassed, nextEnergyIn])
 
   return (
     <GameStateContext.Provider
       value={{
         playerDataPDA,
-        gameState,
+        gameState: playerState,
         nextEnergyIn,
+        totalWoodAvailable,
       }}
     >
       {children}

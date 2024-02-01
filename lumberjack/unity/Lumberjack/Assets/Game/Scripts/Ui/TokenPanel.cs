@@ -1,3 +1,4 @@
+using Frictionless;
 using Solana.Unity.Programs;
 using Solana.Unity.Rpc.Types;
 using Solana.Unity.SDK;
@@ -23,21 +24,22 @@ namespace Game.Scripts.Ui
         void Awake()
         {
             Web3.OnLogin += onLogin;
+            UpdateAndSubscribeToTokenAccount();
         }
+        
         void OnDestroy()
         {
             Web3.OnLogin -= onLogin;
         }
 
-        private async void onLogin(Account account)
+        private void onLogin(Account account)
         {
-            await Web3.Wallet.AwaitWsRpcConnection();
             UpdateAndSubscribeToTokenAccount();
         }
 
         private async void UpdateAndSubscribeToTokenAccount()
         {
-            if (Web3.Instance.WalletBase.Account == null)
+            if (Web3.Instance == null || Web3.Instance.WalletBase.Account == null)
             {
                 return;
             }
@@ -57,6 +59,7 @@ namespace Game.Scripts.Ui
 
             await Web3.WsRpc.SubscribeTokenAccountAsync(_associatedTokenAddress, (state, value) =>
             {
+                TokenAmount.text = value.Value.Data.Parsed.Info.TokenAmount.UiAmountString;
                 Debug.Log("Token balance (Socket Token): " + value.Value.Data.Parsed.Info.TokenAmount.UiAmountString);
             }, Commitment.Confirmed);
             

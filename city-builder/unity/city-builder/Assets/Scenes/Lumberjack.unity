@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.43848193, g: 0.48656893, b: 0.56684405, a: 1}
+  m_IndirectSpecularColor: {r: 0.4384823, g: 0.48656976, b: 0.56684476, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -473,7 +473,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 342e1b34380784aedb9c1b7ebaea435b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  socketUrl: ws://localhost:8900
+  socketUrl: wss://rpc.magicblock.app/devnet
   WebSocketState: 0
 --- !u!4 &1476887106
 Transform:
@@ -676,8 +676,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   rpcCluster: 1
-  customRpc: http://localhost:8899
-  webSocketsRpc: ws://localhost:8900
+  customRpc: https://rpc.magicblock.app/devnet
+  webSocketsRpc: wss://rpc.magicblock.app/devnet
   autoConnectOnStartup: 0
   web3AuthWalletOptions:
     appName: Web3Auth Sample App

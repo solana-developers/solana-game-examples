@@ -1,9 +1,9 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using NativeWebSocket;
 using UnityEngine;
 
-namespace NativeWebSocket
+namespace Socket
 {
     public class SharpWebSockets : IWebSocket
     {
@@ -81,6 +81,11 @@ namespace NativeWebSocket
             OnOpen?.Invoke();
         }
 
+        public Task Connect(bool awaitConnection = true)
+        {
+            throw new System.NotImplementedException();
+        }
+
         public Task Close()
         {
             sharpWebSocket.Close();
@@ -91,6 +96,11 @@ namespace NativeWebSocket
         {
             sharpWebSocket.Send(bytes);
             return Task.CompletedTask;
+        }
+
+        public Task SendText(string message)
+        {
+            throw new System.NotImplementedException();
         }
 
         public void DispatchMessageQueue()

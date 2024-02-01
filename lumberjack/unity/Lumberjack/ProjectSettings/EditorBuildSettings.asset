@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/Lumberjack.unity
+    path: Assets/Game/Scenes/LoginScene.unity
     guid: 325f7fb08642c46a6a1d7f860111bd4b
+  - enabled: 1
+    path: Assets/Game/Scenes/GameScene.unity
+    guid: a3de581c39b3447939f31966c9c9d8fb
   m_configObjects: {}
