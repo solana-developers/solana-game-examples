@@ -118,7 +118,7 @@ public class TinyAdventureTwoService : MonoBehaviour
     {
         TransactionInstruction moveRightInstruction = GetMoveRightInstruction(password);
         var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
-        var result = await walletHolderService.BaseWallet.ActiveRpcClient.GetRecentBlockHashAsync(Commitment.Confirmed);
+        var result = await walletHolderService.BaseWallet.ActiveRpcClient.GetLatestBlockHashAsync(Commitment.Confirmed);
         
         Transaction transaction = new Transaction();
         transaction.FeePayer = walletHolderService.BaseWallet.Account.PublicKey;

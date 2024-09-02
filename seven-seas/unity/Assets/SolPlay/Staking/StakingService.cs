@@ -101,7 +101,7 @@ namespace SolPlay.Staking
         private static async Task<Transaction> CreateEmptyTransaction()
         {
             var wallet = ServiceFactory.Resolve<WalletHolderService>().BaseWallet;
-            var blockHash = await wallet.ActiveRpcClient.GetRecentBlockHashAsync();
+            var blockHash = await wallet.ActiveRpcClient.GetLatestBlockHashAsync();
 
             if (blockHash.Result == null)
             {

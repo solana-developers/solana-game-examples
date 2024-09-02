@@ -197,7 +197,7 @@ namespace SolPlay.Scripts.Services
 
             var levelAccount = await GetHighscoreAccountData(nft);
 
-            var blockHash = await wallet.ActiveRpcClient.GetRecentBlockHashAsync();
+            var blockHash = await wallet.ActiveRpcClient.GetLatestBlockHashAsync();
 
             if (blockHash.Result == null)
             {
@@ -205,7 +205,7 @@ namespace SolPlay.Scripts.Services
                 return;
             }
 
-            ulong fees = blockHash.Result.Value.FeeCalculator.LamportsPerSignature * 100;
+            ulong fees = 5000 * 100;
             if (levelAccount == null)
             {
                 var accountDataSize = HighscoreAccount.GetAccountSize();
@@ -252,7 +252,7 @@ namespace SolPlay.Scripts.Services
                 highScore);
         }
 
-        private async Task CreateAndSendUnsignedSafeHighscoreTransaction(BlockHash blockHash, bool createAccount,
+        private async Task CreateAndSendUnsignedSafeHighscoreTransaction(LatestBlockHash blockHash, bool createAccount,
             Nft nft, uint highScore)
         {
             var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();

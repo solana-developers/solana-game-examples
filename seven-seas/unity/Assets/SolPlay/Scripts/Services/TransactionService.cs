@@ -68,7 +68,7 @@ namespace SolPlay.Scripts.Services
         private async void UpdateRecentBlockHash()
         {
             var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
-            var blockHash = await walletHolderService.BaseWallet.ActiveRpcClient.GetRecentBlockHashAsync();
+            var blockHash = await walletHolderService.BaseWallet.ActiveRpcClient.GetLatestBlockHashAsync();
             if (blockHash.WasSuccessful)
             {
                 latestBlockHash = blockHash.Result.Value.Blockhash;
@@ -202,7 +202,7 @@ namespace SolPlay.Scripts.Services
                 await wallHolderService.BaseWallet.ActiveRpcClient.GetTokenAccountsByOwnerAsync(destination,
                     new PublicKey(nft.metaplexData.data.mint));
 
-            var blockHash = await wallHolderService.BaseWallet.ActiveRpcClient.GetRecentBlockHashAsync();
+            var blockHash = await wallHolderService.BaseWallet.ActiveRpcClient.GetLatestBlockHashAsync();
 
             var transaction = new Transaction
             {
@@ -260,7 +260,7 @@ namespace SolPlay.Scripts.Services
                 await wallHolderService.BaseWallet.ActiveRpcClient.GetTokenAccountsByOwnerAsync(destination, tokenMint,
                     null, commitment);
 
-            var blockHash = await wallHolderService.BaseWallet.ActiveRpcClient.GetRecentBlockHashAsync();
+            var blockHash = await wallHolderService.BaseWallet.ActiveRpcClient.GetLatestBlockHashAsync();
 
             var transaction = new Transaction
             {
@@ -339,8 +339,8 @@ namespace SolPlay.Scripts.Services
 
             if (!PollLatestBlockHash)
             {
-                RequestResult<ResponseValue<BlockHash>> blockHashResult =
-                    await wallet.ActiveRpcClient.GetRecentBlockHashAsync(Commitment.Confirmed);
+                RequestResult<ResponseValue<LatestBlockHash>> blockHashResult =
+                    await wallet.ActiveRpcClient.GetLatestBlockHashAsync(Commitment.Confirmed);
 
                 if (blockHashResult != null)
                 {
@@ -366,7 +366,7 @@ namespace SolPlay.Scripts.Services
                 latestBlockHash);
         }
 
-        private static void PrintBlockHashError(RequestResult<ResponseValue<BlockHash>> blockHashResult,
+        private static void PrintBlockHashError(RequestResult<ResponseValue<LatestBlockHash>> blockHashResult,
             TransactionInfoSystem.TransactionInfoObject transactionInfoObject)
         {
             var message = "";
@@ -394,7 +394,7 @@ namespace SolPlay.Scripts.Services
 
             if (blockHashOverride == null)
             {
-                var result = await wallet.ActiveRpcClient.GetRecentBlockHashAsync(commitment);
+                var result = await wallet.ActiveRpcClient.GetLatestBlockHashAsync(commitment);
                 if (result.Result == null)
                 {
                     LoggingService.Log($"Block hash null. Ignore {transactionName}", true);
@@ -448,7 +448,7 @@ namespace SolPlay.Scripts.Services
             long lamports)
         {
             Debug.Log($"From {wallet.Account.PublicKey} to {toPublicKey} {lamports}");
-            var blockHash = await wallet.ActiveRpcClient.GetRecentBlockHashAsync();
+            var blockHash = await wallet.ActiveRpcClient.GetLatestBlockHashAsync();
 
             if (blockHash.Result == null)
             {
@@ -476,7 +476,7 @@ namespace SolPlay.Scripts.Services
         }
 
         private Transaction CreateUnsignedTransferSolTransaction(PublicKey from, string toPublicKey,
-            RequestResult<ResponseValue<BlockHash>> blockHash, long lamports)
+            RequestResult<ResponseValue<LatestBlockHash>> blockHash, long lamports)
         {
             Transaction transaction = new Transaction();
             transaction.Instructions = new List<TransactionInstruction>();

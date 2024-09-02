@@ -119,7 +119,7 @@ namespace SolPlay.DeeplinksNftExample.Scripts
         /// </summary>
         public async Task<string> InitializePool(WalletBase wallet)
         {
-            RequestResult<ResponseValue<BlockHash>> blockHash = await wallet.ActiveRpcClient.GetRecentBlockHashAsync();
+            RequestResult<ResponseValue<LatestBlockHash>> blockHash = await wallet.ActiveRpcClient.GetLatestBlockHashAsync();
 
             Transaction swapOrcaTokenTransaction = new Transaction();
             swapOrcaTokenTransaction.FeePayer = wallet.Account.PublicKey;
@@ -156,7 +156,7 @@ namespace SolPlay.DeeplinksNftExample.Scripts
         public async Task<string> Swap(WalletBase wallet, Whirlpool.Accounts.Whirlpool pool, UInt64 amount,
             bool aToB = true)
         {
-            RequestResult<ResponseValue<BlockHash>> blockHash = await wallet.ActiveRpcClient.GetRecentBlockHashAsync();
+            RequestResult<ResponseValue<LatestBlockHash>> blockHash = await wallet.ActiveRpcClient.GetLatestBlockHashAsync();
 
             PublicKey whirlPoolPda = OrcaPDAUtils.GetWhirlpoolPda(WhirlpoolProgammId, pool.WhirlpoolsConfig,
                 pool.TokenMintA, pool.TokenMintB, pool.TickSpacing);

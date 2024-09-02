@@ -48,7 +48,7 @@ namespace SolPlay.Scripts.Services
                 mint,
                 localWallet.Account.PublicKey,
                 TokenProgram.ProgramIdKey);
-            var blockHash = await localWallet.ActiveRpcClient.GetRecentBlockHashAsync();
+            var blockHash = await localWallet.ActiveRpcClient.GetLatestBlockHashAsync();
 
             var signers = new List<Account> {localWallet.Account};
             var transactionBuilder = new TransactionBuilder()
@@ -109,7 +109,7 @@ namespace SolPlay.Scripts.Services
                 localWallet.Account.PublicKey,
                 localWallet.Account.PublicKey, 
                 TokenProgram.ProgramIdKey);
-            var blockHash = await localWallet.ActiveRpcClient.GetRecentBlockHashAsync();
+            var blockHash = await localWallet.ActiveRpcClient.GetLatestBlockHashAsync();
 
             var signers = new List<Account> {localWallet.Account};
             var transactionBuilder = new TransactionBuilder()
@@ -184,7 +184,7 @@ namespace SolPlay.Scripts.Services
             Debug.Log($"Balance: {balance.Result.Value} ");
             Debug.Log($"Mint key : {mint.PublicKey} ");
 
-            var blockHash = await rpcClient.GetRecentBlockHashAsync();
+            var blockHash = await rpcClient.GetLatestBlockHashAsync();
             var rentMint = await rpcClient.GetMinimumBalanceForRentExemptionAsync(
                 TokenProgram.MintAccountDataSize,
                 Commitment.Confirmed
@@ -365,7 +365,7 @@ namespace SolPlay.Scripts.Services
             Debug.Log($"Balance: {balance.Result.Value} ");
             Debug.Log($"Mint key : {mintAccount.PublicKey} ");
 
-            var blockHash = await rpcClient.GetRecentBlockHashAsync();
+            var blockHash = await rpcClient.GetLatestBlockHashAsync();
             var rentMint = await rpcClient.GetMinimumBalanceForRentExemptionAsync(
                 TokenProgram.MintAccountDataSize,
                 Commitment.Confirmed
@@ -450,7 +450,7 @@ namespace SolPlay.Scripts.Services
             var fromAccount = wallet.Account;
             var mintAccount = mint;
 
-            var blockHash = await rpcClient.GetRecentBlockHashAsync();
+            var blockHash = await rpcClient.GetLatestBlockHashAsync();
 
             // PDA METADATA
             PublicKey metadataAddress;

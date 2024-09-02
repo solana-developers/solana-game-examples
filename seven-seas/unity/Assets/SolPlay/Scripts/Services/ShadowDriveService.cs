@@ -37,7 +37,7 @@ namespace SolPlay.Scripts.Services
             var wallet = walletHolderService.BaseWallet;
             var localAccount = walletHolderService.BaseWallet.Account.PublicKey;
             var rpcClient = walletHolderService.BaseWallet.ActiveRpcClient;
-            var blockHash = await rpcClient.GetRecentBlockHashAsync();
+            var blockHash = await rpcClient.GetLatestBlockHashAsync();
 
             InitializeAccount2Accounts accountsInstrucation = new InitializeAccount2Accounts();
             accountsInstrucation.Owner1 = localAccount;

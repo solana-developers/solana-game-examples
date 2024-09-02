@@ -15,7 +15,7 @@ using UnityEngine;
 
 public class TinyAdventureService : MonoBehaviour
 {
-    public static PublicKey ProgramId = new PublicKey("tinyiK8HcU7WuLW6tfss8PJqpcVzS5Ce9M9ATXEhJGr");
+    public static PublicKey ProgramId = new PublicKey("6n4RuXb61rRYtKBCwm7ExmkRce7AM8QqrYSpjzChue7i");
 
     private PublicKey gameDataAccount;
 
@@ -95,7 +95,7 @@ public class TinyAdventureService : MonoBehaviour
     {
         TransactionInstruction moveLeftInstruction = GetMoveLeftInstruction();
         var walletHolderService = ServiceFactory.Resolve<WalletHolderService>();
-        var result = await walletHolderService.BaseWallet.ActiveRpcClient.GetRecentBlockHashAsync(Commitment.Confirmed);
+        var result = await walletHolderService.BaseWallet.ActiveRpcClient.GetLatestBlockHashAsync(Commitment.Confirmed);
         
         Transaction transaction = new Transaction();
         transaction.FeePayer = walletHolderService.BaseWallet.Account.PublicKey;
