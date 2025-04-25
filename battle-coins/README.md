@@ -1,4 +1,4 @@
-# Battle Coins (WIP)
+# Battle Coins
 
 Battle Coins is a simple game built using the Anchor framework. In this game, players can set up their own accounts, eliminate enemies to earn tokens, and recover health by burning tokens. A designated "admin" creates a token for the game, which functions as the in-game currency.
 
