@@ -13,6 +13,7 @@ use solana_program::{pubkey, pubkey::Pubkey};
 declare_id!("6Rrp7e4J5pxNCQDddWivSbVzEoe2gv4VsrrTLCKKM2GL");
 
 const ADMIN_PUBKEY: Pubkey = pubkey!("5vJwnLeyjV8uNJSp1zn7VLW8GwiQbcsQbGaVSwRmkE4r");
+const MINT_PUBKEY: Pubkey = pubkey!("BsYJC5zg6i87LNbck9tjnCw7NNxT9qNW6bXo1628pump");
 
 // TODO: run "solana address" cli command and update ADMIN_PUBKEY with your own pubkey
 const MAX_HEALTH: u8 = 100;
